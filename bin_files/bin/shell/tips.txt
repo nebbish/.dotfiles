@@ -1,0 +1,6 @@
+
+
+# This little gem will "sum" the numbers from a column of input
+du --max-depth 1 / | sed '$d' | awk '{s+=$1}END{print s}'
+
+

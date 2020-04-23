@@ -1,0 +1,22 @@
+# This file is a stand-in replacement for my ".bashrc" file for VIM sub-shells
+#
+# * this file does not invoke the global in /etc...
+# * this file does not load all of my own dotfiles
+# * this file sets an EXTRA shell option:  to expand aliases
+#
+if [ -n "$DOTFILES_DEBUG" ] && [ $TERM == "xterm-256color" ]; then
+	echo "`date` + `whoami` + executing ${BASH_SOURCE[0]}"
+fi
+
+# Load the other dotfiles that initialize "non-inheritable" options/settings
+for file in ~/.{aliases,functions}; do
+	[ -r "$file" ] && [ -f "$file" ] && source "$file";
+done;
+unset file;
+
+# This line is NOT here for normal flow, i.e. sourceing this file from ~/.bashrc
+# but rather, for special cases like 'vim' that use this file through $BASH_ENV
+# (see ~/.vimrc for setting that value - done via a 'let' command)
+shopt -s expand_aliases
+
+

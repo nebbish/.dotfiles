@@ -1,0 +1,12 @@
+[user]
+	email = nebbish@12esults.com
+	name = Jason Singer
+[core]
+	editor = vim
+[color]
+	branch = auto
+	status = auto
+	diff = auto
+[push]
+[push]
+	default = current

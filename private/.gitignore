@@ -1,0 +1,9 @@
+# This dotfiles setup uses folders named '.local' to contain files that should never
+# get added to the GIT repository.  Some examples of files that will be here:
+#
+#  * files with local passwords and keys
+#  * work related files/scripts
+#
+
+.local/
+

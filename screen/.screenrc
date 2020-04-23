@@ -1,0 +1,42 @@
+defscrollback 20000
+
+shell -$SHELL
+
+# The lines below were inspired by this stack overflow answer:
+#
+#   http://stackoverflow.com/a/70882/5844631
+#
+#       Here comes the pain...
+#       caption always "%{=b dw}:%{-b dw}:%{=b dk}[ %{-b dw}%{-b dg}$USER%{-b dw}@%{-b dg}%H %{=b dk}] [ %= %?%{-b dg}%-Lw%?%{+b dk}(%{+b dw}%n:%t%{+b dk})%?(%u)%?%{-b dw}%?%{-b dg}%+Lw%? %{=b dk}]%{-b dw}:%{+b dw}:"
+#       backtick 2 5 5 $HOME/scripts/meminfo
+#       hardstatus alwayslastline "%{+b dw}:%{-b dw}:%{+b dk}[%{-b dg} %0C:%s%a %{=b dk}]-[   %{-b dw}Load%{+b dk}:%{-b dg}%l %{+b dk}] [%{-b dg}%2`%{+b dk}] %=[ %{-b dg}%1`%{=b dk} ]%{-b dw}:%{+b dw}:%<"
+#       sorendition "-b dw"
+
+# I've customized the above into these two lines:
+caption always "%{=b dw}:%{-b}:%{+b dk}[ %{-b dg}%S %{+b dk}]%=[ %?%{-b dG}%-Lw%?%{+b dk}(%{-b dg}%n:%t%?%{k},%{c}%u%?%{+b dk})%?%{-b dG}%+Lw%? %{+b dk}]%{-b dw}:%{+b}:"
+backtick 1 5 5 $HOME/bin/meminfo
+hardstatus alwayslastline "%{=b dw}:%{-b}:%{+b dk}[ %{-b dG}Load%{k}:%{G}%l %{+b dk}]%=[ %{-b dG}%1` %{+b dk}]%{-b dw}:%{+b}:"
+
+# Not sure what this does
+#sorendition "-b dw"
+
+
+# This was inspired by this stack overflow anser:
+#	https://unix.stackexchange.com/a/40246/194787
+#
+# Here is a page indicating some trouble using this technique:
+#	https://superuser.com/questions/609402/how-to-disable-alternate-buffer-in-gnu-screen-itself-but-not-for-vim-less-insid
+#
+# Enable mouse scrolling and scroll bar history scrolling
+#termcapinfo xterm* ti@:te@
+
+
+
+# From Stress machine 6, 7, 8.  not sure who added these entries:
+
+# preserve terminal width when re-attaching
+#termcapinfo xterm* 'is=\E[r\E[m\E[2J\E[H\E[?7h\E[?1;4;6l'
+
+# use ctrl-a ctrl-a to type ctrl-a,  use ctrl-a o for other window
+#escape ^A^A
+#bind o other
