@@ -1,0 +1,6 @@
+# First, always ignore VIM swap files
+\..*?\.sw\w
+
+# Everything specific for now
+/not_sure_if.*
+

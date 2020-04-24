@@ -1,0 +1,6 @@
+# First, always ignore VIM swap files
+\..*?\.sw\w
+
+# Ignore everything except the '.local' folder and its contents
+/(?!\.local).*
+
