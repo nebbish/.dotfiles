@@ -78,7 +78,7 @@ Really I just want to include the links I used to educate me on the process of m
 
 * [How to change the expiration date of a GPG key](http://www.g-loaded.eu/2010/11/01/change-expiration-date-gpg-key/)
 
-  **I wish I read this before my first attempt at key creation started with a really long expiration because I didn't realize how _**easy**_ it is to extend the expiration :)**
+  **I wish I read this before my first attempt at key creation.  I started with a really long expiration because I didn't realize how _**easy**_ it is to extend the expiration :)**
 
 ---
 
@@ -90,15 +90,15 @@ idx=just-created; for f in .gnupg/**/*.{kbx,key}; do xxd -c 256 -g 0 $f $f.dump;
 
 * `idx` is at the front so I could just arrow-up and change this value and re-run
 * one `for` loop dumps the binary files under `~/.gnupg`
-* next `for` loop dumps both seret & public GPG packet data _verbose_ style
+* next `for` loop dumps both secret & public GPG packet data _verbose_ style
 * final `while` loop processes the output of perl and does `find ~/.gnupg ... -exec grep ...` with each expression.
 
-Depending on how you set 'idx' right at the beginning, the output files will be:
+Depending on how you set 'idx' right at the beginning, each run of the above command will produce 2 output files:
 
 * `g-pkts-step-$idx.txt` which is the raw output of the GPG packet dump
 * `g-res-step-$idx.txt` which is the output of searching the `~/.gnupg` files for important stuff
 
-At this point, I learned quite a bit about signatureshow each bit of data added to a Key has an accompaning signature to validate the bit of data -- be it a _photo_ or _uid_.
+At this point, I learned quite a bit about signatures, including how each bit of data added to a Key has its own accompaning signature to validate the data -- even photos.
 
 So now I have a personal GPG key
 
