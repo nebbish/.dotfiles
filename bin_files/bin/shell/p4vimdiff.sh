@@ -26,9 +26,19 @@ fi
 #
 # Without that, the program is launched and waited upon - just not seen
 #
-
-#DIFFPREPCMDS=(+"colorscheme evening" +"set diffopt+=iwhite" +"set lines=9999" +"set columns=9999" +"wincmd =" +"normal gg]c")
-DIFFPREPCMDS=(+"colorscheme evening" +"set lines=9999" +"set columns=9999" +"wincmd =" +"normal gg]c")
+if [ "$OSTYPE" = "linux-gnu" ]; then
+	lines=9999
+	columns=9999
+	color=evening
+	tool=/usr/bin/gvim
+elif [ "${OSTYPE:0:6}" = "darwin" ]; then
+	lines=90
+	columns=285
+	color=torte
+	tool=/usr/local/bin/mvim
+fi
+#DIFFPREPCMDS=(+"colorscheme $color" +"set diffopt+=iwhite" +"set lines=$lines" +"set columns=$columns" +"wincmd =" +"normal gg]c")
+DIFFPREPCMDS=(+"colorscheme $color" +"set lines=$lines" +"set columns=$columns" +"wincmd =" +"normal gg]c")
 
 #do_gvim_test() {
 #	# This was intended to be the beginning of a solution which allows multiple 'diffs'
@@ -46,11 +56,11 @@ DIFFPREPCMDS=(+"colorscheme evening" +"set lines=9999" +"set columns=9999" +"win
 #	#if [ -z $GVIM_SERVERS ]; then
 #		#exec /usr/bin/gvim "${DIFFPREPCMDS[@]}" -d "$1" "$2" || exit $?
 #	#else
-#		#DIFFCMD="vert diffsplit $2 | colorscheme evening | set lines=9999 | set columns=9999 | wincmd ="
+#		#DIFFCMD="vert diffsplit $2 | colorscheme $color | set lines=$lines | set columns=$columns | wincmd ="
 #		#exec /usr/bin/gvim --remote-tab +"${DIFFCMD}" "$1" || exit $?
 #	#fi
 #
-#	DIFFCMD="vert diffsplit $2 | colorscheme evening | set lines=9999 | set columns=9999 | wincmd ="
+#	DIFFCMD="vert diffsplit $2 | colorscheme $color | set lines=$lines | set columns=$columns | wincmd ="
 #	exec /usr/bin/gvim --remote-tab-silent +"${DIFFCMD}" "$1" || exit $?
 #}
 
@@ -64,17 +74,17 @@ do_gvim() {
 	#	var_method=10
 	#	exec_method=1
 	#	case $var_method in
-	#		11)	DIFFPREPCMDS="+\"set lines=9999\" +\"set columns=9999\" +\"wincmd =\" +\"wincmd w\" +\"normal gg]c\""	;;
-	#		12)	DIFFPREPCMDS="\+\"set lines=9999\" \+\"set columns=9999\" \+\"wincmd =\" \+\"wincmd w\" \+\"normal gg]c\""	;;
-	#		13)	DIFFPREPCMDS="\"+set lines=9999\" \"+set columns=9999\" \"+wincmd =\" \"+wincmd w\" \"+normal gg]c\""	;;
-	#		14)	DIFFPREPCMDS="\"\+set lines=9999\" \"\+set columns=9999\" \"\+wincmd =\" \"\+wincmd w\" \"\+normal gg]c\""	;;
+	#		11)	DIFFPREPCMDS="+\"set lines=$lines\" +\"set columns=$columns\" +\"wincmd =\" +\"wincmd w\" +\"normal gg]c\""	;;
+	#		12)	DIFFPREPCMDS="\+\"set lines=$lines\" \+\"set columns=$columns\" \+\"wincmd =\" \+\"wincmd w\" \+\"normal gg]c\""	;;
+	#		13)	DIFFPREPCMDS="\"+set lines=$lines\" \"+set columns=$columns\" \"+wincmd =\" \"+wincmd w\" \"+normal gg]c\""	;;
+	#		14)	DIFFPREPCMDS="\"\+set lines=$lines\" \"\+set columns=$columns\" \"\+wincmd =\" \"\+wincmd w\" \"\+normal gg]c\""	;;
 	#
-	#		21)	DIFFPREPCMDS='+"set lines=9999" +"set columns=9999" +"wincmd =" +"wincmd w" +"normal gg]c"'				;;
-	#		22)	DIFFPREPCMDS='"+set lines=9999" "+set columns=9999" "+wincmd =" "+wincmd w" "+normal gg]c"'				;;
+	#		21)	DIFFPREPCMDS='+"set lines=$lines" +"set columns=$columns" +"wincmd =" +"wincmd w" +"normal gg]c"'				;;
+	#		22)	DIFFPREPCMDS='"+set lines=$lines" "+set columns=$columns" "+wincmd =" "+wincmd w" "+normal gg]c"'				;;
 	#
-	#		31)	DIFFPREPCMDS="+'set lines=9999' +'set columns=9999' +'wincmd =' +'wincmd w' +'normal gg]c'"				;;
-	#		32)	DIFFPREPCMDS="\+'set lines=9999' \+'set columns=9999' \+'wincmd =' \+'wincmd w' \+'normal gg]c'"		;;
-	#		33)	DIFFPREPCMDS="'+set lines=9999' '+set columns=9999' '+wincmd =' '+wincmd w' '+normal gg]c'"				;;
+	#		31)	DIFFPREPCMDS="+'set lines=$lines' +'set columns=$columns' +'wincmd =' +'wincmd w' +'normal gg]c'"				;;
+	#		32)	DIFFPREPCMDS="\+'set lines=$lines' \+'set columns=$columns' \+'wincmd =' \+'wincmd w' \+'normal gg]c'"		;;
+	#		33)	DIFFPREPCMDS="'+set lines=$lines' '+set columns=$columns' '+wincmd =' '+wincmd w' '+normal gg]c'"				;;
 	#	esac
 	#	case $exec_method in
 	#		2)	exec $cmd_val "${DIFFPREPCMDS}" -d "$1" "$2" || exit $?	;;
@@ -86,9 +96,10 @@ do_gvim() {
 	#		99)	exec '/usr/bin/gvim' ${DIFFPREPCMDS} -d "$1" "$2" || exit $?	;;
 	#	esac
 
-	/usr/bin/gvim "${DIFFPREPCMDS[@]}" -d "$@" || exit $?
+	/usr/local/bin/mvim "${DIFFPREPCMDS[@]}" -d "$@" || exit $?
+
 	#echo "===---===---===--- Command that works ---===---===---==="
-	#exec /usr/bin/gvim +'set lines=9999' +'set columns=9999' +'wincmd =' +'wincmd w' +'normal gg]c' -d "$1" "$2" || exit $?
+	#exec /usr/bin/gvim +'set lines=$lines' +'set columns=$columns' +'wincmd =' +'wincmd w' +'normal gg]c' -d "$1" "$2" || exit $?
 }
 
 do_merge() {
@@ -191,8 +202,18 @@ main()
 	##
 	## Simple, just invoke gvim with the arguments we were given
 	##
-	if [ $# -eq 2 ]; then
-		diff "$1" "$2" >/dev/null 2>&1
+	if [ $# -eq 2 -o $# -eq 3 ]; then
+		flag=
+		if [ $# -eq 3 ]; then
+			if [ "$1" -eq "-i" ]; then
+				flag=--strip-trailing-cr
+			else
+				echo "If 3 args are provided, it is expected that arg #1 is '-i' to request ignoring line endings"
+				exit 1
+			fi
+			shift
+		fi
+		diff $flag "$1" "$2" >/dev/null 2>&1
 		if [ $? -eq 0 ]; then
 			echo "Files are identical, skipping gvim"
 			#exec "/usr/bin/xterm" -e "echo 'Files are identical, skipping gvim' && read -p 'Press enter to close' fno"
