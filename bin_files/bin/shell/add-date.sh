@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 if [ -z "$1" ]; then
 	thisname="$( basename "$0" )"
@@ -6,7 +6,8 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 
-dt=$(date +"%Y_%m_%d_%H_%M_%S" -r $1)
+gdate >/dev/null 2>&1 && tool=gdate || tool=date
+dt=$($tool +"%Y_%m_%d_%H_%M_%S" -r $1)
 echo -e "Renaming:  '$1' to '$1_${dt}'"
 mv $1 "$1_${dt}"
 
