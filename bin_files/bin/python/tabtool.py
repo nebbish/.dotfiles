@@ -232,7 +232,7 @@ class TabToolApp(object):
 		if len([opt for opt in self.conv_opts if opt]) > 1:
 			raise argparse.ArgumentTypeError("Cannot specify more than one of:  '-clt', '-cls', '-cat', '-cas'")
 		if self.args.infile is not None and not os.path.exists(self.args.infile):
-			raise argparse.ArgumentTypeError("The 'infile' argument cannot be found")
+			raise argparse.ArgumentTypeError("The 'infile' argument [{}] cannot be found".format(self.args.infile))
 		if self.args.outfile == '':
 			self.args.outfile = self.args.infile
 
