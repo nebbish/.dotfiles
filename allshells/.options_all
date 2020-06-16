@@ -1,0 +1,18 @@
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
+fi
+
+# This "tweak" allows the BASH "reverse-i-search" feature to go forward
+#   a) pressing CTRL-r begins the "reverse-i-search" feature
+#   b) once started, regular typing performs search
+#   c) then, repeated CTRL-r cmds cycle through matches in reverse
+#   d) then, repeated CTRL-s cmds switch to "i-search" and then cycle FORWARD through matches
+# Without this "tweak", the (d) feature will not work
+# See:  http://stackoverflow.com/a/36331088/5844631
+stty -ixon
+

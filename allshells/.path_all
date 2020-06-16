@@ -1,0 +1,17 @@
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
+fi
+
+# Setup ~/bin and ~/.local/bin to the $PATH value (the 2nd location hosts decrypted private files)
+if [ -n "$BASH_VERSION" ]; then
+	PATH=$HOME/bin:$HOME/.local/bin:$PATH;
+	export PATH;
+elif [ -n "$ZSH_VERSION" ]; then
+	export PATH=~/bin:~/.local/bin:$PATH
+fi
+

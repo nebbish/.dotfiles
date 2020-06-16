@@ -1,0 +1,55 @@
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
+fi
+
+##
+## OS specific section
+##
+if [ "$OSTYPE" = "linux-gnu" ]; then
+elif [ "${OSTYPE:0:6}" = "darwin" ]; then
+	#
+	# On Mac systems - some built in tools like 'tar' act *extra smart* with Apple's "Extended Attributes"
+	#                  (see:  https://superuser.com/questions/259703/get-mac-tar-to-stop-putting-filenames-in-tar-archives)
+	#
+	#    On filesystems that know nothing about them (like FAT & EXT), BY extracting
+	#    them into separate files, using a "._" prefix, and storing them in the archive.
+	#    For these utiltiies that do this -- they also go the other way and convert
+	#    files having the prefix "._" into attributes, and re-attaching them to the
+	#    corresponding file.
+	#
+	#    The following variables DISABLE this automatic behavior
+	#
+	export COPYFILE_DISABLE=1
+	# This value is for Older Mac OS's (probably not necessary :)
+	export COPY_EXTENDED_ATTRIBUTES_DISABLE=1
+
+	#
+	# For network shares...   the process involves setting Apple Registry values
+	# which is done on the command line, and only needs to be done once (so not here ;)
+	#
+	# For reference, the command is:
+	#		defaults write com.apple.desktopservices DSDontWriteNetworkStores true
+	#
+	# For more info:
+	#		From 2011:  https://e-rave.nl/disable-creation-of-ds_store-files-on-samba-shares
+	#		            two methods:  your own Mac or the Samba server itself - go with choice (a)
+	#		            (includes a cmd to cleanup what may have already been created)
+	#
+	#		From 2014:  https://apple.stackexchange.com/a/136801/371766   (answer earned a BOUNTY!)
+	#		            introduces:   `dot_clean` tool which appears made for this
+	#
+	#		From 2020:  https://support.studionetworksolutions.com/hc/en-us/articles/360000949866-Prevent-creation-of-DS-Store-files-on-network-shares
+	#		            (same setting but with a cmd to delete the setting)
+	#
+fi
+
+
+if [ -f ~/.local/.exports ]; then
+	source ~/.local/.exports
+fi
+

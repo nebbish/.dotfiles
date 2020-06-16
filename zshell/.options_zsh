@@ -1,0 +1,68 @@
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
+fi
+
+#
+# Set history options
+# From: https://github.com/thoughtbot/dotfiles/blob/master/zsh/configs/history.zsh
+#       https://wiki.gentoo.org/wiki/Zsh/Guide#History
+#
+# Newest from:  https://unix.stackexchange.com/a/273863/194787
+#
+HISTSIZE=10000000
+SAVEHIST=10000000
+setopt EXTENDED_HISTORY          # Write the history file in the ":start:elapsed;command" format.
+setopt INC_APPEND_HISTORY        # Write to the history file immediately, not when the shell exits.
+setopt HIST_IGNORE_ALL_DUPS      # Delete old recorded entry if new entry is a duplicate.
+setopt HIST_IGNORE_SPACE         # Don't record an entry starting with a space.
+
+#setopt SHARE_HISTORY             # Share history between all sessions.
+#setopt BANG_HIST                 # Treat the '!' character specially during expansion.
+#setopt HIST_EXPIRE_DUPS_FIRST    # Expire duplicate entries first when trimming history.
+#setopt HIST_IGNORE_DUPS          # Don't record an entry that was just recorded again.
+#setopt HIST_FIND_NO_DUPS         # Do not display a line previously found.
+#setopt HIST_SAVE_NO_DUPS         # Don't write duplicate entries in the history file.
+#setopt HIST_REDUCE_BLANKS        # Remove superfluous blanks before recording entry.
+#setopt HIST_VERIFY               # Don't execute immediately upon history expansion.
+#setopt HIST_BEEP                 # Beep when accessing nonexistent history.
+
+
+#
+# I got really annoyed with "rm -rf *" prompting me, and quickly pressing 'y'
+# I do not want to build that muscle memory. :/
+#    From:  https://unix.stackexchange.com/questions/135084/double-rm-verification-in-zsh
+#
+setopt RM_STAR_SILENT
+
+
+#
+#  NOTE:  this work is specific to MacOS -- because the OS uses EMacs bindings by default, see:
+#               https://superuser.com/questions/205470/why-is-ctrl-arrow-not-working-in-bash-on-os-x
+#         The above page - gives solution for Bash shell, for the Zshell settings, see:
+#               https://wiki.archlinux.org/index.php/zsh#Shift,_Alt,_Ctrl_and_Meta_modifiers
+#
+key[Control-Left]="${terminfo[kLFT5]}"
+key[Control-Right]="${terminfo[kRIT5]}"
+[[ -n "${key[Control-Left]}"  ]] && bindkey -- "${key[Control-Left]}"  backward-word
+[[ -n "${key[Control-Right]}" ]] && bindkey -- "${key[Control-Right]}" forward-word
+
+#
+# The above is not working :/   (when in my iTerm2)
+# From another page: https://unix.stackexchange.com/questions/58870/ctrl-left-right-arrow-keys-issue
+# These work for me :)  (running my shell in iTerm2 on MacOS)
+#
+bindkey "^[[1;5C" forward-word
+bindkey "^[[1;5D" backward-word
+
+#
+# Finally get the shell-universal settings
+#
+if [ -f ~/.options_all ]; then
+	source ~/.options_all
+fi;
+

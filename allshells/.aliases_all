@@ -1,36 +1,86 @@
-if [ -n "$DOTFILES_DEBUG" ] && [ $TERM == "xterm-256color" ]; then
-	echo "`date` + `whoami` + executing ${BASH_SOURCE[0]}"
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
 fi
 
-# Personally built up over time...
-alias osver="cat /proc/version; uname -r"
-alias rebash="unalias -a; . ~/.bashrc"
-alias myps="ps auxf | sed -n '/^\(USER \+PID\|1000\|jason_s\|engine\)/p'"
-alias tcpview="sudo watch -pn 0.1 'netstat -pat'"
-alias grep="grep -P --color=auto"
+
+# Personal ideas and favorites, built up over time...
 alias dd="cd .."
-alias sd="dest=\$(pwd)"
-alias vncstart="vncserver -localhost -geometry 1280x960"
-alias vncstop="vncserver -kill :1"
-alias naut="echo "'`pwd`'" | xargs nautilus --browser &"
-alias ll='ls -l --color=auto' 2>/dev/null
-alias la='ls -la --color=auto' 2>/dev/null
-alias lad='ls -lad --color=auto' 2>/dev/null
-alias l.='ls -d .* --color=auto' 2>/dev/null
-alias ls='ls --color=auto' 2>/dev/null
-alias vncv="vncviewer localhost:1"
-alias hist="history | sort -k2,3 -s"
-alias myhist="history | awk '{if (/exit\$/) {chk=\$0 RS} else {chk=chk \$0 RS}} END {printf \"%s\", chk}'"
-alias savecmd="pwd >> ~/.cmd_hist && echo -e \"\n\" >> ~/.cmd_hist && history -a ~/.cmd_hist && echo -e \"\n\n\n\n\" >> ~/.cmd_hist && perl -pi -e 's/^#\d+\n//m' ~/.cmd_hist"
-# This is not that useful as an alias - but I didn't want to lose this handy tip for sorting based on date
-#alias mfind="find . -printf "%T@ %Tc %p\n" | sort -n"
-alias rmemptydirs="find . -depth ! -path . -type d -empty -exec echo Removing {} \; -and -exec rmdir {} \;"
+
+# New section for experimenting with:  tmux
+alias tml="tmux list-sessions"
+alias tmn="tmux new -s"
+alias tma="tmux attach -t"
+alias tms="tmux switch -t"
+alias retmux="tmux source-file ~/.tmux.conf"
+
+if hash ag 2>/dev/null; then
+	alias gag='ag --column'
+fi
+
+##
+## OS specific section
+##
+if [ "$OSTYPE" = "linux-gnu" ]; then
+
+	alias ll='ls -l --color=auto' 2>/dev/null
+	alias la='ls -la --color=auto' 2>/dev/null
+	alias lad='ls -lad --color=auto' 2>/dev/null
+	alias l.='ls -d .* --color=auto' 2>/dev/null
+	alias ls='ls --color=auto' 2>/dev/null
+
+	alias osver="cat /proc/version; uname -r"
+	alias rebash="unalias -a; . ~/.bashrc"
+	alias myps="ps auxf | sed -n '/^\(USER \+PID\|1000\|jason_s\|engine\)/p'"
+	alias tcpview="sudo watch -pn 0.1 'netstat -pat'"
+	alias grep="grep -P --color=auto"
+	alias sd="dest=\$(pwd)"
+	alias vncstart="vncserver -localhost -geometry 1280x960"
+	alias vncstop="vncserver -kill :1"
+	alias naut="echo "'`pwd`'" | xargs nautilus --browser &"
+	alias vncv="vncviewer localhost:1"
+	alias hist="history | sort -k2,3 -s"
+	alias myhist="history | awk '{if (/exit\$/) {chk=\$0 RS} else {chk=chk \$0 RS}} END {printf \"%s\", chk}'"
+	alias savecmd="pwd >> ~/.cmd_hist && echo -e \"\n\" >> ~/.cmd_hist && history -a ~/.cmd_hist && echo -e \"\n\n\n\n\" >> ~/.cmd_hist && perl -pi -e 's/^#\d+\n//m' ~/.cmd_hist"
+	# This is not that useful as an alias - but I didn't want to lose this handy tip for sorting based on date
+	#alias mfind="find . -printf "%T@ %Tc %p\n" | sort -n"
+	alias rmemptydirs="find . -depth ! -path . -type d -empty -exec echo Removing {} \; -and -exec rmdir {} \;"
+
+elif [ "${OSTYPE:0:6}" = "darwin" ]; then
+
+	# Workaround for broken apropos command (from the factory)
+	alias apropos=~/workarounds/apropos.macos_10.15.1
+
+	# Fixing the run-help widget and reversing the typical default aliasing
+	#    from:  http://zsh.sourceforge.net/Doc/Release/User-Contributions.html#Accessing-On_002dLine-Help
+	unalias run-help 2>/dev/null
+	autoload run-help
+	# This was my experiment to help see the connection between these help systems
+	#alias man="run-help"
+
+	#alias la="gls -la --color=auto"
+	#alias lad="gls -lad --color=auto"
+	alias la="ls -G -la"
+	alias lad="ls -G -lad"
+
+	alias rezsh="source ~/.zshrc"
+	alias dd="cd .."
+	alias path="echo \$PATH | tr ':' '\n'"
+	alias myhist='history 0 | awk '\''{if (/exit$/) {chk=$0 RS} else {chk=chk $0 RS}} END {printf "%s", chk}'\'''
+	alias rcp="rsync -av --info=progress2"
+
+fi
+
 
 # General development section
 alias cfmt="clang-format -style=file"
 alias tt="tabtool.py"
-
-alias gobin="pushd ~/bin"
+alias py3="python3"
+alias py="python"
 
 if [ -f ~/.local/.aliases ]; then
 	source ~/.local/.aliases

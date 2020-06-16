@@ -1,0 +1,30 @@
+#export DOTFILES_DEBUG=1
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
+fi
+
+if [ -f ~/.path_all ]; then
+	source ~/.path_all
+fi;
+
+# On MacOS the `/etc/zprofile` init file inclues the new `/usr/libexec/path_helper` utility
+# which:   automatically puts ALL adjusted path items at the end :(
+#
+# So one part of a fix is to setup our own path in `~/.zprofile` which runs after `/etc/zprofile`
+# Ok so far :)
+#
+# However, screen & tmux utilities that create Z-sub-shells will inherit inheritable values
+# like $PATH, and then both the `/etc/zprofile` and `~/.zprofile` will run again...
+# In these situations - our customizations will appear TWICE
+#    /etc/zprofile runs first:   removes duplicates, moves customizations to end
+#    ~/.zprofile   runs  next:   prepends custom values
+#
+# We get around this by:  have our own "smart" adjustment after pre-pending our custom values
+# Entering the stage:    `path_remove_duplicates.py`
+eval `~/path_remove_duplicates.py`
+

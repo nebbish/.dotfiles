@@ -1,3 +1,4 @@
+#export DOTFILES_DEBUG=1
 if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
 	if [ -n "$ZSH_VERSION" ]; then
 		__source="${(%):-%x}"
@@ -7,17 +8,8 @@ if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
 	echo "$(date) + $(whoami) + executing $__source"
 fi
 
-# Source global definitions
-if [ -f /etc/bashrc ]; then
-	. /etc/bashrc
-fi
-
-function setdev {
-	echo "booya kada!"
-}
-
-# Load the other dotfiles that initialize "non-inheritable" options/settings
-for file in ~/.{aliases_bash,functions_bash,completions_bash,options_bash,extra_bash}; do
+# Load the other dotfiles that initialize "inheritable" options/settings
+for file in ~/.{path_zsh,prompt_zsh,exports_zsh}; do
 	[ -r "$file" ] && [ -f "$file" ] && source "$file";
 done;
 unset file;

@@ -1,5 +1,10 @@
-if [ -n "$DOTFILES_DEBUG" ] && [ $TERM == "xterm-256color" ]; then
-	echo "`date` + `whoami` + executing ${BASH_SOURCE[0]}"
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
 fi
 
 ##

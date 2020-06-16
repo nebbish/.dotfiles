@@ -1,5 +1,10 @@
-if [ -n "$DOTFILES_DEBUG" ] && [ $TERM == "xterm-256color" ]; then
-	echo "`date` + `whoami` + executing ${BASH_SOURCE[0]}"
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
 fi
 
 #
@@ -13,24 +18,6 @@ function gpg-reload() {
 	gpg-connect-agent updatestartuptty /bye >/dev/null 2>&1
 	gpgconf --reload gpg-agent
 }
-
-
-#
-# Here is my 'screen' section
-#
-function sc() {
-    screen -D -R -S $1 -t $1
-}
-function sct() {
-    screen -X sessionname $1
-    STY=`echo $STY | cut -d "." -f 1`.$1
-    screen -X title $1
-}
-alias scl="screen -ls"
-alias sc1="sc task1"
-alias sc2="sc task2"
-alias sc3="sc task3"
-alias sc4="sc task4"
 
 
 ##
@@ -131,8 +118,7 @@ function dl_cwp() {
     scp $@ -i $key $usrsrv:$src $dest
 }
 
-
-if [ -f ~/.local/.functions ]; then
-	source ~/.local/.functions
-fi
+if [ -f ~/.functions_all ]; then
+	source ~/.functions_all
+fi;
 

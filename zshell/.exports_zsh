@@ -1,0 +1,20 @@
+#export DOTFILES_DEBUG=1
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
+fi
+
+# Set java version
+# https://www.kevinhooke.com/2017/10/05/switching-java-versions-on-mac-os/
+alias j13="export JAVA_HOME=$(/usr/libexec/java_home -v 13)"
+alias j8="export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)"
+j8
+
+if [ -f ~/.exports_all ]; then
+	source ~/.exports_all
+fi
+

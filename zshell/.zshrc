@@ -7,17 +7,8 @@ if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
 	echo "$(date) + $(whoami) + executing $__source"
 fi
 
-# Source global definitions
-if [ -f /etc/bashrc ]; then
-	. /etc/bashrc
-fi
-
-function setdev {
-	echo "booya kada!"
-}
-
-# Load the other dotfiles that initialize "non-inheritable" options/settings
-for file in ~/.{aliases_bash,functions_bash,completions_bash,options_bash,extra_bash}; do
+# Load the other dotfiles that initialize "inheritable" options/settings
+for file in ~/.{aliases_zsh,functions_zsh,completions_zsh,options_zsh,extra_zsh}; do
 	[ -r "$file" ] && [ -f "$file" ] && source "$file";
 done;
 unset file;

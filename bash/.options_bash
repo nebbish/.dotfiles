@@ -1,5 +1,10 @@
-if [ -n "$DOTFILES_DEBUG" ] && [ $TERM == "xterm-256color" ]; then
-	echo "`date` + `whoami` + executing ${BASH_SOURCE[0]}"
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
 fi
 
 # This "tweak" allows core dumps to get created, by adjusting the "limit" within the BASH shell.
@@ -7,15 +12,6 @@ fi
 # Here, we set the soft limit to match the hard, this works because the hard limit is unlimited by default
 ulimit -c hard
 
-
-# This "tweak" allows the BASH "reverse-i-search" feature to go forward
-#   a) pressing CTRL-r begins the "reverse-i-search" feature
-#   b) once started, regular typing performs search
-#   c) then, repeated CTRL-r cmds cycle through matches in reverse
-#   d) then, repeated CTRL-s cmds switch to "i-search" and then cycle FORWARD through matches
-# Without this "tweak", the (d) feature will not work
-# See:  http://stackoverflow.com/a/36331088/5844631
-stty -ixon
 
 # Uncomment the following line if you don't like systemctl's auto-paging feature:
 # export SYSTEMD_PAGER=
@@ -34,7 +30,7 @@ stty -ixon
 #shopt -s histappend;
 
 # Autocorrect typos in path names when using `cd`
-#shopt -s cdspell;
+shopt -s cdspell;
 
 # Enable some Bash 4 features when possible:
 # * `autocd`, e.g. `cd **/qux` will enter `./foo/bar/baz/qux`
@@ -42,4 +38,9 @@ stty -ixon
 for option in autocd globstar; do
 	shopt -s "$option" 2>/dev/null;
 done;
+
+
+if [ -f ~/.options_all ]; then
+	source ~/.options_all
+fi;
 

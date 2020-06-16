@@ -1,0 +1,19 @@
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
+fi
+
+
+# To have an easy history search without having to pipe to another tool
+#     from:  https://superuser.com/a/1061539
+histsearch() { fc -lim "*$@*" 1 }
+
+
+if [ -f ~/.functions_all ]; then
+	source ~/.functions_all
+fi;
+

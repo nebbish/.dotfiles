@@ -1,0 +1,48 @@
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
+fi
+
+
+## ############################################################################
+## Here is my 'screen' section
+## ############################################################################
+
+# From linux dev box:
+#     function sc() { screen -D -R -S $1 -t $1; }
+function sc() { screen -R -S $1 -t $1; }
+alias scl="screen -ls"
+
+function sct() {
+    screen -X sessionname $1
+    STY=`echo $STY | cut -d "." -f 1`.$1
+    screen -X title $1
+}
+alias sc1="sc task1"
+alias sc2="sc task2"
+alias sc3="sc task3"
+alias sc4="sc task4"
+
+
+## ############################################################################
+## OS - specific values
+## ############################################################################
+
+# On MacOS, find ALWAYS has an error to report
+if [ "${OSTYPE:0:6}" = "darwin" ]; then
+	function mfind() { find "$@" 2>/dev/null; }
+fi
+
+
+## ############################################################################
+## Pull in "local" or "private" values
+## ############################################################################
+
+if [ -f ~/.local/.functions ]; then
+	source ~/.local/.functions
+fi
+

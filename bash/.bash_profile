@@ -1,6 +1,11 @@
-if [ -n "$DOTFILES_DEBUG" ] && [ $TERM == "xterm-256color" ]; then
-	echo "`date` + `whoami` + executing ${BASH_SOURCE[0]}"
-fi;
+if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
+	if [ -n "$ZSH_VERSION" ]; then
+		__source="${(%):-%x}"
+	else
+		__source="${BASH_SOURCE[0]}"
+	fi
+	echo "$(date) + $(whoami) + executing $__source"
+fi
 
 ##
 ## NOTE:  A great explanation of login vs non-login shells included great explanation of what
@@ -13,12 +18,8 @@ fi;
 ##        And the ".bashrc" file will sett all NON-inheritable options
 ##
 
-# Setup ~/bin and ~/.local/bin to the $PATH value (the 2nd location hosts decrypted private files)
-PATH=$HOME/bin:$PATH:$HOME/.local/bin;
-export PATH;
-
 # Load the other dotfiles that initialize "inheritable" options/settings
-for file in ~/.{path,bash_prompt,exports}; do
+for file in ~/.{path_bash,prompt_bash,exports_bash}; do
 	[ -r "$file" ] && [ -f "$file" ] && source "$file";
 done;
 unset file;
