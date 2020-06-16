@@ -1,0 +1,8 @@
+#
+#  NOTE:  this work is specific to MacOS -- because the OS uses EMacs bindings by default, see:
+#               https://superuser.com/questions/205470/why-is-ctrl-arrow-not-working-in-bash-on-os-x
+#
+"\e[5C": forward-word
+"\e[1;5C": forward-word
+"\e[5D": backward-word
+"\e[1;5D": backward-word
