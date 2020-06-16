@@ -1,6 +1,26 @@
-# First, always ignore VIM swap files
+## Ignore directives for my ????? package (also some notes for reference ;)
+## See:  https://www.gnu.org/software/stow/manual/html_node/Types-And-Syntax-Of-Ignore-Lists.html
+
+##
+## These are Perl regular expressions, one per line
+## Comments and blank lines are allowed.
+##
+
+##
+## NOTE:  if there is a '/' in the expression ANYWHERE, it is handled by (1) below
+##        otherwise, the expression is handled by (2) below
+##
+##  Stow will, for each item, build a path relative to the "top-level" package directory,
+##  prefix it with a '/', then runs all of the (1) expressions:
+##      1) if a regex *exactly* matches a **SUBPATH** of the calc. rel. path:  IGNORE it
+##
+##  If not yet ignored, the current item's 'basename' is put through the (2) expressions:
+##      2) if a regex *exactly* matches:   IGNORE it
+##
+
+## vim swap files
 \..*?\.sw\w
 
-# Everything specific for now
+## Everything specific for now
 /not_sure_if.*
 

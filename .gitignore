@@ -1,0 +1,24 @@
+## Ignore directives for my main dotfiles repo (also notes for my own reference ;)
+## See:  https://git-scm.com/docs/gitignore
+
+##
+## These are typical file glob expressions (w/ recursive using  '**')
+## Comments and blank lines are allowed.
+##
+
+##
+## NOTE:  if there is a '/' at the beginning *OR* middle (or both) of the pattern:
+##            then the pattern is RELATIVE
+##        relative patterns match the directory of this file or ANY level below this file
+##
+##        if there is a '/' at the end, the pattern only matches directories
+##
+
+
+# Vim swap files
+.*.sw?
+
+
+# PYC files
+*.pyc
+

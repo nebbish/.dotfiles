@@ -1,12 +1,56 @@
 [user]
 	email = nebbish@12esults.com
-	name = Jason Singer
+	name = nebbish
 [core]
 	editor = vim
 [color]
 	branch = auto
 	status = auto
 	diff = auto
-[push]
+[format]
+	# These formats were inspired by:  https://stackoverflow.com/a/9463536/5844631
+	pretty = format:%C(auto,yellow)%h%C(auto,magenta)% G? %C(auto,cyan)%>(12,trunc)%ad %C(auto,green)%<(15,trunc)%aN%C(auto,reset)%s%C(auto,red)% gD% D
+[pretty]
+	# This is same as `format.pretty` but with room for an ISO formatted Date field
+	relative = format:%C(auto,yellow)%h%C(auto,magenta)% G? %C(auto,cyan)%>(12,trunc)%ad %C(auto,green)%<(15,trunc)%aN%C(auto,reset)%s%C(auto,red)% gD% D
+	human = format:%C(auto,yellow)%h%C(auto,magenta)% G? %C(auto,cyan)%>(16,trunc)%ad %C(auto,green)%<(15,trunc)%aN%C(auto,reset)%s%C(auto,red)% gD% D
+	iso = format:%C(auto,yellow)%h%C(auto,magenta)% G? %C(auto,cyan)%>(25,trunc)%ad %C(auto,green)%<(15,trunc)%aN%C(auto,reset)%s%C(auto,red)% gD% D
+[log]
+	# Here is a cmd to list any nonshared commits between two branches:
+	#    git log --graph --left-right --cherry-pick --oneline master...experiment
+	# Found here:  https://stackoverflow.com/a/7549118/5844631
+	date = relative
 [push]
 	default = current
+[alias]
+	ilog = log --graph --pretty=iso --date=iso --decorate
+	ilag = log --graph --pretty=iso --all --date=iso --decorate
+	hlog = log --graph --pretty=human --date=human --decorate
+	hlag = log --graph --pretty=human --all --date=human --decorate
+	rlog = log --graph --pretty=relative --date=relative --decorate
+	rlag = log --graph --pretty=relative --all --date=relative --decorate
+	tlog = log --graph --pretty=human --simplify-by-decoration
+	tlag = log --graph --pretty=human --all --simplify-by-decoration
+	lg = log --graph --oneline --all --decorate
+	# For two commands with one alias:
+	#     https://stackoverflow.com/a/25915221/5844631
+	# For the commands to completely reset (**compltetely**)
+	#     https://stackoverflow.com/a/31321921/5844631
+	#     * 'reset --hard' will reset all staged and unstaged changes
+	#     * 'clean -dfx' will delete **all** untracked files (even 'ignored' files)
+	#       -d, recurse into untracked folders (normally not done)
+	#       -f, force the deletion (sometimes necessary, ok if superfluous)
+	#       -x, do not use ignore rules (normally ignored files deleted also)
+	pristine = !git reset --hard $1 && git clean -dfx && :
+	# After having wrote the above comment, I want another, less harsh alias:
+	# (this will leave ignored files alone -- files i usually want to keep)
+	wipe = !git reset --hard $1 && git clean -df && :
+[pull]
+	rebase = false
+[filter "lfs"]
+	clean = git-lfs clean -- %f
+	smudge = git-lfs smudge -- %f
+	process = git-lfs filter-process
+	required = true
+[color "diff"]
+	whitespace = red reverse

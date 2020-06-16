@@ -1,0 +1,6 @@
+# Ignore .p4ignore files
+.p4ignore
+
+# Ignore VIM temp files
+.*.sw?
+

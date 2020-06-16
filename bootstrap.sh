@@ -8,7 +8,7 @@
 ##         * install nux-dextop repo (see: https://unix.stackexchange.com/a/395827/194787)
 ##
 
-for d in bash bin_files devstuff git screen vim; do
+for d in bash bin_files devstuff git p4 screen vim; do
 	echo "Stowing $d ..."
 	stow -R $d "$@"
 done
