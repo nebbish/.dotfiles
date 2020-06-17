@@ -11,6 +11,7 @@ fi
 ## OS specific section
 ##
 if [ "$OSTYPE" = "linux-gnu" ]; then
+	: # empty statement
 elif [ "${OSTYPE:0:6}" = "darwin" ]; then
 	#
 	# On Mac systems - some built in tools like 'tar' act *extra smart* with Apple's "Extended Attributes"

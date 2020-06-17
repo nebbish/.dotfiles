@@ -401,7 +401,7 @@ Plugin 'lifepillar/vim-solarized8'
 ""          See: https://www.mail-archive.com/lldb-dev@lists.llvm.org/msg07787.html
 ""          also: https://reviews.llvm.org/D70252 update to docs to explain this
 ""   If I use /usr/bin/vim - (came with Catalina) it works.   grrrrrrrrrrrr
-Plugin 'gilligan/vim-lldb'
+"Plugin 'gilligan/vim-lldb'
 "" Here's something for comparing folders
 Plugin 'will133/vim-dirdiff'
 
