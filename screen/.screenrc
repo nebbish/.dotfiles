@@ -1,4 +1,5 @@
 defscrollback 100000
+# This makes it so that apps that take over the screen area (e.g. 'vim', 'htop', ...) do not leave their contents behind when terminated
 altscreen on
 
 # Not sure the best way to make this shell-specific -- maybe a plain 'if' statement
@@ -9,6 +10,14 @@ altscreen on
 #      PROMPT_COMMAND='printf "\033k\033\134"'
 #
 shelltitle '% |idle'
+
+# Here's a trick I found for window numbering to start at '1'
+# from:  https://www.linuxquestions.org/questions/linux-software-2/gnu-screen-start-window-numbering-at-1-keep-window-number-0-from-ever-being-used-772580/
+# NOTE:  currently disabled because it interfere's with the dynamic window title of the first window that is created
+#bind c screen 1
+#bind ^c screen 1
+#bind 0 select 10
+#screen 1
 
 shell -$SHELL
 
