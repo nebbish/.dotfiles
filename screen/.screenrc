@@ -1,4 +1,14 @@
-defscrollback 20000
+defscrollback 100000
+altscreen on
+
+# Not sure the best way to make this shell-specific -- maybe a plain 'if' statement
+# but for ZSH, the '%' should match the prompt, and for BSH '$' would match
+#
+# To make this work, setup the PROMPT_COMMAND to output `Esc k Esc \`
+# (we do this with character codes for 'Esc':033 and '\':134)
+#      PROMPT_COMMAND='printf "\033k\033\134"'
+#
+shelltitle '% |idle'
 
 shell -$SHELL
 
