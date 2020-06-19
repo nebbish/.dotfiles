@@ -12,10 +12,6 @@ if [ -f /etc/bashrc ]; then
 	. /etc/bashrc
 fi
 
-function setdev {
-	echo "booya kada!"
-}
-
 # Load the other dotfiles that initialize "non-inheritable" options/settings
 for file in ~/.{aliases_bash,functions_bash,completions_bash,options_bash,extra_bash}; do
 	[ -r "$file" ] && [ -f "$file" ] && source "$file";
