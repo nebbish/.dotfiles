@@ -14,14 +14,14 @@ if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
 fi
 
 # Load the other dotfiles that initialize "non-inheritable" options/settings
-for file in ~/.{aliases,functions}; do
+for file in ~/.{aliases_bash,functions_bash}; do
 	[ -r "$file" ] && [ -f "$file" ] && source "$file";
 done;
 unset file;
 
 # This line is NOT here for normal flow, i.e. sourceing this file from ~/.bashrc
-# but rather, for special cases like 'vim' that use this file through $BASH_ENV
-# (see ~/.vimrc for setting that value - done via a 'let' command)
+# but rather, for special cases like 'vim' that use this file through BASH_ENV
+# (see ~/.vimrc for setting BASH_ENV - done via a 'let' command)
 shopt -s expand_aliases
 
 

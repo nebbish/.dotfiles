@@ -37,7 +37,7 @@ set modelines=0			" for security and safety
 " Mappings & settings related to :! and :shell "{{{
 "" NOTE:  see the docs for "Bash Startup Files" - bash looks for this env
 ""        whenever a shell is launched NON-interactively (which vim does ;)
-""let $BASH_ENV = "~/.bashrc_for_vim"
+let $BASH_ENV = "~/.bashrc_for_vim"
 set shellcmdflag=-l\ -c
 "}}}
 
@@ -272,8 +272,22 @@ nmap <leader>dp <Plug>VimdiffPut
 "command! -bar -count VimdiffPut call VimdiffUpdate('put',<count>)
 
 " This is here to manually re-run the commands that I have in my p4vimdiff.sh script
-"nnoremap <leader>ds :set diffopt+=iwhite<bar>set lines=60<bar>set columns=235<bar>wincmd =<bar>normal gg]c<cr>
-nnoremap <leader>ds :set lines=90<bar>set columns=285<bar>wincmd =<bar>normal gg]czz<cr>
+function! Maximize()
+	" Inspired from: https://vim.fandom.com/wiki/Maximize_or_set_initial_window_size
+	" But for me, when not in GUI - ANY attempt to adjust lines messed up the
+	" display *beyond* the ability of "redraw!" to repair - so that part is commented out
+	if has("gui_running")
+		set lines=1000 columns=1000
+	"else
+	"	if exists("+lines")
+	"		set lines=60
+	"	endif
+	"	if exists("+coluns")
+	"		set coluns=235
+	"	endif
+	endif
+endfunction
+nnoremap <leader>ds :set diffopt=filler<bar>call Maximize()<bar>wincmd =<bar>normal gg]c<bar>redraw!<cr>
 nnoremap <leader>di :set diffopt+=iwhite<cr>
 " This also switch tabs when diff mode is not ON
 nnoremap <expr> <c-pageup>   &diff ? '[czz' : ':tabprev<cr>'
@@ -814,7 +828,7 @@ nnoremap <leader>tc :tabclose<cr>
 ""
 "" Here's some awesome functions I found here:  https://vim.fandom.com/wiki/Move_current_window_between_tabs
 ""
-function MoveToPrevTab()
+function! MoveToPrevTab()
 	"there is only one window
 	if tabpagenr('$') == 1 && winnr('$') == 1
 		return
@@ -835,7 +849,7 @@ function MoveToPrevTab()
 	"opening current buffer in new window
 	exe "b".l:cur_buf
 endfunc
-function MoveToNextTab()
+function! MoveToNextTab()
 	"there is only one window
 	if tabpagenr('$') == 1 && winnr('$') == 1
 		return
@@ -914,6 +928,9 @@ nnoremap <silent> <esc>[1;5D :call Resize('<', '1')<cr>
 ""        That line, (3), is written correctly and works when typed in directly
 ""             (its line 4 now that I've put in a comment just above it to highlight it)
 ""        I have no idea why this is failing on my system.
+""
+""  NOW:  as you can see, I changed the technique:  no more using the expression register
+""
 function! Resize(dir, distance)
 	let this = winnr()
 	if '+' == a:dir || '-' == a:dir
