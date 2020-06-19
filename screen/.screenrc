@@ -2,6 +2,12 @@ defscrollback 100000
 # This makes it so that apps that take over the screen area (e.g. 'vim', 'htop', ...) do not leave their contents behind when terminated
 altscreen on
 
+# I found this necessary on my older CentOS 7.2 box - where the OS still attempts
+# to help set $TERM using the script here:  /etc/profile.d/256term.sh
+# After debugging a bit - I learned that script is doing nothing, and so if we
+# want $TERM to be something other than plain 'screen' we set it here
+term screen-256color
+
 # Not sure the best way to make this shell-specific -- maybe a plain 'if' statement
 # but for ZSH, the '%' should match the prompt, and for BSH '$' would match
 #
@@ -9,7 +15,7 @@ altscreen on
 # (we do this with character codes for 'Esc':033 and '\':134)
 #      PROMPT_COMMAND='printf "\033k\033\134"'
 #
-shelltitle '% |idle'
+shelltitle '$ |idle'
 
 # Here's a trick I found for window numbering to start at '1'
 # from:  https://www.linuxquestions.org/questions/linux-software-2/gnu-screen-start-window-numbering-at-1-keep-window-number-0-from-ever-being-used-772580/

@@ -683,6 +683,11 @@ cnoremap w!! w !sudo tee >/dev/null %
 "set stl+=%{DiffStatus()}
 "set stl+=%y%m%r%=
 "set stl+=%-14.(%l,%c%V%)\ %P
+"" In my older environments, running ':echo $TERM<cr>'   displays:  'screen'
+"" so setting this value is a fix for airline to get it right.
+""  see: https://github.com/vim-airline/vim-airline/issues/847#issuecomment-169757085
+set t_Co=256
+
 let g:airline#extensions#tabline#tab_nr_type=1
 " This setting shows buffers in the top bar when there is just one tab
 "let g:airline#extensions#tabline#enabled=1
