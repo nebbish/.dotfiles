@@ -196,12 +196,14 @@ let g:python_recommended_style=0
 " Additional pages related to setting 'ag' as the grepprg option:
 "   https://codeinthehole.com/tips/using-the-silver-searcher-with-vim/
 "   https://aonemd.github.io/blog/finding-things-in-vim
+"   Searching in hidden files:  --hidden
+"   Searching in hidden subdirs:  -u
 "
 " Also:  about 'ag' - if you specify 'nogroup' (implies *both* nobreak &
 "         noheading) ...   and THEN also specify 'noheading'...    you get BREAKS
 " let s:ag_cmd = 'ag\ --column\ --nogroup\ --nocolor\ $*'
 " let s:ag_cmd = 'ag\ --vimgrep\ $*'
-let s:ag_cmd = 'ag\ --hidden\ --vimgrep\ $*'
+let s:ag_cmd = 'ag\ --hidden\ -u\ --vimgrep\ $*'
 let s:gg_cmd = 'ggrep\ -Pn\ $*'
 
 if executable('ag')
