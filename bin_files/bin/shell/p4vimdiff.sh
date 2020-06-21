@@ -96,7 +96,7 @@ do_gvim() {
 	#		99)	exec '/usr/bin/gvim' ${DIFFPREPCMDS} -d "$1" "$2" || exit $?	;;
 	#	esac
 
-	/usr/local/bin/mvim "${DIFFPREPCMDS[@]}" -d "$@" || exit $?
+	$tool "${DIFFPREPCMDS[@]}" -d "$@" || exit $?
 
 	#echo "===---===---===--- Command that works ---===---===---==="
 	#exec /usr/bin/gvim +'set lines=$lines' +'set columns=$columns' +'wincmd =' +'wincmd w' +'normal gg]c' -d "$1" "$2" || exit $?
