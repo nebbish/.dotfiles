@@ -15,7 +15,7 @@ term screen-256color
 # (we do this with character codes for 'Esc':033 and '\':134)
 #      PROMPT_COMMAND='printf "\033k\033\134"'
 #
-shelltitle '$ |idle'
+shelltitle '$ |'
 
 # Here's a trick I found for window numbering to start at '1'
 # from:  https://www.linuxquestions.org/questions/linux-software-2/gnu-screen-start-window-numbering-at-1-keep-window-number-0-from-ever-being-used-772580/
