@@ -507,6 +507,20 @@ nnoremap <leader>ng :NERDTreeFocus<cr>
 "" Found here: https://superuser.com/questions/1050256/how-can-i-set-relative-line-numbers-upon-entering-nerdtree-on-vim
 let g:NERDTreeShowLineNumbers=1
 "autocmd BufEnter NERD_* setlocal rnu
+" Adding my own key mapping to NERDTree to yank the path
+"   found:  https://stackoverflow.com/a/16378375/5844631
+autocmd VimEnter * call NERDTreeAddKeyMap({
+		\ 'key': 'yy',
+		\ 'callback': 'NERDTreeYankCurrentNode',
+		\ 'quickhelpText': 'put full path of current node into the default register' })
+
+function! NERDTreeYankCurrentNode()
+	let n = g:NERDTreeFileNode.GetSelected()
+	if n != {}
+		call setreg('"', n.path.str())
+		call setreg('+', n.path.str())
+	endif
+endfunction
 "}}}
 
 
