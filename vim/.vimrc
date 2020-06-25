@@ -238,6 +238,16 @@ set diffopt+=vertical
 nnoremap <leader>df :diffoff<cr>
 nnoremap <leader>dt :diffthis<cr>
 nnoremap <leader>du :diffupdate<cr>
+" This is a neat little expression that cleanly lists all the windows
+" currently in 'diff' mode.  from:  https://vi.stackexchange.com/a/16949/9912
+nnoremap <leader>dl :echo join(
+\								filter(
+\										map(
+\											range(1, winnr('$')),
+\											'getwinvar(v:val, "&diff") ? "windows:".v:val." buffer:".winbufnr(v:val)." -> ".bufname(winbufnr(v:val)) : ""'),
+\										'!empty(v:val)'),
+\								"\n")<cr>
+
 "
 " Here I create two handy wrappers around the built-in 'do' and 'dp' commands
 " thae automatically jump to the next change - AND can be repeated with '.' :D
