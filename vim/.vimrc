@@ -538,7 +538,7 @@ endfunction
 " This is a technique to get VIM to search upwards for CTags 'tags' files
 "  see:   ':h file-searching'
 "  from:  https://stackoverflow.com/a/5019111/5844631
-set tags=tags;~
+set tags=./tags;~
 nnoremap <leader>cp :CtrlPTag<cr>
 nnoremap <leader>cf :CtrlPBufTag<cr>
 "nnoremap <leader>cm :CtrlPMRUFiles<cr>
