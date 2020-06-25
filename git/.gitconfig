@@ -32,6 +32,11 @@
 	tlog = log --graph --pretty=human --simplify-by-decoration
 	tlag = log --graph --pretty=human --all --simplify-by-decoration
 	lg = log --graph --oneline --all --decorate
+
+	# 'lash':    log of all stashes
+	# Inspired by a really good S.O. answer:  https://stackoverflow.com/a/35993495/5844631
+	lash = !git log --graph --pretty=human --all --decorate $(git reflog show --format="%h" stash)
+
 	# For two commands with one alias:
 	#     https://stackoverflow.com/a/25915221/5844631
 	# For the commands to completely reset (**compltetely**)
