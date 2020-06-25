@@ -10,6 +10,31 @@ if [ -z "$1" ]; then
 	exit 1
 fi
 
+##
+## NOTE:  after moving to MacOS - I learned that MUCH of this script depended on Linux tools not available by default on MacOS
+##        this was VERY surprising.   MacOS is very old with the GNU tools
+##
+##        uncomment the following to get a dump of the environment if things are not working - it is probably a missing or incompatible tool
+##
+# >>~/.p4vimdiff.log echo $(env)
+##
+##     When on MacOS, here is the environment that is available as a child of the desktop launched P4V:
+##         SHELL=/bin/zsh
+##         TMPDIR=/var/folders/90/p261r7f1241gl5jj4nscf53c0000gn/T/
+##         USER=jasonsinger
+##         SSH_AUTH_SOCK=/private/tmp/com.apple.launchd.2tYRQXDter/Listeners
+##         __CF_USER_TEXT_ENCODING=0x1F5:0x0:0x0
+##         PATH=/usr/bin:/bin:/usr/sbin:/sbin
+##         PWD=/
+##         XPC_FLAGS=0x0
+##         XPC_SERVICE_NAME=0
+##         SHLVL=1
+##         HOME=/Users/jasonsinger
+##         LOGNAME=jasonsinger
+##         DISPLAY=/private/tmp/com.apple.launchd.kCO3ma1bGd/org.macosforge.xquartz:0
+##         _=/usr/bin/env
+##
+
 #
 # NOTE:  if you want 'GUI' vim, be sure to put -f on the command line
 #        so it does not self-fork away from its parent process
@@ -31,11 +56,19 @@ if [ "$OSTYPE" = "linux-gnu" ]; then
 	columns=9999
 	color=evening
 	tool=/usr/bin/gvim
+	md5tool=md5sum
+	stat_args='-c "%Y"'
+	xterm=/usr/bin/xterm
 elif [ "${OSTYPE:0:6}" = "darwin" ]; then
 	lines=90
 	columns=285
 	color=torte
 	tool=/usr/local/bin/mvim
+	# This tool is not installed by default :/
+	md5tool=/usr/local/bin/md5sum
+	# On FreeBSD:  '-c' is '-f' and the quotes around the format become part of output
+	stat_args='-f %m'
+	xterm=/opt/X11/bin/xterm
 fi
 #DIFFPREPCMDS=(+"colorscheme $color" +"set diffopt+=iwhite" +"set lines=$lines" +"set columns=$columns" +"wincmd =" +"normal gg]c")
 DIFFPREPCMDS=(+"colorscheme $color" +"set lines=$lines" +"set columns=$columns" +"wincmd =" +"normal gg]c")
@@ -129,42 +162,42 @@ do_merge() {
 	cp "$theirs_arg" "$src_file"
 	cp "$ours_arg" "$targ_file"
 
-	base_orig_hash=($(md5sum "$base_file"))
-	src_orig_hash=($(md5sum "$src_file"))
-	targ_orig_hash=($(md5sum "$targ_file"))
-	base_mod_date=$(stat -c %Y "$base_file")
-	src_mod_date=$(stat -c %Y "$src_file")
-	targ_mod_date=$(stat -c %Y "$targ_file")
+	base_orig_hash=($($md5tool "$base_file"))
+	src_orig_hash=($($md5tool "$src_file"))
+	targ_orig_hash=($($md5tool "$targ_file"))
+	base_orig_date=$(stat $stat_args "$base_file")
+	src_orig_date=$(stat $stat_args "$src_file")
+	targ_orig_date=$(stat $stat_args "$targ_file")
 
 	#"/usr/bin/gvim" "${DIFFPREPCMDS[@]}" -df --remote-silent "$src_file" "$base_file" "$targ_file" || exit $?
 	#"/usr/bin/gvim" "${DIFFPREPCMDS[@]}" -df "$src_file" "$base_file" "$targ_file" || exit $?
 	do_gvim -f "$src_file" "$base_file" "$targ_file" || exit $?
 
-	base_new_hash=($(md5sum "$base_file"))
-	src_new_hash=($(md5sum "$src_file"))
-	targ_new_hash=($(md5sum "$targ_file"))
-	base_new_date=$(stat -c %Y "$base_file")
-	src_new_date=$(stat -c %Y "$src_file")
-	targ_new_date=$(stat -c %Y "$targ_file")
+	base_new_hash=($($md5tool "$base_file"))
+	src_new_hash=($($md5tool "$src_file"))
+	targ_new_hash=($($md5tool "$targ_file"))
+	base_new_date=$(stat $stat_args "$base_file")
+	src_new_date=$(stat $stat_args "$src_file")
+	targ_new_date=$(stat $stat_args "$targ_file")
 
 
 	declare -a files
 	lastidx=${#files[@]}
 	if [ $src_orig_hash != $src_new_hash ]; then
 		files[$lastidx]=$src_file
-	elif [ $src_new_date -gt $src_mod_date ]; then
+	elif [ $src_new_date -gt $src_orig_date ]; then
 		files[$lastidx]=$src_file
 	fi
 	lastidx=${#files[@]}
 	if [ $base_orig_hash != $base_new_hash ]; then
 		files[$lastidx]=$base_file
-	elif [ $base_new_date -gt $base_mod_date ]; then
+	elif [ $base_new_date -gt $base_orig_date ]; then
 		files[$lastidx]=$base_file
 	fi
 	lastidx=${#files[@]}
 	if [ $targ_orig_hash != $targ_new_hash ]; then
 		files[$lastidx]=$targ_file
-	elif [ $targ_new_date -gt $targ_mod_date ]; then
+	elif [ $targ_new_date -gt $targ_orig_date ]; then
 		files[$lastidx]=$targ_file
 	fi
 	numchanged=${#files[@]}
@@ -205,10 +238,10 @@ main()
 	if [ $# -eq 2 -o $# -eq 3 ]; then
 		flag=
 		if [ $# -eq 3 ]; then
-			if [ "$1" -eq "-i" ]; then
+			if [ "$1" = "-i" ]; then
 				flag=--strip-trailing-cr
 			else
-				echo "If 3 args are provided, it is expected that arg #1 is '-i' to request ignoring line endings"
+				echo "If 3 args are provided, it is expected that arg #1 [$1] is [-i] to request ignoring line endings"
 				exit 1
 			fi
 			shift
@@ -216,7 +249,6 @@ main()
 		diff $flag "$1" "$2" >/dev/null 2>&1
 		if [ $? -eq 0 ]; then
 			echo "Files are identical, skipping gvim"
-			#exec "/usr/bin/xterm" -e "echo 'Files are identical, skipping gvim' && read -p 'Press enter to close' fno"
 			exit 0
 		fi
 		do_gvim "$@"
@@ -250,7 +282,7 @@ main()
 		#      i think because gnome terminal defers to and runs in a 'server'
 		#      style process, that breaks the parent-child process relationship
 		#      with the P4V process.
-		exec "/usr/bin/xterm" -e "$0" "vimdiffcookie" "$@"
+		exec $xterm -e "$0" "vimdiffcookie" "$@"
 		exit 0
 	fi
 
