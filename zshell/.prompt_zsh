@@ -8,7 +8,7 @@ if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
 fi
 
 # This is for dynamic screen titles that show the current program
-PROMPT_COMMAND='printf "\033k\033\134"'
+export PROMPT_COMMAND='printf "\033k\033\134"'
 
 if [ -f ~/.prompt_all ]; then
 	source ~/.prompt_all

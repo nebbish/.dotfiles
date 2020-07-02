@@ -38,7 +38,7 @@ shell -$SHELL
 #       sorendition "-b dw"
 
 # I've customized the above into these two lines:
-caption always "%{=b dw}:%{-b}:%{+b dk}[ %{-b dg}%S %{+b dk}]%=[ %?%{-b dG}%-Lw%?%{+b dk}(%{-b dg}%n:%t%?%{k},%{c}%u%?%{+b dk})%?%{-b dG}%+Lw%? %{+b dk}]%{-b dw}:%{+b}:"
+caption always "%{=b dw}:%{-b}:%{+b dk}[ %{-b dg}%S (%H) %{+b dk}]%=[ %?%{-b dG}%-Lw%?%{+b dk}(%{-b dg}%n:%t%?%{k},%{c}%u%?%{+b dk})%?%{-b dG}%+Lw%? %{+b dk}]%{-b dw}:%{+b}:"
 backtick 1 5 5 $HOME/bin/meminfo
 hardstatus alwayslastline "%{=b dw}:%{-b}:%{+b dk}[ %{-b dG}Load%{k}:%{G}%l %{+b dk}]%=[ %{-b dG}%1` %{+b dk}]%{-b dw}:%{+b}:"
 

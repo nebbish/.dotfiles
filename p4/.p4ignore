@@ -1,6 +1,6 @@
 # Ignore .p4ignore files
 .p4ignore
 
-# Ignore VIM temp files
-.*.sw?
+# Ignore VIM temp files (NOTE:  '?' does not work)
+.*.sw*
 

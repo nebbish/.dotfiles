@@ -3,4 +3,7 @@
 # This little gem will "sum" the numbers from a column of input
 du --max-depth 1 / | sed '$d' | awk '{s+=$1}END{print s}'
 
+# This is a solid method of retrieving the real folder containing the currently executing script:
+script_dir="$( cd "$(dirname "$(readlink -f "$0")")" ; pwd -P )"
+
 
