@@ -50,7 +50,8 @@ set shellcmdflag=-l\ -c
 "" JES:  new for macos - not sure why this is needed only there...  but
 ""       without this syntax highlighting will be off by default :(
 ""       see:  https://stackoverflow.com/a/3765883/5844631
-syntax on
+"syntax on
+syntax enable
 
 set encoding=utf-8
 set sidescroll=1
@@ -64,6 +65,17 @@ set laststatus=2	" show status line ('2' == always)
 
 set relativenumber	" display relative line numbers (new in 7.3)
 set number			" display the absolute line number on the current line only
+function! ToggleBoolOption(val)
+	if eval('&'.a:val)
+		execute 'set no'.a:val
+	else
+		execute 'set '.a:val
+	endif
+endfunction
+nnoremap <leader>tn :call ToggleBoolOption('nu')<bar>call ToggleBoolOption('rnu')<cr>
+nnoremap <leader>trn :call ToggleBoolOption('rnu')<cr>
+nnoremap <leader>tnu :call ToggleBoolOption('nu')<cr>
+nnoremap <leader>tw :set wrap!<cr>
 augroup helpnumbers
 	au!
 	au FIleType help setlocal number | setlocal relativenumber
@@ -72,8 +84,8 @@ augroup END
 " NOTE:  the listchars settings are in the section borrowed from 'gmarik'
 "set breakindent
 "set breakindentopt=sbr
-"set showbreak=⤹→\
-set showbreak=⤹\
+"set showbreak=⤹→\ 
+set showbreak=⤹\ 
 "set undofile		" create .<filename>.un~ files persist undo chains
 
 "" This is an attempt to create an inverse of the 'J' command (split)
@@ -441,6 +453,20 @@ end
 filetype plugin indent on	"" required (the 'indent' clause is fine absent or present)
 "}}}
 
+" Settings relatd to the vim-unimpaired "{{{
+" NOTE:  this option, 'unimpaired_recenter_after_jump', relies on my own
+"        edit to the unimpaired plugin - it is harmless if the edit is
+"        missing.  To edit the unimpaired here, just replace the first 3 lines
+"        of the function 'MapNextFamily' with these 5 lines:
+"              if !exists('g:unimpaired_recenter_after_jump') | let g:unimpaired_recenter_after_jump = 0 | en
+"              let sfx = g:unimpaired_recenter_after_jump ? 'zz' : ''
+"              let map = '<Plug>unimpaired'.toupper(a:map)
+"              let cmd = '".(v:count ? v:count : "")."'.a:cmd
+"              let end = '"<CR>'.(a:cmd ==# 'l' || a:cmd ==# 'c' ? 'zv'.a:sfx : '')
+"        The key is the addition of the 'sfx' local value, and its use
+let g:unimpaired_recenter_after_jump=1
+"}}}
+
 " BufExplorer mappings and settings "{{{
 let g:bufExplorerShowNoName=1        " Show "No Name" buffers.
 "}}}
@@ -501,11 +527,11 @@ set foldopen=block,hor,tag    " what movements open folds
 set foldopen+=percent,mark
 set foldopen+=quickfix
 
-nnoremap <leader>fm :set foldmethod=marker<cr>
-nnoremap <leader>fs :set foldmethod=syntax<cr>
-nnoremap <leader>fe :set foldmethod=expr<cr>
-nnoremap <leader>fd :set foldmethod=diff<cr>
-nnoremap <leader>fi :set foldmethod=indent<cr>
+nnoremap <leader>fmm :set foldmethod=marker<cr>
+nnoremap <leader>fms :set foldmethod=syntax<cr>
+nnoremap <leader>fme :set foldmethod=expr<cr>
+nnoremap <leader>fmd :set foldmethod=diff<cr>
+nnoremap <leader>fmi :set foldmethod=indent<cr>
 "}}}
 
 
@@ -683,6 +709,8 @@ nnoremap <leader>bb :b#<CR>
 command! Bd bp<bar>bd#		"" close the current buffer, but not the window
 nnoremap <leader>bd :bp<bar>bd#<cr>
 nnoremap <leader>bk :bp<bar>bd!#<cr>
+nnoremap <leader>bw :bp<bar>bw#<cr>
+nnoremap <leader>bq :bp<bar>bw!#<cr>
 
 " Command & mapping that take a {count} and reverse lines
 command! -bar -range=% Reverse <line1>,<line2>g/^/m<line1>-1|nohl
@@ -692,6 +720,8 @@ xnoremap <leader>re :Reverse<CR>
 ""
 ""Easy expansion of the active file directory	(see ":help <expr>")
 ""
+"" NOTE:  this may not be working :(
+cnoremap <expr> %p  getcmdtype() == ':' ? expand('%:p') : '%p'
 cnoremap <expr> %%  getcmdtype() == ':' ? expand('%:h').'/' : '%%'
 ""
 "" Save a file that requires root permissions (see ":help :w_c" and ":help c_%")
@@ -746,9 +776,9 @@ nnoremap <leader>tr :let b:old = @/<bar>%s/[ \t]\+$//<bar>call histdel('/',-1)<b
 ""
 "" For easy file type conversion and cleanup of the extra ^M characters that appear when converting Dos->Unix
 ""
-nnoremap <leader>tu :e ++ff=unix<cr>
-nnoremap <leader>td :e ++ff=dos<cr>
-nnoremap <leader>tm :%s/<C-V><cr>$//<cr>
+nnoremap <leader>ftu :e ++ff=unix<cr>
+nnoremap <leader>ftd :e ++ff=dos<cr>
+nnoremap <leader>ftm :%s/<C-V><cr>$//<cr>
 
 ""
 "" These options are related to C/C++ source editing
@@ -762,6 +792,7 @@ nmap <leader>bf 0ms/\{<cr>%me's!'eclang-format<cr>
 
 nnoremap <leader>mr :!chmod -w %<cr>
 nnoremap <leader>mw :!chmod +w %<cr>
+nnoremap <leader>mx :!chmod +x %<cr>
 "}}}
 
 
@@ -822,10 +853,6 @@ nnoremap <esc>[1;2S :cp<cr>
 "nnoremap <c-j> :cn<cr>
 "nnoremap <c-k> :cp<cr>
 
-"" word wrap on <ctrl>+a (see :help :_!)
-""nnoremap <c-a> :set wrap!<cr>
-nnoremap <leader>w :set wrap!<cr>
-
 ""nnoremap <esc>[6;5~ ]c
 ""nnoremap <esc>[5;5~ [c
 "}}}
@@ -851,15 +878,15 @@ nnoremap <leader>k :m .-2<cr>
 "" nnoremap <silent> [T :tabfirst<CR>
 "" nnoremap <silent> ]T :tablast<CR>
 " These three are still useful
-nnoremap <leader>te :tabedit
-nnoremap <leader>tn :tabnew<cr>
-nnoremap <leader>tc :tabclose<cr>
+nnoremap <leader>ae :tabedit 
+nnoremap <leader>an :tabnew<cr>
+nnoremap <leader>ac :tabclose<cr>
 " Make Alt-left and right switch tabs
 "nnoremap <esc>[1;3C :tabn<cr>
 "nnoremap <esc>[1;3D :tabp<cr>
 "" Before enabling these...   I'm trying to get used to:   'gt' and 'gT'
-"nnoremap <leader>tn :tabn<cr>
-"nnoremap <leader>tp :tabp<cr>
+"nnoremap <leader>an :tabn<cr>
+"nnoremap <leader>ap :tabp<cr>
 ""
 "" Here's some awesome functions I found here:  https://vim.fandom.com/wiki/Move_current_window_between_tabs
 ""
@@ -906,8 +933,8 @@ function! MoveToNextTab()
 	exe "b".l:cur_buf
 endfunc
 "" These mappings are for <Alt-,> and <Alt-.> (use `sed -n l` to discover the right codes)
-nnoremap <leader>th :call MoveToPrevTab()<cr>
-nnoremap <leader>tl :call MoveToNextTab()<cr>
+nnoremap <leader>ah :call MoveToPrevTab()<cr>
+nnoremap <leader>al :call MoveToNextTab()<cr>
 "}}}
 
 
