@@ -27,6 +27,43 @@ alias sc2="sc task2"
 alias sc3="sc task3"
 alias sc4="sc task4"
 
+## ############################################################################
+## Text processing section
+## ############################################################################
+function reverse() {
+	# see:  https://stackoverflow.com/questions/742466/how-can-i-reverse-the-order-of-lines-in-a-file
+
+	# From: http://sed.sourceforge.net/sed1line.txt
+	# # reverse order of lines (emulates "tac")
+ 	# # bug/feature in HHsed v1.5 causes blank lines to be deleted
+ 	# sed '1!G;h;$!d'               # method 1
+ 	# sed -n '1!G;h;$p'             # method 2
+
+	# Other options...
+	# awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'
+	# perl -e 'print reverse <>'
+}
+function juniq() {
+	# This function is designed to remove duplicate lines, but still work with huge data
+	#   see:
+	#    https://unix.stackexchange.com/questions/194780/remove-duplicate-lines-while-keeping-the-order-of-the-lines
+	#    https://unix.stackexchange.com/questions/131217/how-to-remove-duplicate-lines-with-awk-whilst-keeping-empty-lines
+	#
+	# Some simpler solutions exist:
+	#	awk '!seen[$0]++'
+	#   awk '!NF || !seen[$0]++'
+	#   perl -ne 'print if ++$k{$_}==1'
+	#
+
+	# Regarding how to use this function...    I *wish* it could work with pipes, but could not figure it out.
+	# see:  https://unix.stackexchange.com/questions/114121/how-to-compose-bash-functions-using-pipes
+	if [ -n "$1" ]; then
+		cat -n "$*" | sort -k2 -k1n  | uniq -f1 | sort -nk1,1 | cut -f2-
+	else
+		>&2 echo "Unable to run without providing a file argument (cannot be piped yet, try process substitution)"
+	fi
+}
+
 
 ## ############################################################################
 ## OS - specific values
