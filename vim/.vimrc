@@ -65,16 +65,16 @@ set laststatus=2	" show status line ('2' == always)
 
 set relativenumber	" display relative line numbers (new in 7.3)
 set number			" display the absolute line number on the current line only
-function! ToggleBoolOption(val)
+function! s:ToggleBoolOption(val)
 	if eval('&'.a:val)
 		execute 'set no'.a:val
 	else
 		execute 'set '.a:val
 	endif
 endfunction
-nnoremap <leader>tn :call ToggleBoolOption('nu')<bar>call ToggleBoolOption('rnu')<cr>
-nnoremap <leader>trn :call ToggleBoolOption('rnu')<cr>
-nnoremap <leader>tnu :call ToggleBoolOption('nu')<cr>
+nnoremap <leader>tn :call s:ToggleBoolOption('nu')<bar>call s:ToggleBoolOption('rnu')<cr>
+nnoremap <leader>trn :call s:ToggleBoolOption('rnu')<cr>
+nnoremap <leader>tnu :call s:ToggleBoolOption('nu')<cr>
 nnoremap <leader>tw :set wrap!<cr>
 augroup helpnumbers
 	au!
@@ -129,18 +129,18 @@ set listchars+=extends:»,precedes:«
 "              that works in all situations
 "
 "" NOTE:  this one to gather all the autocmd entries in a buffer DOES NOT WORK :(
-nnoremap <leader>gm :call GetSpecifiedInfo("map", 0)<cr>
-nnoremap <leader>gc :call GetSpecifiedInfo("command", 0)<cr>
-nnoremap <leader>ga :call GetSpecifiedInfo("autocmd", 0)<cr>
-nnoremap <leader>gh :call GetSpecifiedInfo("highlight", 0)<cr>
-nnoremap <leader>gs :call GetSpecifiedInfo("scriptnames", 0)<cr>
+nnoremap <leader>gm :call s:GetSpecifiedInfo("map", 0)<cr>
+nnoremap <leader>gc :call s:GetSpecifiedInfo("command", 0)<cr>
+nnoremap <leader>ga :call s:GetSpecifiedInfo("autocmd", 0)<cr>
+nnoremap <leader>gh :call s:GetSpecifiedInfo("highlight", 0)<cr>
+nnoremap <leader>gs :call s:GetSpecifiedInfo("scriptnames", 0)<cr>
 
-nnoremap <leader>gvm :call GetSpecifiedInfo("map", 1)<cr>
-nnoremap <leader>gvc :call GetSpecifiedInfo("command", 1)<cr>
-nnoremap <leader>gva :call GetSpecifiedInfo("autocmd", 1)<cr>
-nnoremap <leader>gvh :call GetSpecifiedInfo("highlight", 1)<cr>
-nnoremap <leader>gvs :call GetSpecifiedInfo("scriptnames", 1)<cr>
-function! GetSpecifiedInfo(cmd, verbose)
+nnoremap <leader>gvm :call s:GetSpecifiedInfo("map", 1)<cr>
+nnoremap <leader>gvc :call s:GetSpecifiedInfo("command", 1)<cr>
+nnoremap <leader>gva :call s:GetSpecifiedInfo("autocmd", 1)<cr>
+nnoremap <leader>gvh :call s:GetSpecifiedInfo("highlight", 1)<cr>
+nnoremap <leader>gvs :call s:GetSpecifiedInfo("scriptnames", 1)<cr>
+function! s:GetSpecifiedInfo(cmd, verbose)
 	redir @"
 	if a:verbose
 		execute "verbose silent " . a:cmd
@@ -216,7 +216,7 @@ let g:python_recommended_style=0
 " let s:ag_cmd = 'ag\ --column\ --nogroup\ --nocolor\ $*'
 " let s:ag_cmd = 'ag\ --vimgrep\ $*'
 let s:ag_cmd = 'ag\ --hidden\ -u\ --vimgrep\ $*'
-let s:gg_cmd = 'ggrep\ -Pn\ $*'
+let s:gg_cmd = 'ggrep\ -PIn\ $*'
 
 if executable('ag')
 	execute 'set grepprg=' . s:ag_cmd
@@ -280,7 +280,7 @@ nmap <leader>do <Plug>VimdiffGet
 nmap <leader>dp <Plug>VimdiffPut
 
 
-"function! VimdiffUpdate(dir, cnt)
+"function! s:VimdiffUpdate(dir, cnt)
 "	let idx = 0
 "	while l:idx < a:cnt
 "		if a:dir == 'o'
@@ -290,13 +290,13 @@ nmap <leader>dp <Plug>VimdiffPut
 "		endif
 "		normal "]czz"
 "	endwhile
-"	repeat#set("VimDiffUpdate", v:count)
+"	repeat#set("s:VimDiffUpdate", v:count)
 "endfunc
-"command! -bar -count VimdiffGet call VimdiffUpdate('get',<count>)
-"command! -bar -count VimdiffPut call VimdiffUpdate('put',<count>)
+"command! -bar -count VimdiffGet call s:VimdiffUpdate('get',<count>)
+"command! -bar -count VimdiffPut call s:VimdiffUpdate('put',<count>)
 
 " This is here to manually re-run the commands that I have in my p4vimdiff.sh script
-function! Maximize()
+function! s:Maximize()
 	" Inspired from: https://vim.fandom.com/wiki/Maximize_or_set_initial_window_size
 	" But for me, when not in GUI - ANY attempt to adjust lines messed up the
 	" display *beyond* the ability of "redraw!" to repair - so that part is commented out
@@ -311,7 +311,7 @@ function! Maximize()
 	"	endif
 	endif
 endfunction
-nnoremap <leader>ds :set diffopt=filler<bar>call Maximize()<bar>wincmd =<bar>normal gg]c<bar>redraw!<cr>
+nnoremap <leader>ds :set diffopt=filler<bar>call s:Maximize()<bar>wincmd =<bar>normal gg]c<bar>redraw!<cr>
 nnoremap <leader>di :set diffopt+=iwhite<cr>
 " This also switch tabs when diff mode is not ON
 nnoremap <expr> <c-pageup>   &diff ? '[czz' : ':tabprev<cr>'
@@ -350,7 +350,7 @@ nnoremap <expr> <c-pagedown> &diff ? ']czz' : ':tabnext<cr>'
 ""
 "" see :h vundle for more details or wiki for FAQ
 ""
-filetype off			"" required for Vundle to load, will be renabled below
+filetype off			"" required for Vundle to load, will be re-enabled below
 
 ""
 "" NOTE:  Got this recipe for how to "bootstrap" a Vundle setup from a fresh
@@ -490,14 +490,14 @@ nnoremap <leader>is :Gstatus<cr>
 "
 " Then I pasted the contents of the 's' register into a new buffer to analyze
 "
-function! ToJson(input)
+function! s:ToJson(input)
     let json = ''
     if type(a:input) == type({})
         let parts = copy(a:input)
-        call map(parts, '"\"" . escape(v:key, "\"") . "\":" . ToJson(v:val)')
+        call map(parts, '"\"" . escape(v:key, "\"") . "\":" . s:ToJson(v:val)')
         let json .= "{" . join(values(parts), ",") . "}"
     elseif type(a:input) == type([])
-        let parts = map(copy(a:input), 'ToJson(v:val)')
+        let parts = map(copy(a:input), 's:ToJson(v:val)')
         let json .= "[" . join(parts, ",") . "]"
     else
         let json .= '"'.escape(a:input, '"').'"'
@@ -547,10 +547,10 @@ let g:NERDTreeShowLineNumbers=1
 "   found:  https://stackoverflow.com/a/16378375/5844631
 autocmd VimEnter * call NERDTreeAddKeyMap({
 		\ 'key': 'yy',
-		\ 'callback': 'NERDTreeYankCurrentNode',
+		\ 'callback': 's:NERDTreeYankCurrentNode',
 		\ 'quickhelpText': 'put full path of current node into the default register' })
 
-function! NERDTreeYankCurrentNode()
+function! s:NERDTreeYankCurrentNode()
 	let n = g:NERDTreeFileNode.GetSelected()
 	if n != {}
 		call setreg('"', n.path.str())
@@ -734,13 +734,13 @@ cnoremap w!! w !sudo tee >/dev/null %
 ""
 "" This is a function that would be called to build the status line, layed out just after
 ""
-"function! DiffStatus()
+"function! s:DiffStatus()
 "	if &l:diff == 1 | return '[diff]' | else | return '' | endif
 "endfunction
 
 "set statusline=%<%f\          " custom statusline
 "set stl+=[%{&ff}]             " show fileformat
-"set stl+=%{DiffStatus()}
+"set stl+=%{s:DiffStatus()}
 "set stl+=%y%m%r%=
 "set stl+=%-14.(%l,%c%V%)\ %P
 "" In my older environments, running ':echo $TERM<cr>'   displays:  'screen'
@@ -855,6 +855,32 @@ nnoremap <esc>[1;2S :cp<cr>
 
 ""nnoremap <esc>[6;5~ ]c
 ""nnoremap <esc>[5;5~ [c
+
+""
+"" This pair of functions will automatically sort the quickfix window contents
+"" every time it changes
+""
+function! s:CompareQuickfixEntries(i1, i2)
+	if bufname(a:i1.bufnr) == bufname(a:i2.bufnr)
+		return a:i1.lnum == a:i2.lnum ? 0 : (a:i1.lnum < a:i2.lnum ? -1 : 1)
+	else
+		return bufname(a:i1.bufnr) < bufname(a:i2.bufnr) ? -1 : 1
+	endif
+endfunction
+function! s:SortUniqQFList()
+	let sortedList = sort(getqflist(), 's:CompareQuickfixEntries')
+	let uniqedList = []
+	let last = ''
+	for item in sortedList
+		let this = bufname(item.bufnr) . "\t" . item.lnum
+		if this !=# last
+			call add(uniqedList, item)
+			let last = this
+		endif
+	endfor
+	call setqflist(uniqedList)
+endfunction
+autocmd! QuickfixCmdPost * call s:SortUniqQFList()
 "}}}
 
 
@@ -878,7 +904,7 @@ nnoremap <leader>k :m .-2<cr>
 "" nnoremap <silent> [T :tabfirst<CR>
 "" nnoremap <silent> ]T :tablast<CR>
 " These three are still useful
-nnoremap <leader>ae :tabedit 
+nnoremap <leader>ae :tabedit
 nnoremap <leader>an :tabnew<cr>
 nnoremap <leader>ac :tabclose<cr>
 " Make Alt-left and right switch tabs
@@ -1115,4 +1141,6 @@ augroup myvimrc
 	""au bufwritepost $MYVIMRC,$MYGVIMRC so $MYVIMRC | if has('gui_running') | so $MYGVIMRC | endif
 	au bufwritepost $MYVIMRC so $MYVIMRC
 augroup end
+nnoremap <leader>rv :so $MYVIMRC<cr>
+
 
