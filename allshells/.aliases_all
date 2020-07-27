@@ -64,8 +64,8 @@ elif [ "${OSTYPE:0:6}" = "darwin" ]; then
 	# This was my experiment to help see the connection between these help systems
 	#alias man="run-help"
 
-	#alias la="gls -la --color=auto"
-	#alias lad="gls -lad --color=auto"
+	alias gla="gls -la --color=auto"
+	alias glad="gls -lad --color=auto"
 	alias la="ls -G -la"
 	alias lad="ls -G -lad"
 

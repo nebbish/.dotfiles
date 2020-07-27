@@ -8,6 +8,15 @@ if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
 	echo "$(date) + $(whoami) + executing $__source"
 fi
 
+# The Mac ls utility gets colors from CLICOLOR and LSCOLORS
+#    see:  https://www.cyberciti.biz/faq/apple-mac-osx-terminal-color-ls-output-option/
+# The default is:  exfxcxdxbxegedabagacad
+# I change it to:  Exfxcxdxbxegedabagacad
+#                  ^-- this is the color for directories
+#    ... so directories are not that impossible to read dark blue
+export LSCOLORS=Exfxcxdxbxegedabagacad
+
+
 # Set java version
 # https://www.kevinhooke.com/2017/10/05/switching-java-versions-on-mac-os/
 alias j13="export JAVA_HOME=$(/usr/libexec/java_home -v 13)"
