@@ -565,6 +565,8 @@ endfunction
 "  see:   ':h file-searching'
 "  from:  https://stackoverflow.com/a/5019111/5844631
 set tags=./tags;~
+nnoremap <leader>gt :tj <c-r>=expand("<cword>")<cr><cr>
+
 nnoremap <leader>cp :CtrlPTag<cr>
 nnoremap <leader>cf :CtrlPBufTag<cr>
 "nnoremap <leader>cm :CtrlPMRUFiles<cr>
