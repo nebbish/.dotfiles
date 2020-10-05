@@ -73,8 +73,8 @@ function! s:ToggleBoolOption(val)
 	endif
 endfunction
 nnoremap <leader>tn :call s:ToggleBoolOption('nu')<bar>call s:ToggleBoolOption('rnu')<cr>
-nnoremap <leader>trn :call s:ToggleBoolOption('rnu')<cr>
-nnoremap <leader>tnu :call s:ToggleBoolOption('nu')<cr>
+nnoremap <leader>tnr :call s:ToggleBoolOption('rnu')<cr>
+nnoremap <leader>tnl :call s:ToggleBoolOption('nu')<cr>
 nnoremap <leader>tw :set wrap!<cr>
 augroup helpnumbers
 	au!
@@ -465,6 +465,20 @@ filetype plugin indent on	"" required (the 'indent' clause is fine absent or pre
 "              let end = '"<CR>'.(a:cmd ==# 'l' || a:cmd ==# 'c' ? 'zv'.a:sfx : '')
 "        The key is the addition of the 'sfx' local value, and its use
 let g:unimpaired_recenter_after_jump=1
+
+" Adding a new function exploring interations b/w Vim & Python.   Not used yet.
+function! PyPrint() range
+	let startline = line("'<")
+	let endline = line("'>")
+	python <<EOF
+		import vim
+		cb = vim.current.buffer
+		start = vim.eval("startline")
+		endl = vim.eval("endline")
+		res = eval('\n'.join(cb[(start - 1) : endl]))
+		vim.command("let vimres = '{}'".format(pprint.pformat(res)))
+EOF
+endfunction
 "}}}
 
 " BufExplorer mappings and settings "{{{
@@ -606,20 +620,20 @@ let g:tagbar_sort=0
 "      Skeleton i borrowed:    https://vi.stackexchange.com/questions/23066/change-cursorline-style
 
 nnoremap <leader>h :set cursorline! cursorcolumn!<cr>
-augroup cursorline
-	au!
-	""
-	"" NOTE:  I would rather link the line to the column -- so the colorscheme has a 'say'
-	""        but it is almost always way to bright and overpowering
-	""
-	"au ColorScheme * hi clear CursorLine | hi link CursorLine CursorColumn
-	au ColorScheme * hi clear CursorLine | hi clear CursorColumn |
-					\ hi CursorLine term=reverse ctermbg=235 guibg=Grey15 |
-					\ hi CursorColumn term=reverse ctermbg=235 guibg=Grey15
-	"au ColorScheme * hi clear CursorLine | hi clear CursorColumn |
-	"				\ hi CursorLine term=reverse ctermbg=145 guibg=Grey69 |
-	"				\ hi CursorColumn term=reverse ctermbg=145 guibg=Grey69
-augroup END
+"augroup cursorline
+"	au!
+"	""
+"	"" NOTE:  I would rather link the line to the column -- so the colorscheme has a 'say'
+"	""        but it is almost always way to bright and overpowering
+"	""
+"	"au ColorScheme * hi clear CursorLine | hi link CursorLine CursorColumn
+"	au ColorScheme * hi clear CursorLine | hi clear CursorColumn |
+"					\ hi CursorLine term=reverse ctermbg=235 guibg=Grey15 |
+"					\ hi CursorColumn term=reverse ctermbg=235 guibg=Grey15
+"	"au ColorScheme * hi clear CursorLine | hi clear CursorColumn |
+"	"				\ hi CursorLine term=reverse ctermbg=145 guibg=Grey69 |
+"	"				\ hi CursorColumn term=reverse ctermbg=145 guibg=Grey69
+"augroup END
 " Doing this here sets up what I like and triggers the autocmd just above
 nnoremap <leader>o   <Nop>
 nnoremap <leader>ob  <Nop>
