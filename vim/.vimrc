@@ -868,7 +868,11 @@ nnoremap <leader>qc :cclose<cr>
 nnoremap <leader>ql :cclose<cr>
 
 nnoremap <f4> :cn<cr>
-nnoremap <esc>[1;2S :cp<cr>
+if has("gui_running")
+	nnoremap <S-f4> :cp<cr>
+else
+	nnoremap <esc>[1;2S :cp<cr>
+endif
 "nnoremap <c-j> :cn<cr>
 "nnoremap <c-k> :cp<cr>
 
@@ -1010,16 +1014,30 @@ nnoremap <silent> <leader>l :hide<cr>
 "             for VIM - I am leaving it as SHIFT for big and CTRL for small
 
 " Make Shift-arrows resize windows
-nnoremap <silent> <esc>[1;2A :call Resize('+', '5')<cr>
-nnoremap <silent> <esc>[1;2B :call Resize('-', '5')<cr>
-nnoremap <silent> <esc>[1;2C :call Resize('>', '5')<cr>
-nnoremap <silent> <esc>[1;2D :call Resize('<', '5')<cr>
+if has("gui_running")
+	nnoremap <silent> <S-Up>     :call Resize('+', '5')<cr>
+	nnoremap <silent> <S-Down>   :call Resize('-', '5')<cr>
+	nnoremap <silent> <S-Right>  :call Resize('>', '5')<cr>
+	nnoremap <silent> <S-Left>   :call Resize('<', '5')<cr>
+else
+	nnoremap <silent> <esc>[1;2A :call Resize('+', '5')<cr>
+	nnoremap <silent> <esc>[1;2B :call Resize('-', '5')<cr>
+	nnoremap <silent> <esc>[1;2C :call Resize('>', '5')<cr>
+	nnoremap <silent> <esc>[1;2D :call Resize('<', '5')<cr>
+endif
 
 " And Ctrl-arrows small adjustments (this is OK in VIM for me - because don't use arrows for navigating :)
-nnoremap <silent> <esc>[1;5A :call Resize('+', '1')<cr>
-nnoremap <silent> <esc>[1;5B :call Resize('-', '1')<cr>
-nnoremap <silent> <esc>[1;5C :call Resize('>', '1')<cr>
-nnoremap <silent> <esc>[1;5D :call Resize('<', '1')<cr>
+if has("gui_running")
+	nnoremap <silent> <C-Up>     :call Resize('+', '1')<cr>
+	nnoremap <silent> <C-Down>   :call Resize('-', '1')<cr>
+	nnoremap <silent> <C-Right>  :call Resize('>', '1')<cr>
+	nnoremap <silent> <C-Left>   :call Resize('<', '1')<cr>
+else
+	nnoremap <silent> <esc>[1;5A :call Resize('+', '1')<cr>
+	nnoremap <silent> <esc>[1;5B :call Resize('-', '1')<cr>
+	nnoremap <silent> <esc>[1;5C :call Resize('>', '1')<cr>
+	nnoremap <silent> <esc>[1;5D :call Resize('<', '1')<cr>
+endif
 
 "" NOTE:  after getting over the learning curve of vim script - just enough to understand
 ""        what this function is doing:  trying to normalize so that '+' always makes the line go up
