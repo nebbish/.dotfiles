@@ -621,8 +621,8 @@ let g:tagbar_sort=0
 
 nnoremap <leader>h :set cursorline! cursorcolumn!<cr>
 "augroup cursorline
-"	au!
 "	""
+"	au!
 "	"" NOTE:  I would rather link the line to the column -- so the colorscheme has a 'say'
 "	""        but it is almost always way to bright and overpowering
 "	""
