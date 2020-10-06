@@ -442,6 +442,9 @@ Plugin 'lifepillar/vim-solarized8'
 "Plugin 'gilligan/vim-lldb'
 "" Here's something for comparing folders
 Plugin 'will133/vim-dirdiff'
+"" I wish I could make the built-in functionality meed the needs, but this
+"" seems like a solid plugin -- if it all works
+Plugin 'wesQ3/vim-windowswap'
 
 call vundle#end()			"" required
 
