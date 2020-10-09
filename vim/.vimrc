@@ -442,6 +442,10 @@ Plugin 'lifepillar/vim-solarized8'
 "Plugin 'gilligan/vim-lldb'
 "" Here's something for comparing folders
 Plugin 'will133/vim-dirdiff'
+"" Found this when searching for a good way to swap words
+""     see:  https://vim.fandom.com/wiki/Swapping_characters,_words_and_lines
+"" There are other options -- I am trying this one for now :)
+Plugin 'kurkale6ka/vim-swap'
 "" I wish I could make the built-in functionality meed the needs, but this
 "" seems like a solid plugin -- if it all works
 Plugin 'wesQ3/vim-windowswap'
@@ -670,6 +674,9 @@ nnoremap <leader>osh :colorscheme solarized8_high<cr>
 nnoremap <leader>osl :colorscheme solarized8_low<cr>
 nnoremap <leader>ot :colorscheme torte<cr>
 nnoremap <leader>oz :colorscheme zellner<cr>
+
+"colorscheme solarized8_high
+"set background=light
 "}}}
 
 
@@ -915,8 +922,13 @@ autocmd! QuickfixCmdPost * call s:SortUniqQFList()
 ""
 "nnoremap <esc>[1;3B :m .+1<cr>
 "nnoremap <esc>[1;3A :m .-2<cr>
-nnoremap <leader>j :m .+1<cr>
-nnoremap <leader>k :m .-2<cr>
+"nnoremap <leader>j :m .+1<cr>
+"nnoremap <leader>k :m .-2<cr>
+
+"" Mappings that "float" straight vertically up and down until a non-white
+"" character is encountered (from:  https://vi.stackexchange.com/a/213/9912)
+nnoremap <leader>fj /\%<C-R>=virtcol(".")<CR>v\S<CR>
+nnoremap <leader>fk ?\%<C-R>=virtcol(".")<CR>v\S<CR>
 "}}}
 
 
