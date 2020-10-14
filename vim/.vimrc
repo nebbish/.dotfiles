@@ -627,20 +627,14 @@ let g:tagbar_sort=0
 "      Skeleton i borrowed:    https://vi.stackexchange.com/questions/23066/change-cursorline-style
 
 nnoremap <leader>h :set cursorline! cursorcolumn!<cr>
-"augroup cursorline
-"	au!
-"	""
-"	"" NOTE:  I would rather link the line to the column -- so the colorscheme has a 'say'
-"	""        but it is almost always way to bright and overpowering
-"	""
-"	"au ColorScheme * hi clear CursorLine | hi link CursorLine CursorColumn
-"	au ColorScheme * hi clear CursorLine | hi clear CursorColumn |
-"					\ hi CursorLine term=reverse ctermbg=235 guibg=Grey15 |
-"					\ hi CursorColumn term=reverse ctermbg=235 guibg=Grey15
-"	"au ColorScheme * hi clear CursorLine | hi clear CursorColumn |
-"	"				\ hi CursorLine term=reverse ctermbg=145 guibg=Grey69 |
-"	"				\ hi CursorColumn term=reverse ctermbg=145 guibg=Grey69
-"augroup END
+augroup cursorline
+	au!
+	""
+	"" NOTE:  The '!' is requried because the CursorLine item has default values
+	""        (for more info, see:	https://stackoverflow.com/a/31146436/5844631)
+	""
+	au ColorScheme * hi clear CursorLine | hi! link CursorLine CursorColumn
+augroup END
 " Doing this here sets up what I like and triggers the autocmd just above
 nnoremap <leader>o   <Nop>
 nnoremap <leader>ob  <Nop>
