@@ -134,12 +134,14 @@ nnoremap <leader>gc :call GetSpecifiedInfo("command", 0)<cr>
 nnoremap <leader>ga :call GetSpecifiedInfo("autocmd", 0)<cr>
 nnoremap <leader>gh :call GetSpecifiedInfo("highlight", 0)<cr>
 nnoremap <leader>gs :call GetSpecifiedInfo("scriptnames", 0)<cr>
+nnoremap <leader>gg :call GetSpecifiedInfo("messages", 0)<cr>
 
 nnoremap <leader>gvm :call GetSpecifiedInfo("map", 1)<cr>
 nnoremap <leader>gvc :call GetSpecifiedInfo("command", 1)<cr>
 nnoremap <leader>gva :call GetSpecifiedInfo("autocmd", 1)<cr>
 nnoremap <leader>gvh :call GetSpecifiedInfo("highlight", 1)<cr>
 nnoremap <leader>gvs :call GetSpecifiedInfo("scriptnames", 1)<cr>
+nnoremap <leader>gvg :call GetSpecifiedInfo("messages", 1)<cr>
 function! GetSpecifiedInfo(cmd, verbose)
 	redir @"
 	if a:verbose
@@ -379,7 +381,7 @@ Plugin 'VundleVim/Vundle.vim'	"" let Vundle manage Vundle, REQUIRED
 
 "" Current Matchit options:
 ""   Original (I think):  https://github.com/chrisbra/matchit
-""   The one I used to incude here: https://github.com/geoffharcourt/vim-matchit 
+""   The one I used to include here: https://github.com/geoffharcourt/vim-matchit
 ""   Enhanced:  https://github.com/andymass/vim-matchup
 Plugin 'chrisbra/matchit'
 "" Found through this question:  "how to convert html escape codes"
@@ -411,7 +413,7 @@ Plugin 'vim-scripts/argtextobj.vim'
 Plugin 'michaeljsmith/vim-indent-object'
 "" This is meant to work with `ag` which I just installed
 Plugin 'rking/ag.vim'
-Plugin 'Chun-Yang/vim-action-ag'
+"Plugin 'Chun-Yang/vim-action-ag'
 "" Found while looking for an easy way to jump b/w decl & defn   -- not that easy, even with CTags & CtrlP
 ""Plugin 'LucHermitte/lh-tags'     I'm not sure if I want this one - but I did not want to forget knowing about it ;)
 Plugin 'vim-airline/vim-airline'
@@ -449,6 +451,11 @@ Plugin 'kurkale6ka/vim-swap'
 "" I wish I could make the built-in functionality meed the needs, but this
 "" seems like a solid plugin -- if it all works
 Plugin 'wesQ3/vim-windowswap'
+"" I was looking for a way to pad lines to align a character in a column
+"" This S.O. answer listed some options: https://superuser.com/a/771152/659417
+"" I'm going with the vim-easy-align, because I like the inerface:
+"" https://github.com/junegunn/vim-easy-align#tldr---one-minute-guide
+Plugin 'junegunn/vim-easy-align'
 
 call vundle#end()			"" required
 
