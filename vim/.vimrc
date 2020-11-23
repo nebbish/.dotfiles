@@ -47,12 +47,18 @@ endif
 "" Fonts
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Settings related to Fonts "{{{
-if has('win32')
-	let &guifont='Lucida_Console:h8'
-	set backspace=indent,eol,start
-	"set guifont=Consolas:h10
-	"set guifontwide=MingLiU:h10
+if has('gui_running')
+	if has('gui_win32')
+		let s:guifont='Lucida_Console:h8'
+	elseif has ('gui_macvim')
+		let s:guifont='Menlo-Regular:h11'
+	else "if has ('gui_gtk2')
+		let s:guifont='Consolas:h11:cANSI'
+	endif
+	execute 'set guifont=' . s:guifont
+	execute 'nnoremap <leader>rf :set guifont=' . s:guifont . '<cr>'
 endif
+set backspace=indent,eol,start
 "}}}
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -489,6 +495,18 @@ Plugin 'junegunn/vim-easy-align'
 Plugin 'PeterRincker/vim-argumentative'
 "" Found this when I learned that Gvim fonts are adjustable, handy for screensharing
 Plugin 'drmikehenry/vim-fontsize'
+"" More colorschemes, from:  https://vimcolorschemes.com/
+Plugin 'morhetz/gruvbox'
+Plugin 'arcticicestudio/nord-vim'
+Plugin 'joshdick/onedark.vim'
+"Plugin 'sainnhe/sonokai'
+"Plugin 'kaicataldo/material.vim'
+"Plugin 'sonph/onehalf'
+"Plugin 'vigoux/oak'
+Plugin 'cocopon/iceberg.vim'
+Plugin 'rakr/vim-one'
+Plugin 'NLKNguyen/papercolor-theme'
+Plugin 'altercation/vim-colors-solarized'
 
 call vundle#end()			"" required
 
@@ -719,19 +737,29 @@ nnoremap <leader>lds :colorscheme desert<cr>
 nnoremap <leader>le  <Nop>
 nnoremap <leader>lel :colorscheme elflord<cr>
 nnoremap <leader>len :colorscheme evening<cr>
-nnoremap <leader>li :colorscheme industry<cr>
+nnoremap <leader>lg  <Nop>
+nnoremap <leader>lgb :colorscheme gruvbox<cr>
+nnoremap <leader>li  <Nop>
+nnoremap <leader>lib :colorscheme iceberg<cr>
+nnoremap <leader>liy :colorscheme industry<cr>
 nnoremap <leader>lk :colorscheme koehler<cr>
 nnoremap <leader>lm  <Nop>
 nnoremap <leader>lmv :colorscheme macvim<cr>
 nnoremap <leader>lmn :colorscheme morning<cr>
 nnoremap <leader>lmy :colorscheme murphy<cr>
+nnoremap <leader>ln :colorscheme nord<cr>
+nnoremap <leader>lo  <Nop>`
+nnoremap <leader>lon :colorscheme one<cr>
+nnoremap <leader>lod :colorscheme onedark<cr>
 nnoremap <leader>lp  <Nop>
 nnoremap <leader>lpb :colorscheme pablo<cr>
+nnoremap <leader>lpc :colorscheme PaperColor<cr>
 nnoremap <leader>lpp :colorscheme peachpuff<cr>
 nnoremap <leader>lr :colorscheme ron<cr>
 nnoremap <leader>ls  <Nop>
 nnoremap <leader>lsn :colorscheme shine<cr>
 nnoremap <leader>lst :colorscheme slate<cr>
+nnoremap <leader>lso :colorscheme solarized<cr>
 nnoremap <leader>ls8 :colorscheme solarized8<cr>
 nnoremap <leader>lsf :colorscheme solarized8_flat<cr>
 nnoremap <leader>lsh :colorscheme solarized8_high<cr>
@@ -1271,5 +1299,4 @@ augroup myvimrc
 	au bufwritepost $MYVIMRC so $MYVIMRC
 augroup end
 nnoremap <leader>rv :so $MYVIMRC<cr>
-
 
