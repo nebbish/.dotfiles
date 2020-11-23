@@ -37,10 +37,23 @@ set modelines=0			" for security and safety
 " Mappings & settings related to :! and :shell "{{{
 "" NOTE:  see the docs for "Bash Startup Files" - bash looks for this env
 ""        whenever a shell is launched NON-interactively (which vim does ;)
-let $BASH_ENV = "~/.bashrc_for_vim"
-set shellcmdflag=-l\ -c
+if ! has('win32')
+	let $BASH_ENV = "~/.bashrc_for_vim"
+	set shellcmdflag=-l\ -c
+endif
 "}}}
 
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"" Fonts
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" Settings related to Fonts "{{{
+if has('win32')
+	let &guifont='Lucida_Console:h8'
+	set backspace=indent,eol,start
+	"set guifont=Consolas:h10
+	"set guifontwide=MingLiU:h10
+endif
+"}}}
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "" Tabs/show.../listchar/...
@@ -54,6 +67,8 @@ set shellcmdflag=-l\ -c
 syntax enable
 
 set encoding=utf-8
+" Default guioptions:  egmrLtT
+set guioptions=gm   " FROM my Windows GVim
 set sidescroll=1
 " set scrolloff=3	" when cursor is at top/bot of screen, keep X lines visable
 " set showmode		" on by default anyway
@@ -84,9 +99,15 @@ augroup END
 " NOTE:  the listchars settings are in the section borrowed from 'gmarik'
 "set breakindent
 "set breakindentopt=sbr
-"set showbreak=⤹→\ 
-set showbreak=⤹\ 
 "set undofile		" create .<filename>.un~ files persist undo chains
+if has('win32')
+	"set showbreak=└→\ 
+	"set showbreak=∟\ 
+	set showbreak=└\ 
+else
+	"set showbreak=⤹→\ 
+	set showbreak=⤹\ 
+endif
 
 "" This is an attempt to create an inverse of the 'J' command (split)
 "nnoremap <c-j> gEa<cr><esc>ew		" join with <ctrl>+j
@@ -219,11 +240,16 @@ let g:python_recommended_style=0
 " let s:ag_cmd = 'ag\ --vimgrep\ $*'
 let s:ag_cmd = 'ag\ --hidden\ -u\ --vimgrep\ $*'
 let s:gg_cmd = 'ggrep\ -PIn\ $*'
+"" On my windows there is a Cygwin version of GNU grep renamed "cgrep"
+" Currently the only option differences:    -H and -r  (maybe can be removed)
+let s:cg_cmd = 'cgrep\ -PIHnr\ $*'
 
 if executable('ag')
 	execute 'set grepprg=' . s:ag_cmd
 elseif executable('ggrep')
 	execute 'set grepprg=' . s:gg_cmd
+elseif executable('cgrep')
+	execute 'set grepprg=' . s:cg_cmd
 endif
 
 " Next we map some keys to manually switch between the programs
@@ -233,6 +259,8 @@ endif
 " NOTE:  no 'elseif'   -- all mappings defined if programs exist
 if executable('ggrep')
 	execute 'nnoremap <leader>rg :set grepprg=' . s:gg_cmd . '<cr>'
+elseif executable('cgrep')
+	execute 'nnoremap <leader>rg :set grepprg=' . s:cg_cmd . '<cr>'
 endif
 nnoremap <leader>rd :set grepprg&<cr>
 "}}}
@@ -456,6 +484,11 @@ Plugin 'wesQ3/vim-windowswap'
 "" I'm going with the vim-easy-align, because I like the inerface:
 "" https://github.com/junegunn/vim-easy-align#tldr---one-minute-guide
 Plugin 'junegunn/vim-easy-align'
+"" Found this looking for a way to transpose arond a comma, here:
+""     https://stackoverflow.com/a/14741301/5844631
+Plugin 'PeterRincker/vim-argumentative'
+"" Found this when I learned that Gvim fonts are adjustable, handy for screensharing
+Plugin 'drmikehenry/vim-fontsize'
 
 call vundle#end()			"" required
 
@@ -534,6 +567,19 @@ function! ToJson(input)
 endfunction
 "}}}
 
+
+" vim-easy-align:  options & settings "{{{
+" NOTE:  the 'nore' version of the mapping commands (nnoremap,...)
+"        DO NOT work when calling a '<Plug>' mapping.
+"
+"        A non-recusive mapping requires normal mode and '<cr>'
+"                nnoremap <leader>ll :EasyAlign<cr>
+"
+nmap <leader><leader>l <Plug>(EasyAlign)
+xmap <leader><leader>l <Plug>(EasyAlign)
+"}}}
+
+
 " quick-scope:   options & settings "{{{
 let g:qs_highlight_on_keys = ['f','F','t','T']
 nnoremap <leader>qs :QuickScopeToggle<cr>
@@ -547,8 +593,8 @@ augroup END
 
 " Folding related mappings & settings - helps unleash SimpylFold plugin "{{{
 set foldenable			" turn folding on
-set foldmethod=marker	" fold on the marker
-""set foldmethod=syntax	" fold based on syntax
+"set foldmethod=marker	" fold on the marker
+set foldmethod=syntax	" fold based on syntax
 set foldlevel=100		" don't autofold anything (but I can still fold manually)
 
 set foldopen=block,hor,tag    " what movements open folds
@@ -599,12 +645,21 @@ nnoremap <leader>cp :CtrlPTag<cr>
 nnoremap <leader>cf :CtrlPBufTag<cr>
 "nnoremap <leader>cm :CtrlPMRUFiles<cr>
 "nnoremap <leader>cb :CtrlPBuffer<cr>
-let g:ctrlp_max_files=0
 " I got this idea from here:  https://thoughtbot.com/blog/faster-grepping-in-vim
-let g:ctrlp_user_command = 'ag %s -l --hidden --nocolor -g ""'
-" When using 'ag' to search based on file names -- it is so fast CtrlP does not need to cache enything
-" (we'll see about that claim ;)
-"let g:ctrlp_use_caching = 0
+if ! has('win32')
+	" Currently I do not manage to have 'ag' on my windows dev boxees
+	let g:ctrlp_max_files=0
+	let g:ctrlp_user_command = 'ag %s -l --hidden --nocolor -g ""'
+	" When using 'ag' to search based on file names -- it is so fast CtrlP does not need to cache enything
+	" (we'll see about that claim ;)
+	"let g:ctrlp_use_caching = 0
+endif
+"" Use this to customize the mappings inside CtrlP's prompt to your liking. You
+"" only need to keep the lines that you've changed the values (inside []): >
+let g:ctrlp_prompt_mappings = {
+    \ 'PrtInsert()':          ['<c-\>', '<c-g>'],
+    \ 'PrtExit()':            ['<esc>', '<c-c>'],
+    \ }
 "}}}
 
 
@@ -619,6 +674,14 @@ let g:tagbar_autoshowtag=1
 let g:tagbar_compact=1
 let g:tagbar_show_visibility=1
 let g:tagbar_sort=0
+"}}}
+
+
+" Settings for vim-fontsize "{{{
+"" With this plugin (and my knowledge so far) I finally abosorbed the difference
+"" between 'timeoutlen' and 'ttimeoutlen' (extra 't' in front)
+"" (for the 'ttime...' value, think of how '^[[1;3D' alltogether is just <alt+left>)
+let g:fontsize#timeoutlen=3000
 "}}}
 
 
@@ -643,38 +706,38 @@ augroup cursorline
 	au ColorScheme * hi clear CursorLine | hi! link CursorLine CursorColumn
 augroup END
 " Doing this here sets up what I like and triggers the autocmd just above
-nnoremap <leader>o   <Nop>
-nnoremap <leader>ob  <Nop>
-nnoremap <leader>obt :set background=light<cr>
-nnoremap <leader>obk :set background=dark<cr>
-nnoremap <leader>obu :colorscheme blue<cr>
-nnoremap <leader>od  <Nop>
-nnoremap <leader>odb :colorscheme darkblue<cr>
-nnoremap <leader>odf :colorscheme default<cr>
-nnoremap <leader>odl :colorscheme delek<cr>
-nnoremap <leader>ods :colorscheme desert<cr>
-nnoremap <leader>oe  <Nop>
-nnoremap <leader>oel :colorscheme elflord<cr>
-nnoremap <leader>oen :colorscheme evening<cr>
-nnoremap <leader>oi :colorscheme industry<cr>
-nnoremap <leader>ok :colorscheme koehler<cr>
-nnoremap <leader>om  <Nop>
-nnoremap <leader>omv :colorscheme macvim<cr>
-nnoremap <leader>omn :colorscheme morning<cr>
-nnoremap <leader>omy :colorscheme murphy<cr>
-nnoremap <leader>op  <Nop>
-nnoremap <leader>opb :colorscheme pablo<cr>
-nnoremap <leader>opp :colorscheme peachpuff<cr>
-nnoremap <leader>or :colorscheme ron<cr>
-nnoremap <leader>os  <Nop>
-nnoremap <leader>osn :colorscheme shine<cr>
-nnoremap <leader>ost :colorscheme slate<cr>
-nnoremap <leader>os8 :colorscheme solarized8<cr>
-nnoremap <leader>osf :colorscheme solarized8_flat<cr>
-nnoremap <leader>osh :colorscheme solarized8_high<cr>
-nnoremap <leader>osl :colorscheme solarized8_low<cr>
-nnoremap <leader>ot :colorscheme torte<cr>
-nnoremap <leader>oz :colorscheme zellner<cr>
+nnoremap <leader>l   <Nop>
+nnoremap <leader>lb  <Nop>
+nnoremap <leader>lbt :set background=light<cr>
+nnoremap <leader>lbk :set background=dark<cr>
+nnoremap <leader>lbu :colorscheme blue<cr>
+nnoremap <leader>ld  <Nop>
+nnoremap <leader>ldb :colorscheme darkblue<cr>
+nnoremap <leader>ldf :colorscheme default<cr>
+nnoremap <leader>ldl :colorscheme delek<cr>
+nnoremap <leader>lds :colorscheme desert<cr>
+nnoremap <leader>le  <Nop>
+nnoremap <leader>lel :colorscheme elflord<cr>
+nnoremap <leader>len :colorscheme evening<cr>
+nnoremap <leader>li :colorscheme industry<cr>
+nnoremap <leader>lk :colorscheme koehler<cr>
+nnoremap <leader>lm  <Nop>
+nnoremap <leader>lmv :colorscheme macvim<cr>
+nnoremap <leader>lmn :colorscheme morning<cr>
+nnoremap <leader>lmy :colorscheme murphy<cr>
+nnoremap <leader>lp  <Nop>
+nnoremap <leader>lpb :colorscheme pablo<cr>
+nnoremap <leader>lpp :colorscheme peachpuff<cr>
+nnoremap <leader>lr :colorscheme ron<cr>
+nnoremap <leader>ls  <Nop>
+nnoremap <leader>lsn :colorscheme shine<cr>
+nnoremap <leader>lst :colorscheme slate<cr>
+nnoremap <leader>ls8 :colorscheme solarized8<cr>
+nnoremap <leader>lsf :colorscheme solarized8_flat<cr>
+nnoremap <leader>lsh :colorscheme solarized8_high<cr>
+nnoremap <leader>lsl :colorscheme solarized8_low<cr>
+nnoremap <leader>lt :colorscheme torte<cr>
+nnoremap <leader>lz :colorscheme zellner<cr>
 
 "colorscheme solarized8_high
 "set background=light
@@ -714,6 +777,7 @@ endif
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "" The following options came from:  https://github.com/nickaigi/config/blob/master/.vimrc#L12
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+set timeoutlen=2000         " one more second than the default 1000 for mappings
 set ttimeoutlen=50			" solves the delay after pressing Esc (default is 1000ms)
 set splitbelow
 set splitright
@@ -899,17 +963,17 @@ function! s:CompareQuickfixEntries(i1, i2)
 	endif
 endfunction
 function! s:SortUniqQFList()
-	let sortedList = sort(getqflist(), 's:CompareQuickfixEntries')
-	let uniqedList = []
-	let last = ''
-	for item in sortedList
-		let this = bufname(item.bufnr) . "\t" . item.lnum
-		if this !=# last
-			call add(uniqedList, item)
-			let last = this
-		endif
-	endfor
-	call setqflist(uniqedList)
+"	let sortedList = sort(getqflist(), 's:CompareQuickfixEntries')
+"	let uniqedList = []
+"	let last = ''
+"	for item in sortedList
+"		let this = bufname(item.bufnr) . "\t" . item.lnum
+"		if this !=# last
+"			call add(uniqedList, item)
+"			let last = this
+"		endif
+"	endfor
+"	call setqflist(uniqedList)
 endfunction
 autocmd! QuickfixCmdPost * call s:SortUniqQFList()
 "}}}
@@ -943,16 +1007,14 @@ nnoremap <leader>fk ?\%<C-R>=virtcol(".")<CR>v\S<CR>
 nnoremap <leader>ae :tabedit
 nnoremap <leader>an :tabnew<cr>
 nnoremap <leader>ac :tabclose<cr>
-" Make Alt-left and right switch tabs
-"nnoremap <esc>[1;3C :tabn<cr>
-"nnoremap <esc>[1;3D :tabp<cr>
-"" Before enabling these...   I'm trying to get used to:   'gt' and 'gT'
-"nnoremap <leader>an :tabn<cr>
-"nnoremap <leader>ap :tabp<cr>
+" For *moving* a tab, lets use ',' and '.'
+nnoremap <leader>a, :tabm -1<cr>
+nnoremap <leader>a. :tabm +1<cr>
+
 ""
 "" Here's some awesome functions I found here:  https://vim.fandom.com/wiki/Move_current_window_between_tabs
 ""
-function! MoveToPrevTab()
+function! MoveWinToPrevTab()
 	"there is only one window
 	if tabpagenr('$') == 1 && winnr('$') == 1
 		return
@@ -973,7 +1035,7 @@ function! MoveToPrevTab()
 	"opening current buffer in new window
 	exe "b".l:cur_buf
 endfunc
-function! MoveToNextTab()
+function! MoveWinToNextTab()
 	"there is only one window
 	if tabpagenr('$') == 1 && winnr('$') == 1
 		return
@@ -994,15 +1056,23 @@ function! MoveToNextTab()
 	"opening current buffer in new window
 	exe "b".l:cur_buf
 endfunc
-"" These mappings are for <Alt-,> and <Alt-.> (use `sed -n l` to discover the right codes)
-nnoremap <leader>ah :call MoveToPrevTab()<cr>
-nnoremap <leader>al :call MoveToNextTab()<cr>
+nnoremap <leader>ah :call MoveWinToPrevTab()<cr>
+nnoremap <leader>al :call MoveWinToNextTab()<cr>
 "}}}
 
 
 " Window mappings & settings (including resizing with shit/ctrl arrows) "{{{
 set noequalalways
-nnoremap <silent> <leader>l :hide<cr>
+nnoremap <silent> <leader>oq :copen<cr>
+nnoremap <silent> <leader>ol :lopen<cr>
+nnoremap <silent> <leader>on :NERDTreeOpen<cr>
+nnoremap <silent> <leader>ot :TagbarOpen<cr>
+nnoremap <silent> <leader>zq :cclose<cr>
+nnoremap <silent> <leader>zl :lclose<cr>
+nnoremap <silent> <leader>zn :NERDTreeClose<cr>
+nnoremap <silent> <leader>zt :TagbarClose<cr>
+nnoremap <silent> <leader>za :cclose<bar>lclose<bar>NERDTreeClose<bar>TagbarClose<cr>
+nnoremap <silent> <leader>zz :hide<cr>
 
 ""
 "" Disabling these - due to a new plugin i have:  vim-tmux-navigator
@@ -1129,10 +1199,19 @@ nnoremap <c-kminus> zc
 ""
 "" These mappings are helpful for perforce
 ""
-nnoremap <leader>pe :!p4 edit "$(realpath "%")"<cr>
-nnoremap <leader>pa :!p4 add "$(realpath "%")"<cr>
-"" I'm nervous about this - accidentally losing work and all...
-nnoremap <leader>pr :!p4 revert "$(realpath "%")"<cr>
+if has('win32')
+	" NOTE:  the 'realpath' utility does not exist on windows :(
+	nnoremap <leader>pe :!p4 edit "%"<cr>
+	nnoremap <leader>pd :!p4 diff "%"<cr>
+	nnoremap <leader>pa :!p4 add "%"<cr>
+	nnoremap <leader>pr :!p4 revert "%"<cr>
+else
+	nnoremap <leader>pe :!p4 edit "$(realpath "%")"<cr>
+	nnoremap <leader>pa :!p4 diff "$(realpath "%")"<cr>
+	nnoremap <leader>pa :!p4 add "$(realpath "%")"<cr>
+	"" I'm nervous about this - accidentally losing work and all...
+	nnoremap <leader>pr :!p4 revert "$(realpath "%")"<cr>
+endif
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
