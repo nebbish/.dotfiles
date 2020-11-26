@@ -47,16 +47,21 @@ endif
 "" Fonts
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Settings related to Fonts "{{{
+e This bit was inspired by the answer here:  https://stackoverflow.com/a/3316521/5844631
 if has('gui_running')
+	let s:guifont=''
 	if has('gui_win32')
 		let s:guifont='Lucida_Console:h8'
-	elseif has ('gui_macvim')
+	elseif has('gui_macvim')
 		let s:guifont='Menlo-Regular:h11'
-	else "if has ('gui_gtk2')
+	elseif has('gui_gtk2') && !has('unix')
 		let s:guifont='Consolas:h11:cANSI'
+		"let s:guifont='Monospace:10'
 	endif
-	execute 'set guifont=' . s:guifont
-	execute 'nnoremap <leader>rf :set guifont=' . s:guifont . '<cr>'
+	if s:guifont != ""
+		execute 'set guifont=' . s:guifont
+		execute 'nnoremap <leader>rf :set guifont=' . s:guifont . '<cr>'
+	endif
 endif
 set backspace=indent,eol,start
 "}}}
@@ -446,7 +451,9 @@ Plugin 'vim-scripts/argtextobj.vim'
 ""      indent level (i)   good for languages like Python (which rely on indent level)
 Plugin 'michaeljsmith/vim-indent-object'
 "" This is meant to work with `ag` which I just installed
-Plugin 'rking/ag.vim'
+if !has('win32')
+	Plugin 'rking/ag.vim'
+endif
 "Plugin 'Chun-Yang/vim-action-ag'
 "" Found while looking for an easy way to jump b/w decl & defn   -- not that easy, even with CTags & CtrlP
 ""Plugin 'LucHermitte/lh-tags'     I'm not sure if I want this one - but I did not want to forget knowing about it ;)
@@ -458,7 +465,10 @@ Plugin 'tpope/vim-scriptease'
 "" I found this while searching around about Tmux mappings - and I'm gonna try it :)
 ""    Found here:  https://vimawesome.com/plugin/vim-tmux-navigator
 ""    Great writeup here:  https://gist.github.com/mislav/5189704
-Plugin 'christoomey/vim-tmux-navigator'
+if has('macunix')
+	"" Right now, I only use tmux on my MacOS dev box
+	Plugin 'christoomey/vim-tmux-navigator'
+endif
 "" Stumbled across this while searching for something else...    but
 "" considering my own VIM use case...   this is PERFECT for me :)  (if it works)
 Plugin 'unblevable/quick-scope'
@@ -507,6 +517,8 @@ Plugin 'cocopon/iceberg.vim'
 Plugin 'rakr/vim-one'
 Plugin 'NLKNguyen/papercolor-theme'
 Plugin 'altercation/vim-colors-solarized'
+"" Found this when looking for better c++ highlighting
+Plugin 'octol/vim-cpp-enhanced-highlight'
 
 call vundle#end()			"" required
 
@@ -630,11 +642,19 @@ nnoremap <leader>fmi :set foldmethod=indent<cr>
 " NERDTree mappings and settings "{{{
 nnoremap <leader>nt :NERDTreeToggle<cr>
 nnoremap <leader>nf :NERDTreeFind<cr>
-nnoremap <leader>nc :NERDTreeClose<cr>
 nnoremap <leader>ng :NERDTreeFocus<cr>
 "" Found here: https://superuser.com/questions/1050256/how-can-i-set-relative-line-numbers-upon-entering-nerdtree-on-vim
 let g:NERDTreeShowLineNumbers=1
-"autocmd BufEnter NERD_* setlocal rnu
+
+"" THe help shows how to adjust the mappings, and I am **trying**
+"" to normalize the mappings for split/vert-split so that the 'vert'
+"" mapping will somehow be a more vertical character
+"" Here I am swapping the built-in 'i' and 's' because 'i' is more up-n-down looking
+let g:NERDTreeMapOpenSplit='s'
+let g:NERDTreeMapPreviewSplit='gs'
+let g:NERDTreeMapOpenVSplit='i'
+let g:NERDTreeMapPreviewVSplit='gi'
+
 " Adding my own key mapping to NERDTree to yank the path
 "   found:  https://stackoverflow.com/a/16378375/5844631
 autocmd VimEnter * call NERDTreeAddKeyMap({
@@ -704,6 +724,35 @@ let g:fontsize#timeoutlen=3000
 
 
 " Color settings - incl. line hightlight "{{{
+
+""""""" The plugin 'vim-cpp-enhanced-highlight'
+""" Highlighting of class scope is disabled by default. To enable set
+let g:cpp_class_scope_highlight = 1
+
+""" Highlighting of member variables is disabled by default. To enable set
+let g:cpp_member_variable_highlight = 1
+
+""" Highlighting of class names in declarations is disabled by default. To enable set
+let g:cpp_class_decl_highlight = 1
+
+""" Highlighting of POSIX functions is disabled by default. To enable set
+let g:cpp_posix_standard = 1
+
+""" There are two ways to highlight template functions. Either
+let g:cpp_experimental_simple_template_highlight = 1
+""" which works in most cases, but can be a little slow on large files. Alternatively set
+"let g:cpp_experimental_template_highlight = 1
+""" which is a faster implementation but has some corner cases where it doesn't work.
+""" Note: C++ template syntax is notoriously difficult to parse, so don't expect this feature to be perfect.
+
+
+""" Highlighting of library concepts is enabled by
+"let g:cpp_concepts_highlight = 1
+""" This will highlight the keywords concept and requires as well as all named requirements (like DefaultConstructible) in the standard library.
+
+""" Highlighting of user defined functions can be disabled by
+"let g:cpp_no_function_highlight = 1
+
 " I found the following web pages helpful for setting these values
 "
 "      Color reference:   https://jonasjacek.github.io/colors/
@@ -963,9 +1012,15 @@ nnoremap <leader>mx :!chmod +x %<cr>
 "" F4		moves to next error in the quickfix window
 "" Shift+F4	moves to previous (again used 'sed -n l' to get codes)
 ""
-nnoremap <leader>qo :copen<cr>
-nnoremap <leader>qc :cclose<cr>
-nnoremap <leader>ql :cclose<cr>
+
+""
+"" disabling this so the new open/close mappings become more familiar
+""   \oq   (to open quickfix)
+""   \zq   (to close quickfix)
+""
+"nnoremap <leader>qo :copen<cr>
+"nnoremap <leader>qc :cclose<cr>
+"nnoremap <leader>ql :cclose<cr>
 
 nnoremap <f4> :cn<cr>
 if has("gui_running")
@@ -1093,7 +1148,7 @@ nnoremap <leader>al :call MoveWinToNextTab()<cr>
 set noequalalways
 nnoremap <silent> <leader>oq :copen<cr>
 nnoremap <silent> <leader>ol :lopen<cr>
-nnoremap <silent> <leader>on :NERDTreeOpen<cr>
+nnoremap <silent> <leader>on :NERDTree<cr>
 nnoremap <silent> <leader>ot :TagbarOpen<cr>
 nnoremap <silent> <leader>zq :cclose<cr>
 nnoremap <silent> <leader>zl :lclose<cr>
@@ -1103,13 +1158,15 @@ nnoremap <silent> <leader>za :cclose<bar>lclose<bar>NERDTreeClose<bar>TagbarClos
 nnoremap <silent> <leader>zz :hide<cr>
 
 ""
-"" Disabling these - due to a new plugin i have:  vim-tmux-navigator
+"" Disabling these on MacOS - due to a new plugin i have:  vim-tmux-navigator
 ""
-" Make Control-direction switch between windows (like C-W h, etc)
-"nmap <silent> <c-k> <c-w><c-k>
-"nmap <silent> <c-j> <c-w><c-j>
-"nmap <silent> <c-h> <c-w><c-h>
-"nmap <silent> <c-l> <c-w><c-l>
+if ! has('macunix')
+	" Make Control-direction switch between windows (like C-W h, etc)
+	nmap <silent> <c-k> <c-w><c-k>
+	nmap <silent> <c-j> <c-w><c-j>
+	nmap <silent> <c-h> <c-w><c-h>
+	nmap <silent> <c-l> <c-w><c-l>
+endif
 
 ""
 "" inspired from: https://vim.fandom.com/wiki/Fast_window_resizing_with_plus/minus_keys
