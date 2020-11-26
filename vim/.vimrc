@@ -47,7 +47,7 @@ endif
 "" Fonts
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Settings related to Fonts "{{{
-e This bit was inspired by the answer here:  https://stackoverflow.com/a/3316521/5844631
+" This bit was inspired by the answer here:  https://stackoverflow.com/a/3316521/5844631
 if has('gui_running')
 	let s:guifont=''
 	if has('gui_win32')
