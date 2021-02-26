@@ -42,6 +42,8 @@ function reverse() {
 	# Other options...
 	# awk '{a[i++]=$0} END {for (j=i-1; j>=0;) print a[j--] }'
 	# perl -e 'print reverse <>'
+
+	: # Empty statement to keep 'bash' happy when it is the shell
 }
 function juniq() {
 	# This function is designed to remove duplicate lines, but still work with huge data

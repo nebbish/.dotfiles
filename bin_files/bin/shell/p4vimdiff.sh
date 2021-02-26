@@ -54,7 +54,7 @@ fi
 if [ "$OSTYPE" = "linux-gnu" ]; then
 	lines=9999
 	columns=9999
-	color=evening
+	color=nord
 	tool=/usr/bin/gvim
 	md5tool=md5sum
 	stat_args='-c "%Y"'
@@ -71,7 +71,7 @@ elif [ "${OSTYPE:0:6}" = "darwin" ]; then
 	xterm=/opt/X11/bin/xterm
 fi
 #DIFFPREPCMDS=(+"colorscheme $color" +"set diffopt+=iwhite" +"set lines=$lines" +"set columns=$columns" +"wincmd =" +"normal gg]c")
-DIFFPREPCMDS=(+"colorscheme $color" +"set lines=$lines" +"set columns=$columns" +"wincmd =" +"normal gg]c")
+DIFFPREPCMDS=(+"colorscheme $color" +"set lines=$lines" +"set columns=$columns" +"wincmd =" +"normal ggzR]c")
 
 #do_gvim_test() {
 #	# This was intended to be the beginning of a solution which allows multiple 'diffs'
