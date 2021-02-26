@@ -62,7 +62,7 @@ if [ "$OSTYPE" = "linux-gnu" ]; then
 elif [ "${OSTYPE:0:6}" = "darwin" ]; then
 	lines=90
 	columns=285
-	color=torte
+	color=nord
 	tool=/usr/local/bin/mvim
 	# This tool is not installed by default :/
 	md5tool=/usr/local/bin/md5sum
