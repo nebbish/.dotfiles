@@ -11,3 +11,5 @@ if [ -f ~/.aliases_all ]; then
 	source ~/.aliases_all
 fi
 
+alias hist=history
+
