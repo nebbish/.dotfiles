@@ -79,7 +79,7 @@ elif [ "${OSTYPE:0:6}" = "darwin" ]; then
 fi
 
 # General development section
-alias cfmt="clang-format -style=file"
+alias afmt="clang-format -style=file"
 alias tt="tabtool.py"
 alias gobin="pushd ~/bin"
 alias py3="python3"
