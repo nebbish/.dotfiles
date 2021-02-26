@@ -77,6 +77,7 @@ set backspace=indent,eol,start
 "syntax on
 syntax enable
 
+"set autoread        " This allows smooth re-read of altered files when no changes
 set encoding=utf-8
 " Default guioptions:  egmrLtT
 set guioptions=gm   " FROM my Windows GVim
@@ -91,17 +92,6 @@ set laststatus=2	" show status line ('2' == always)
 
 set relativenumber	" display relative line numbers (new in 7.3)
 set number			" display the absolute line number on the current line only
-function! ToggleBoolOption(val)
-	if eval('&'.a:val)
-		execute 'set no'.a:val
-	else
-		execute 'set '.a:val
-	endif
-endfunction
-nnoremap <leader>tn :call ToggleBoolOption('nu')<bar>call ToggleBoolOption('rnu')<cr>
-nnoremap <leader>tnr :call ToggleBoolOption('rnu')<cr>
-nnoremap <leader>tnl :call ToggleBoolOption('nu')<cr>
-nnoremap <leader>tw :set wrap!<cr>
 augroup helpnumbers
 	au!
 	au FIleType help setlocal number | setlocal relativenumber
@@ -147,6 +137,32 @@ set listchars+=extends:»,precedes:«
 "}}}
 
 
+" Functions/mappings for toggling options like Unimpaired "{{{
+
+""
+"" NOTE:  turning these off, so I force myself to learn the ones
+""        provided by the "Unimpaired" plugin:
+""           On    Off   Toggle
+""           [on,  ]on,  yon  :  numbers
+""           [or,  ]or,  yor  :  relative numbers
+""           [ow,  ]ow,  yow  :  wrap
+""        the only drawback -- is that there is no "both numbers" option
+""        automatically provided by the plugin :(
+""
+"function! ToggleBoolOption(val)
+"	if eval('&'.a:val)
+"		execute 'set no'.a:val
+"	else
+"		execute 'set '.a:val
+"	endif
+"endfunction
+"nnoremap <leader>tn :call ToggleBoolOption('nu')<bar>call ToggleBoolOption('rnu')<cr>
+"nnoremap <leader>tnr :call ToggleBoolOption('rnu')<cr>
+"nnoremap <leader>tnl :call ToggleBoolOption('nu')<cr>
+"nnoremap <leader>tw :set wrap!<cr>
+"}}}
+
+
 " Mappings to grab current VIM settings into a new split "{{{
 " Simple mapping to create a new buffer that contains a copy of the current mappings
 " Inspired from:  https://vi.stackexchange.com/a/19471/9912
@@ -165,6 +181,8 @@ nnoremap <leader>gm :call GetSpecifiedInfo("map", 0)<cr>
 nnoremap <leader>gc :call GetSpecifiedInfo("command", 0)<cr>
 nnoremap <leader>ga :call GetSpecifiedInfo("autocmd", 0)<cr>
 nnoremap <leader>gh :call GetSpecifiedInfo("highlight", 0)<cr>
+nnoremap <leader>gl :call GetSpecifiedInfo("let", 0)<cr>
+nnoremap <leader>gr :call GetSpecifiedInfo("registers", 0)<cr>
 nnoremap <leader>gs :call GetSpecifiedInfo("scriptnames", 0)<cr>
 nnoremap <leader>gg :call GetSpecifiedInfo("messages", 0)<cr>
 
@@ -172,6 +190,8 @@ nnoremap <leader>gvm :call GetSpecifiedInfo("map", 1)<cr>
 nnoremap <leader>gvc :call GetSpecifiedInfo("command", 1)<cr>
 nnoremap <leader>gva :call GetSpecifiedInfo("autocmd", 1)<cr>
 nnoremap <leader>gvh :call GetSpecifiedInfo("highlight", 1)<cr>
+nnoremap <leader>gvl :call GetSpecifiedInfo("let", 1)<cr>
+nnoremap <leader>gvr :call GetSpecifiedInfo("registers", 1)<cr>
 nnoremap <leader>gvs :call GetSpecifiedInfo("scriptnames", 1)<cr>
 nnoremap <leader>gvg :call GetSpecifiedInfo("messages", 1)<cr>
 function! GetSpecifiedInfo(cmd, verbose)
@@ -225,7 +245,7 @@ set smartindent
 nnoremap <leader>si :setl si! si?<cr>
 nnoremap <leader>ci :setl cin! cin?<cr>
 nnoremap <leader>ai :setl ai! ai?<cr>
-""set expandtab
+"set expandtab
 set tabstop=4
 set shiftwidth=4
 set softtabstop=4
@@ -249,7 +269,7 @@ let g:python_recommended_style=0
 "         noheading) ...   and THEN also specify 'noheading'...    you get BREAKS
 " let s:ag_cmd = 'ag\ --column\ --nogroup\ --nocolor\ $*'
 " let s:ag_cmd = 'ag\ --vimgrep\ $*'
-let s:ag_cmd = 'ag\ --hidden\ -u\ --vimgrep\ $*'
+let s:ag_cmd = 'ag\ --hidden\ -t\ -U\ --vimgrep\ $*'
 let s:gg_cmd = 'ggrep\ -PIn\ $*'
 "" On my windows there is a Cygwin version of GNU grep renamed "cgrep"
 " Currently the only option differences:    -H and -r  (maybe can be removed)
@@ -352,7 +372,9 @@ function! Maximize()
 	"	endif
 	endif
 endfunction
-nnoremap <leader>ds :set diffopt=filler<bar>call Maximize()<bar>wincmd =<bar>normal gg]c<bar>redraw!<cr>
+nnoremap <leader>xx :call Maximize()<cr>
+
+nnoremap <leader>ds :set diffopt=filler<cr>:wincmd =<cr>:normal gg]c<cr>:redraw!<cr>
 nnoremap <leader>di :set diffopt+=iwhite<cr>
 " This also switch tabs when diff mode is not ON
 nnoremap <expr> <c-pageup>   &diff ? '[czz' : ':tabprev<cr>'
@@ -404,8 +426,13 @@ try
 	call vundle#begin()		"" can pass in a path for alternate plugin location
 catch /E117:/
 	let s:bootstrap = 1
+if has('win32')
+	silent !mkdir \%USERPROFILE\%\\.vim\\bundle
+	silent !set GIT_DIR= && git clone https://github.com/VundleVim/Vundle.vim.git \%USERPROFILE\%\\.vim\\bundle\\Vundle.vim
+else
 	silent !mkdir -p ~/.vim/bundle
 	silent !unset GIT_DIR && git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
+endif
 	redraw!
 	call vundle#begin()
 endtry
@@ -684,14 +711,16 @@ nnoremap <leader>cf :CtrlPBufTag<cr>
 "nnoremap <leader>cm :CtrlPMRUFiles<cr>
 "nnoremap <leader>cb :CtrlPBuffer<cr>
 " I got this idea from here:  https://thoughtbot.com/blog/faster-grepping-in-vim
-if ! has('win32')
-	" Currently I do not manage to have 'ag' on my windows dev boxees
+if executable('ag')
+	" Currently I do not manage to have 'ag' in all my various environments
 	let g:ctrlp_max_files=0
 	let g:ctrlp_user_command = 'ag %s -l --hidden --nocolor -g ""'
 	" When using 'ag' to search based on file names -- it is so fast CtrlP does not need to cache enything
 	" (we'll see about that claim ;)
 	"let g:ctrlp_use_caching = 0
 endif
+let g:ctrlp_show_hidden = 1
+
 "" Use this to customize the mappings inside CtrlP's prompt to your liking. You
 "" only need to keep the lines that you've changed the values (inside []): >
 let g:ctrlp_prompt_mappings = {
@@ -753,6 +782,24 @@ let g:cpp_experimental_simple_template_highlight = 1
 """ Highlighting of user defined functions can be disabled by
 "let g:cpp_no_function_highlight = 1
 
+"" More color schemes, from a forum discussion, half way down:
+""    https://developers.slashdot.org/story/08/07/03/1249246/best-color-scheme-for-coding-easiest-on-the-eyes
+"" The color scheme is NOT a plugin, and needs to be manually retrieved, using:
+""
+""     macro: 0wy$:"
+""
+""     "" For Linux
+""     !mkdir ~/.vim/colors
+""     cd ~/.vim/colors
+""
+""     "" For Windows
+""     !mkdir $HOME\vimfiles\colors
+""     cd $HOME\vimfiles\colors
+""
+""     "" NOTE:  zenburn is ONLY dark
+""     !wget https://raw.githubusercontent.com/jnurmine/Zenburn/master/colors/zenburn.vim
+""     !wget https://raw.githubusercontent.com/vim-scripts/moria/master/colors/moria.vim
+
 " I found the following web pages helpful for setting these values
 "
 "      Color reference:   https://jonasjacek.github.io/colors/
@@ -770,14 +817,22 @@ augroup cursorline
 	"" NOTE:  The '!' is requried because the CursorLine item has default values
 	""        (for more info, see:	https://stackoverflow.com/a/31146436/5844631)
 	""
-	au ColorScheme * hi clear CursorLine | hi! link CursorLine CursorColumn
+	"au ColorScheme * hi clear CursorLine | hi! link CursorLine CursorColumn
 augroup END
-" Doing this here sets up what I like and triggers the autocmd just above
+
+
 nnoremap <leader>l   <Nop>
-nnoremap <leader>lb  <Nop>
-nnoremap <leader>lbt :set background=light<cr>
-nnoremap <leader>lbk :set background=dark<cr>
-nnoremap <leader>lbu :colorscheme blue<cr>
+"nnoremap <leader>lb  <Nop>
+""
+"" NOTE:  turning these off, so I force myself to learn the ones
+""        provided by the "Unimpaired" plugin:
+""           Light   Dark   Toggle
+""           [ob     ]ob    yob        Background (light, dark, toggle)
+""
+"nnoremap <leader>lbt :set background=light<cr>
+"nnoremap <leader>lbk :set background=dark<cr>
+"nnoremap <leader>lbu :colorscheme blue<cr>
+nnoremap <leader>lb :colorscheme blue<cr>
 nnoremap <leader>ld  <Nop>
 nnoremap <leader>ldb :colorscheme darkblue<cr>
 nnoremap <leader>ldf :colorscheme default<cr>
@@ -793,13 +848,17 @@ nnoremap <leader>lib :colorscheme iceberg<cr>
 nnoremap <leader>liy :colorscheme industry<cr>
 nnoremap <leader>lk :colorscheme koehler<cr>
 nnoremap <leader>lm  <Nop>
+nnoremap <leader>lma :colorscheme moria<cr>
 nnoremap <leader>lmv :colorscheme macvim<cr>
 nnoremap <leader>lmn :colorscheme morning<cr>
 nnoremap <leader>lmy :colorscheme murphy<cr>
 nnoremap <leader>ln :colorscheme nord<cr>
 nnoremap <leader>lo  <Nop>`
-nnoremap <leader>lon :colorscheme one<cr>
 nnoremap <leader>lod :colorscheme onedark<cr>
+nnoremap <leader>loh  <Nop>
+nnoremap <leader>lohl :colorscheme onehalflight<cr>
+nnoremap <leader>lohd :colorscheme onehalfdark<cr>
+nnoremap <leader>lon :colorscheme one<cr>
 nnoremap <leader>lp  <Nop>
 nnoremap <leader>lpb :colorscheme pablo<cr>
 nnoremap <leader>lpc :colorscheme PaperColor<cr>
@@ -814,7 +873,9 @@ nnoremap <leader>lsf :colorscheme solarized8_flat<cr>
 nnoremap <leader>lsh :colorscheme solarized8_high<cr>
 nnoremap <leader>lsl :colorscheme solarized8_low<cr>
 nnoremap <leader>lt :colorscheme torte<cr>
-nnoremap <leader>lz :colorscheme zellner<cr>
+nnoremap <leader>lz  <Nop>
+nnoremap <leader>lzb :colorscheme zenburn<cr>
+nnoremap <leader>lzn :colorscheme zellner<cr>
 
 "colorscheme solarized8_high
 "set background=light
