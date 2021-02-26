@@ -185,6 +185,7 @@ nnoremap <leader>gl :call GetSpecifiedInfo("let", 0)<cr>
 nnoremap <leader>gr :call GetSpecifiedInfo("registers", 0)<cr>
 nnoremap <leader>gs :call GetSpecifiedInfo("scriptnames", 0)<cr>
 nnoremap <leader>gg :call GetSpecifiedInfo("messages", 0)<cr>
+nnoremap <leader>gl :call GetSpecifiedInfo("clist", 0)<cr>
 
 nnoremap <leader>gvm :call GetSpecifiedInfo("map", 1)<cr>
 nnoremap <leader>gvc :call GetSpecifiedInfo("command", 1)<cr>
@@ -194,6 +195,7 @@ nnoremap <leader>gvl :call GetSpecifiedInfo("let", 1)<cr>
 nnoremap <leader>gvr :call GetSpecifiedInfo("registers", 1)<cr>
 nnoremap <leader>gvs :call GetSpecifiedInfo("scriptnames", 1)<cr>
 nnoremap <leader>gvg :call GetSpecifiedInfo("messages", 1)<cr>
+nnoremap <leader>gvl :call GetSpecifiedInfo("clist", 1)<cr>
 function! GetSpecifiedInfo(cmd, verbose)
 	redir @"
 	if a:verbose
@@ -380,6 +382,45 @@ nnoremap <leader>di :set diffopt+=iwhite<cr>
 nnoremap <expr> <c-pageup>   &diff ? '[czz' : ':tabprev<cr>'
 nnoremap <expr> <c-pagedown> &diff ? ']czz' : ':tabnext<cr>'
 " "}}}
+
+" Transposing text "{{{
+""
+"" These mappings came from here:
+""     https://vim.fandom.com/wiki/Swapping_characters,_words_and_lines
+""  which lead to here, where I copied them and switched the commenting to enable the simple versions
+""     https://github.com/LucHermitte/lh-misc/blob/master/plugin/vim-tip-swap-word.vim
+""
+"" Creating the following mappings:  'gw', 'gW', 'gl', gr', 'gs', 'gS'
+"" which over-ride built-ins that I will never use.
+""
+" NOTE:  `PopSearch()` however, came from a different repository from Luc Hermite.
+"        here:  https://github.com/LucHermitte/lh-vim-lib/blob/master/plugin/lhvl.vim
+command! PopSearch :call histdel('search', -1)| let @/=histget('search',-1)
+" Swap the current word with the next, without changing cursor position
+nnoremap <silent> gw "_yiw:silent s/\(\%#\w\+\)\(\W\+\)\(\w\+\)/\3\2\1/<cr>:PopSearch<cr><c-o>
+" "left" would respect the old behaviour, but let's use "follow" instead!
+"nnoremap <silent> gw :call <sid>SwapWithNext('follow', 'w')<cr>
+
+nnoremap <silent> gW "_yiw:silent s/\(\w\+\)\(\W\+\)\(\%#\w\+\)/\3\2\1/<cr>:PopSearch<cr><c-o>
+"nnoremap <silent> gW :call <sid>SwapWithPrev('follow', 'w')<cr>
+
+" Swap the current word with the previous, keeping cursor on current word:
+" (This feels like "pushing" the word to the left.)
+nnoremap <silent> gl "_yiw?\w\+\_W\+\%#<CR>:PopSearch<cr>:s/\(\%#\w\+\)\(\_W\+\)\(\w\+\)/\3\2\1/<CR>:PopSearch<cr><c-o><c-l>
+"nnoremap <silent> gl :call <sid>SwapWithPrev('left', 'w')<cr>
+
+" Swap the current word with the next, keeping cursor on current word: (This
+" feels like "pushing" the word to the right.) (See note.)
+nnoremap <silent> gr "_yiw:s/\(\%#\w\+\)\(\_W\+\)\(\w\+\)/\3\2\1/<CR>:PopSearch<cr><c-o>/\w\+\_W\+<CR>:PopSearch<cr>
+"nnoremap <silent> gr :call <sid>SwapWithNext('right', 'w')<cr>
+
+" the same, but with keywords
+nnoremap <silent> gs "_yiw:silent s/\(\%#\k\+\)\(.\{-}\)\(\k\+\)/\3\2\1/<cr>:PopSearch<cr><c-o>
+nmap     <silent> gS "_yiw?\k?<cr>gs
+"nnoremap <silent> gs :call <sid>SwapWithNext('follow', 'k')<cr>
+"nnoremap <silent> gS :call <sid>SwapWithPrev('follow', 'k')<cr>
+" "}}}
+
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "" This is for 'pathogen' (which manages plugins) and comes from advice here:
@@ -706,7 +747,9 @@ endfunction
 set tags=./tags;~
 nnoremap <leader>gt :tj <c-r>=expand("<cword>")<cr><cr>
 
-nnoremap <leader>cp :CtrlPTag<cr>
+
+"nnoremap <leader>cp :CtrlPTag<cr>
+nnoremap <leader>cp :CtrlPCurWD<cr>
 nnoremap <leader>cf :CtrlPBufTag<cr>
 "nnoremap <leader>cm :CtrlPMRUFiles<cr>
 "nnoremap <leader>cb :CtrlPBuffer<cr>
@@ -756,13 +799,13 @@ let g:fontsize#timeoutlen=3000
 
 """"""" The plugin 'vim-cpp-enhanced-highlight'
 """ Highlighting of class scope is disabled by default. To enable set
-let g:cpp_class_scope_highlight = 1
+"let g:cpp_class_scope_highlight = 1
 
 """ Highlighting of member variables is disabled by default. To enable set
 let g:cpp_member_variable_highlight = 1
 
 """ Highlighting of class names in declarations is disabled by default. To enable set
-let g:cpp_class_decl_highlight = 1
+"let g:cpp_class_decl_highlight = 1
 
 """ Highlighting of POSIX functions is disabled by default. To enable set
 let g:cpp_posix_standard = 1
@@ -810,16 +853,20 @@ let g:cpp_experimental_simple_template_highlight = 1
 "
 "      Skeleton i borrowed:    https://vi.stackexchange.com/questions/23066/change-cursorline-style
 
-nnoremap <leader>h :set cursorline! cursorcolumn!<cr>
-augroup cursorline
-	au!
-	""
-	"" NOTE:  The '!' is requried because the CursorLine item has default values
-	""        (for more info, see:	https://stackoverflow.com/a/31146436/5844631)
-	""
-	"au ColorScheme * hi clear CursorLine | hi! link CursorLine CursorColumn
-augroup END
+" I'm now used to using 'yox' from Unimpaired to highlight both line & column
+"nnoremap <leader>h :set cursorline! cursorcolumn!<cr>
+"augroup cursorline
+"	au!
+"	""
+"	"" NOTE:  The '!' is requried because the CursorLine item has default values
+"	""        (for more info, see:	https://stackoverflow.com/a/31146436/5844631)
+"	""
+"	au ColorScheme * hi clear CursorLine | hi! link CursorLine CursorColumn
+"augroup END
 
+
+" This is me experimenting with manually choosing when to link the highlight styles
+nnoremap <leader>ll :hi clear CursorLine<cr>:hi! link CursorLine CursorColumn<cr>
 
 nnoremap <leader>l   <Nop>
 "nnoremap <leader>lb  <Nop>
@@ -1375,35 +1422,74 @@ endif
 ""	Additionally, this is a zero-width match for '/home':
 ""							%\\%%(/home%\\)%\\@=
 ""
+"    Missing these: [exec] File: /home/engineer/depot/components/stargate/work_branches/trunk/dev/src/platform/modules/sef/sef_wrapper.cpp Line Number: 278 Line: 		DoTraceFatal(msg.c_str());
+"    (from CCX pre processor)
+"
 set efm=
-set efm+=%*[^\"]\"%f\"%*\\D%l:\ %m
-set efm+=\"%f\"%*\\D%l:\ %m
-set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?%f:%l:\ (Each\ undeclared\ identifier\ is\ reported\ only\ once
-set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?%f:%l:\ for\ each\ function\ it\ appears\ in.)
-set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?In\ file\ included\ from\ %f:%l:%c:
-set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?In\ file\ included\ from\ %f:%l:%c\\,
-set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?In\ file\ included\ from\ %f:%l:%c
-set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?In\ file\ included\ from\ %f:%l
-set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?%*[\ ]from\ %f:%l:%c
-set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?%*[\ ]from\ %f:%l:
-set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?%*[\ ]from\ %f:%l\\,
-set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?%*[\ ]from\ %f:%l
+
+""
+"" old scanf()-like notation:      %*[^[] --(into vim regex)-->  %*[^\[]
+"" regular expression style:       .*     --(into vim regex)-->  %.%#
+"" regular expression style:       [^[]*  --(into vim regex)-->  %[%^[]%#
+""
+"" Examples of all three used to match anything up to the '[cc]'
+""
+""      set efm+=%*[^\[][cc]\ %f(%l)\ %#:\ %m
+""      set efm+=%.%#[cc]\ %f(%l)\ %#:\ %m
+""      set efm+=%[%^[]%#[cc]\ %f(%l)\ %#:\ %m
+""
+
+set efm+=%.%#[cc]\ %f:%l:%c:%m
+"set efm+=%.%#[cc]%.%#\ %f:%l%.
+set efm+=%.%#[exec]\ %#%f(%l)\ %#:\ %m
+set efm+=%f(%l)\ %#:\ %m
+
+" for :grep   output
+"set efm+=%.%#%f(%l)\ %#:\ %m
+
+"" Got both of the two examples from 'quickfix.txt' (lines 1326 and 1341)
+"" working at the same time by grouping the %Z expressions at the end
+"set efm+=%C\ %.%#
+"set efm+=%A\ \ File\ \"%f\"\\,\ line\ %l%.%#
+"set efm+=%EError\ %n
+"set efm+=%E%>Error\ in\ line\ %l\ of\ %f:
+"set efm+=%Cline\ %l
+"set efm+=%Ccolumn\ %c
+"set efm+=%Z%[%^\ ]%\\@=%m
+"set efm+=%Z%m
+"set efm+=%+P[%f]
+"set efm+=(%l\\,%c)%*[\ ]%t%*[^:]:\ %m
+"set efm+=%-Q
+
+"set efm+=%*[^\"]\"%f\"%*\\D%l:\ %m
+"set efm+=\"%f\"%*\\D%l:\ %m
+"set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?%f:%l:\ (Each\ undeclared\ identifier\ is\ reported\ only\ once
+"set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?%f:%l:\ for\ each\ function\ it\ appears\ in.)
+"set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?In\ file\ included\ from\ %f:%l:%c:
+"set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?In\ file\ included\ from\ %f:%l:%c\\,
+"set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?In\ file\ included\ from\ %f:%l:%c
+"set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?In\ file\ included\ from\ %f:%l
+"set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?%*[\ ]from\ %f:%l:%c
+"set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?%*[\ ]from\ %f:%l:
+"set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?%*[\ ]from\ %f:%l\\,
+"set efm+=%+G%\\%%(\ %#[cc]\ %\\)%\\?%*[\ ]from\ %f:%l
 "" These pick up the output from executing Boost unit tests
-set efm+=%-G%*[^\[][exec]\ unknown\ location%m
-set efm+=%*[^\[][exec]\ %f(%l):%\\%%(\ last\ checkpoint%\\)%\\@=%m
-set efm+=%*[^\[][exec]\ %f(%l):\ %m
-set efm+=%*[^\[][exec]\ %*[^/\\:]:\ %f:%l:%m
-"" These pick up the actual compile errors from the ANT output
-"" NOTE:  they are extremely flexible, so I've added the zero-width '/home' match)
-set efm+=%\\%%(\ %#[cc]\ %\\)%\\?%\\%%(/%\\)%\\@=%f:%l:%c:%m
+"set efm+=%-G%*[^\[][exec]\ unknown\ location%m
+"set efm+=%*[^\[][exec]\ %f(%l):%\\%%(\ last\ checkpoint%\\)%\\@=%m
+"set efm+=%*[^\[][exec]\ %f(%l):\ %m
+"set efm+=%*[^\[][exec]\ %*[^/\\:]:\ %f:%l:%m
+""" These pick up the actual compile errors from the ANT output
+""" NOTE:  they are extremely flexible, so I've added the zero-width '/home' match)
+"set efm+=%\\%%(\ %#[cc]\ %\\)%\\?%\\%%(/%\\)%\\@=%f:%l:%c:%m
 set efm+=%\\%%(\ %#[cc]\ %\\)%\\?%\\%%(/%\\)%\\@=%f(%l):%m
 set efm+=%\\%%(\ %#[cc]\ %\\)%\\?%\\%%(/%\\)%\\@=%f:%l:%m
-set efm+=\"%f\"\\,\ line\ %l%*\\D%c%*[^\ ]\ %m
-set efm+=%D%*\\a[%*\\d]:\ Entering\ directory\ %*[`']%f'
-set efm+=%X%*\\a[%*\\d]:\ Leaving\ directory\ %*[`']%f'
-set efm+=%D%*\\a:\ Entering\ directory\ %*[`']%f'
-set efm+=%X%*\\a:\ Leaving\ directory\ %*[`']%f'
-set efm+=%DMaking\ %*\\a\ in\ %f,%f\|%l\|\ %m
+
+"set efm+=\"%f\"\\,\ line\ %l%*\\D%c%*[^\ ]\ %m
+"set efm+=%D%*\\a[%*\\d]:\ Entering\ directory\ %*[`']%f'
+"set efm+=%X%*\\a[%*\\d]:\ Leaving\ directory\ %*[`']%f'
+"set efm+=%D%*\\a:\ Entering\ directory\ %*[`']%f'
+"set efm+=%X%*\\a:\ Leaving\ directory\ %*[`']%f'
+"set efm+=%DMaking\ %*\\a\ in\ %f,%f\|%l\|\ %m
 " "}}}
 
 
