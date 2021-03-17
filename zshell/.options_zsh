@@ -20,8 +20,8 @@ setopt EXTENDED_HISTORY          # Write the history file in the ":start:elapsed
 setopt HIST_IGNORE_SPACE         # Don't record an entry starting with a space.
 
 # NOTE:  only ONE of the next two should be enabled.
-#setopt INC_APPEND_HISTORY        # Write to the history file immediately, not when the shell exits.
-setopt SHARE_HISTORY             # All of INC_APPEND_HISTORY plus: share history between all sessions.
+setopt INC_APPEND_HISTORY        # Write to the history file immediately, not when the shell exits.
+#setopt SHARE_HISTORY             # All of INC_APPEND_HISTORY plus: share history between all sessions.
 
 setopt HIST_FIND_NO_DUPS         # Do not display a line previously found.
 #setopt HIST_IGNORE_ALL_DUPS      # Delete old recorded entry if new entry is a duplicate.
@@ -42,6 +42,17 @@ setopt HIST_FIND_NO_DUPS         # Do not display a line previously found.
 #
 setopt RM_STAR_SILENT
 
+#
+# I learned that cmd-lines can be edited in VI (or emacs) using a hotkey
+# if it is setup correctly.  At the same time, I leared that this is a
+# built-in feature of Bash shell.  See:
+#   https://stackoverflow.com/questions/890620/unable-to-have-bash-like-c-x-e-in-zsh
+#
+#   NOT WORKING :(
+#
+autoload edit-command-line
+zle -N edit-command-line
+bindkey -M vicmd v edit-command-line
 
 #
 #  NOTE:  this work is specific to MacOS -- because the OS uses EMacs bindings by default, see:

@@ -12,4 +12,6 @@ if [ -f ~/.aliases_all ]; then
 fi
 
 alias hist="history 1"
+alias which="whence -fa"
+alias wwhich="whence -faw"
 
