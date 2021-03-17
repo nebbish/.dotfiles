@@ -276,6 +276,7 @@ let s:gg_cmd = 'ggrep\ -PIn\ $*'
 "" On my windows there is a Cygwin version of GNU grep renamed "cgrep"
 " Currently the only option differences:    -H and -r  (maybe can be removed)
 let s:cg_cmd = 'cgrep\ -PIHnr\ $*'
+let s:gr_cmd = 'grep\ -PIn\ $*'
 
 if executable('ag')
 	execute 'set grepprg=' . s:ag_cmd
@@ -283,19 +284,29 @@ elseif executable('ggrep')
 	execute 'set grepprg=' . s:gg_cmd
 elseif executable('cgrep')
 	execute 'set grepprg=' . s:cg_cmd
+else
+	execute 'set grepprg=' . s:gr_cmd
 endif
 
-" Next we map some keys to manually switch between the programs
+" Next we map some mappings to switch between the programs on system that have more than one choice
 if executable('ag')
-	execute 'nnoremap <leader>ra :set grepprg=' . s:ag_cmd . '<cr>'
+	execute 'nnoremap <leader>rag :set grepprg=' . s:ag_cmd . '<cr>'
+else
+	execute 'nnoremap <leader>rag <Nop>'
 endif
 " NOTE:  no 'elseif'   -- all mappings defined if programs exist
 if executable('ggrep')
-	execute 'nnoremap <leader>rg :set grepprg=' . s:gg_cmd . '<cr>'
-elseif executable('cgrep')
-	execute 'nnoremap <leader>rg :set grepprg=' . s:cg_cmd . '<cr>'
+	execute 'nnoremap <leader>rgg :set grepprg=' . s:gg_cmd . '<cr>'
+else
+	execute 'nnoremap <leader>rgg <Nop>'
 endif
-nnoremap <leader>rd :set grepprg&<cr>
+if executable('cgrep')
+	execute 'nnoremap <leader>rcg :set grepprg=' . s:cg_cmd . '<cr>'
+else
+	execute 'nnoremap <leader>rcg <Nop>'
+endif
+execute 'nnoremap <leader>rgr :set grepprg=' . s:gr_cmd . '<cr>'
+nnoremap <leader>rdf :set grepprg&<cr>
 "}}}
 
 
@@ -713,6 +724,9 @@ nnoremap <leader>nf :NERDTreeFind<cr>
 nnoremap <leader>ng :NERDTreeFocus<cr>
 "" Found here: https://superuser.com/questions/1050256/how-can-i-set-relative-line-numbers-upon-entering-nerdtree-on-vim
 let g:NERDTreeShowLineNumbers=1
+" Turns out this part appears not necessary -- they are relative without this
+" (perhaps because my main settings are to have relative enabled?)
+"autocmd BufEnter NERD_* setlocal rnu
 
 "" THe help shows how to adjust the mappings, and I am **trying**
 "" to normalize the mappings for split/vert-split so that the 'vert'
