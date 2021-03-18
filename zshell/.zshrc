@@ -8,7 +8,7 @@ if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
 fi
 
 # Load the other dotfiles that initialize "inheritable" options/settings
-for file in ~/.{aliases_zsh,functions_zsh,completions_zsh,options_zsh,extra_zsh}; do
+for file in ~/.{functions_zsh,aliases_zsh,completions_zsh,options_zsh,extra_zsh}; do
 	[ -r "$file" ] && [ -f "$file" ] && source "$file";
 done;
 unset file;

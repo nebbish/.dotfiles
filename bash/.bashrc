@@ -13,7 +13,7 @@ if [ -f /etc/bashrc ]; then
 fi
 
 # Load the other dotfiles that initialize "non-inheritable" options/settings
-for file in ~/.{aliases_bash,functions_bash,completions_bash,options_bash,extra_bash}; do
+for file in ~/.{functions_bash,aliases_bash,completions_bash,options_bash,extra_bash}; do
 	[ -r "$file" ] && [ -f "$file" ] && source "$file";
 done;
 unset file;
