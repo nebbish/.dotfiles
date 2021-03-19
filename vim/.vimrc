@@ -29,6 +29,15 @@ set modelines=0			" for security and safety
 "  Deciding to disable this - I think I got used to the VIM default register NOT being the OS clipboard
 "  AND instead...   only choosing when to interact with the clipboard
 "set clipboard=unnamed	" Use the OS clipboard by default (on versions compiled with `+clipboard`)
+""
+"" This is for controlling whether VIM forces good behavior into already
+"" existing TXT files that may have to be edited by other editors that
+"" engage in horrific behavior ;)
+""    Is '\n' a "terminator" or a "separator" ??   that is the question.
+"" see:  https://stackoverflow.com/a/16224292/5844631
+""
+"set noendofline
+set nofixendofline
 " "}}}
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -37,7 +46,9 @@ set modelines=0			" for security and safety
 " Mappings & settings related to :! and :shell "{{{
 "" NOTE:  see the docs for "Bash Startup Files" - bash looks for this env
 ""        whenever a shell is launched NON-interactively (which vim does ;)
-if ! has('win32')
+if has('macunix')
+	let $BASH_ENV = "~/.bashrc_for_vim"
+elseif ! has('win32')
 	let $BASH_ENV = "~/.bashrc_for_vim"
 	set shellcmdflag=-l\ -c
 endif
@@ -1439,7 +1450,7 @@ if has('win32')
 	nnoremap <leader>pr :!p4 revert "%"<cr>
 else
 	nnoremap <leader>pe :!p4 edit "$(realpath "%")"<cr>
-	nnoremap <leader>pa :!p4 diff "$(realpath "%")"<cr>
+	nnoremap <leader>pd :!p4 diff "$(realpath "%")"<cr>
 	nnoremap <leader>pa :!p4 add "$(realpath "%")"<cr>
 	"" I'm nervous about this - accidentally losing work and all...
 	nnoremap <leader>pr :!p4 revert "$(realpath "%")"<cr>
@@ -1478,9 +1489,13 @@ set efm=
 ""      set efm+=%[%^[]%#[cc]\ %f(%l)\ %#:\ %m
 ""
 
+"" For MSVC output (which uses parantheses)
+set efm+=%.%#[cc]\ %f(%l)\ %#:\ %m
+"" For GCC  output (which uses colons)
 set efm+=%.%#[cc]\ %f:%l:%c:%m
 "set efm+=%.%#[cc]%.%#\ %f:%l%.
-set efm+=%.%#[exec]\ %#%f(%l)\ %#:\ %m
+set efm+=%.%#[exec]\ %f(%l)\ %#:\ %m
+"set efm+=%.%#[exec]\ %#%f(%l)\ %#:\ %m    I found this with the extra '%#'.  Not sure what I was thinking
 set efm+=%f(%l)\ %#:\ %m
 
 " for :grep   output
@@ -1520,8 +1535,8 @@ set efm+=%f(%l)\ %#:\ %m
 """ These pick up the actual compile errors from the ANT output
 """ NOTE:  they are extremely flexible, so I've added the zero-width '/home' match)
 "set efm+=%\\%%(\ %#[cc]\ %\\)%\\?%\\%%(/%\\)%\\@=%f:%l:%c:%m
-set efm+=%\\%%(\ %#[cc]\ %\\)%\\?%\\%%(/%\\)%\\@=%f(%l):%m
-set efm+=%\\%%(\ %#[cc]\ %\\)%\\?%\\%%(/%\\)%\\@=%f:%l:%m
+"set efm+=%\\%%(\ %#[cc]\ %\\)%\\?%\\%%(/%\\)%\\@=%f(%l):%m
+"set efm+=%\\%%(\ %#[cc]\ %\\)%\\?%\\%%(/%\\)%\\@=%f:%l:%m
 
 "set efm+=\"%f\"\\,\ line\ %l%*\\D%c%*[^\ ]\ %m
 "set efm+=%D%*\\a[%*\\d]:\ Entering\ directory\ %*[`']%f'
