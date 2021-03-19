@@ -596,8 +596,14 @@ Plugin 'cocopon/iceberg.vim'
 Plugin 'rakr/vim-one'
 Plugin 'NLKNguyen/papercolor-theme'
 Plugin 'altercation/vim-colors-solarized'
+Plugin 'sonph/onehalf', { 'rtp': 'vim' }
 "" Found this when looking for better c++ highlighting
 Plugin 'octol/vim-cpp-enhanced-highlight'
+"" Found this when looking up help for "nroff" for the '[[' and ']]' commands
+Plugin 'arp242/jumpy.vim'
+"" Found this when trying to fix ONE highlighting
+Plugin 'coldfix/hexHighlight'
+Plugin 'guns/xterm-color-table.vim'
 
 call vundle#end()			"" required
 
@@ -801,11 +807,30 @@ let g:tagbar_sort=0
 "}}}
 
 
+" Settings for jumpy.vim "{{{
+" Enable this to have auto recentering after jumping
+"let g:jumpy_after = 'zz'
+"}}}
+
+
 " Settings for vim-fontsize "{{{
 "" With this plugin (and my knowledge so far) I finally abosorbed the difference
 "" between 'timeoutlen' and 'ttimeoutlen' (extra 't' in front)
 "" (for the 'ttime...' value, think of how '^[[1;3D' alltogether is just <alt+left>)
 let g:fontsize#timeoutlen=3000
+"}}}
+
+
+" Settings for xterm-color-table "{{{
+"   https://github.com/guns/xterm-color-table.vim
+let g:XtermColorTableDefaultOpen = 'vsplit'
+"}}}
+
+
+" Settings for hexHighlight "{{{
+"   https://brcm-isg-ims-nis-ses.slack.com/archives/C01P13BH5C6/p1614197420024600
+nmap <leader><leader>hh <Plug>ToggleHexHighlight
+nmap <leader><leader>hs <Plug>ToggleSchemeHighlight
 "}}}
 
 
