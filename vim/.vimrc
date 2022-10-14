@@ -2492,6 +2492,19 @@ cnoremap <expr> <c-o>e  getcwd().'_build-logs\msbuild-detailed.log'
 cnoremap <expr> <c-o>n  getcwd().'_build-logs\msbuild-normal.log'
 cnoremap <expr> <c-o>m  getcwd().'_build-logs\msbuild-minimal.log'
 
+function OutputLog(expr)
+    let l:log = glob('.\Output\Logs\en-us\**\' . a:expr)
+    if l:log == ''
+        throw 'Unable to find output build log for [' . a:expr .']'
+    endif
+    return l:log
+endfunction
+cnoremap <expr> <c-o>r  OutputLog('*Reporting*.txt')
+cnoremap <expr> <c-o>o  OutputLog('*OldServer*.txt')
+cnoremap <expr> <c-o>b  OutputLog('*Bootstrap*.txt')
+cnoremap <expr> <c-o>w  OutputLog('*NewServer.txt')
+cnoremap <expr> <c-o>c  OutputLog('*Cpp*.txt')
+
 
 "" mapping to set the current directory from a specific buffer's file path
 ""  w/o a count: uses the current buffer's path
@@ -3344,6 +3357,14 @@ nmap <leader>mgmsa :cget <c-r>=getcwd()<cr>_build-logs\msbuild-diagnostic.log<cr
 nmap <leader>mgmse :cget <c-r>=getcwd()<cr>_build-logs\msbuild-detailed.log<cr>
 nmap <leader>mgmsn :cget <c-r>=getcwd()<cr>_build-logs\msbuild-normal.log<cr>
 nmap <leader>mgmsm :cget <c-r>=getcwd()<cr>_build-logs\msbuild-minimal.log<cr>
+
+nmap <leader>mgo   <nop>
+nmap <leader>mgol  <nop>
+nmap <leader>mgolr :copen<cr>\msdf:cget <c-o>r<cr>\mcl
+nmap <leader>mgolo :copen<cr>\msdf:cget <c-o>o<cr>\mcl
+nmap <leader>mgolb :copen<cr>\msdf:cget <c-o>b<cr>\mcl
+nmap <leader>mgolw :copen<cr>\msdf:cget <c-o>w<cr>\mcl
+nmap <leader>mgolc :copen<cr>\msdf:cget <c-o>c<cr>\mcl
 
 """ For MSVC output (which uses parantheses)
 ""
