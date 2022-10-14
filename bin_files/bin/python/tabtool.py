@@ -1,10 +1,11 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 from __future__ import print_function
 
 import inspect, logging, sys, os, re
 import argparse, platform
 import subprocess
 from pprint import pformat
+import codecs
 
 def eprint(*args, **kwargs):
 	print(*args, file=sys.stderr, **kwargs)
@@ -62,9 +63,6 @@ class Tee(object):
 				return True
 		return TeelogFilter(name, self.logger.name)
 
-	def logger_name(self):
-		return self.logger.name
-
 	def set_echo(self, value):
 		self.echo = value
 
@@ -91,6 +89,56 @@ class Tee(object):
 	def __getattr__(self, name):
 		""" Forwards to the original file handle """
 		return getattr(self.orig_fh, name)
+
+def detect_encoding(data):
+	# This construction came from:  https://stackoverflow.com/a/7392391/5844631
+	textchars = bytearray({7,8,9,10,12,13,27} | set(range(0x20, 0x100)) - {0x7f})
+	bomdata = [
+			('utf-8-sig',(codecs.BOM_UTF8,)),
+			('utf-16',(codecs.BOM_UTF16,)),
+			('utf-16le',(codecs.BOM_UTF16_LE,)),
+			('utf-16be',(codecs.BOM_UTF16_BE,)),
+			('utf-32',(codecs.BOM_UTF32,)),
+			('utf-32le',(codecs.BOM_UTF32_LE,)),
+			('utf-32be',(codecs.BOM_UTF32_BE,)),
+		]
+
+	##
+	## This block was usefull when this function was passed in the PATH of a file, instead of the block of data already read from the file
+	##
+	#try:
+	#	with open(path, 'rb') as infile:
+	#		chunk = infile.read(1024)
+	#except:
+	#	# print('Cannot open [{}]\n\t{}\n\tskipping...'.format(path, '\n\t'.join(traceback.format_exc().split('\n'))))
+	#	return None
+	chunk = data[:1024]
+
+	# This call to string.translate(None, delchars=textchars) will delete all the
+	# values from our input that are in the textchars array (see above)
+	# So, if it is empty, then it was all printable text
+	if not chunk.translate(None, textchars):
+		return 'utf8'
+
+	for (enc, boms) in bomdata:
+		if any(chunk.startswith(bom) for bom in boms):
+			try:
+				chunk.decode(enc)
+			except UnicodeDecodeError:
+				return None
+			return enc
+
+	for (enc, _) in bomdata:
+		try:
+			# If we can decode it... (it still may not be "text")
+			# and then encode it...   AND that value has an embedded NULL...
+			#    i.e.  find(NULL) returns >= 0
+			val = chunk.decode(enc)
+			return enc
+		except UnicodeDecodeError:
+			pass
+
+	return None
 
 ## Over-ride the base class, really just to add some command line options
 class TabToolApp(object):
@@ -131,7 +179,8 @@ class TabToolApp(object):
 		##
 		## Construct the parser, and setup the options
 		##
-		parser = argparse.ArgumentParser(description=inspect.getdoc(self))
+		parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                                         description=inspect.getdoc(self))
 
 		##
 		## Handy options that should be available on every cmd-line script
@@ -259,10 +308,10 @@ class TabToolApp(object):
 			self.curpart = ''
 
 		def add_char(self, ch):
-			if ch not in [' ','\t']:
+			if ch not in [' ','\t','\r']:
 				raise ValueError("'ch' must be either a space or tab")
 			self.curpart += ch
-			if ch == ' ':
+			if ch in [' ','\r']:
 				self.curgap -= 1
 			if ch == '\t' or self.curgap == 0:
 				self._push_cur_part()
@@ -309,11 +358,25 @@ class TabToolApp(object):
 			print("Quiting early, nothing to do")
 			return
 
+		enc = None
 		if self.args.infile is None:
-			lines = [ln.rstrip() for ln in sys.stdin]
+			# NOTE:  if VIM is calling this script as an external program, it will
+			#        PREPEND the BOM to the portion of the buffer sent to the external
+			#        program WHEN the buffer itself starts with a BOM.
+			#        (see:  https://stackoverflow.com/q/51480423/5844631)
+			#
+			#   This is great except when VIM is eding UTF 16
+			#   with codecs.getreader('utf_8_sig')(sys.stdin, errors='replace') as stdin:
+			#   	lines = [ln.rstrip() for ln in stdin]
+
+			# Py3 way of reading STDIN binary (in Py2 it already returns a byte string)
+			data = sys.stdin.buffer.read()
+			enc = detect_encoding(data)
+			lines = [ln.rstrip() for ln in codecs.decode(data, enc).splitlines()]
 		else:
 			with open(self.args.infile, 'r') as f:
 				lines = [ln.rstrip() for ln in f]
+		self.log.info('input lines:\n\t{}'.format('\n\t'.join(lines)))
 
 		line_num = 0
 		indent_level = 0
@@ -324,7 +387,8 @@ class TabToolApp(object):
 			# Using 're.split' with a capture group returns the matching delimiters too
 			# So, using 'filter(None,...)' will strip the empty strings at the start and end
 			# In the docs:   " If function is None, the identity function is assumed, ..."
-			parts = filter(None, re.split(r"(\s+)", ln))
+			# PY3: filter() returns a generator, use list() to run it out
+			parts = list(filter(None, re.split(r"(\s+)", ln)))
 
 			# Next build a list of columns that each part starts on
 			cols = [0]  # the first always starts here
@@ -392,11 +456,33 @@ class TabToolApp(object):
 			# Finally, put the possibly adjusted set of parts into the output list of lines
 			adj_lines.append(''.join(parts))
 
+		##
+		## When I added the encoding detection to help with VIM interop when VIM
+		## is editing UTF 16 files -- I was never able to successfully get the
+		## adjusted text BACK INTO VIM.   :(
+		##
+		## The commented out bit below was my attempt -- but that just produced the same
+		## broken output as just plain `print(result)` so I commented it out.
+		##
+		## The broken output is that when VIM finally refreshes, the text looks like:
+		##		H^@e^@l^@l^@o^@    ...
+		## which is how text looks when the "encoding" is wrong and the null bytes are
+		## wrongly displayed.
+		##
+		## TODO:   get UTF16 content back into VIM when this utility is launched from
+		##         VIM and given UTF16 content to adjust
+		##
+		result = '\n'.join(adj_lines)
 		if self.args.outfile:
 			with open(self.args.outfile, 'w') as f:
-				f.write('\n'.join(adj_lines) + '\n')
+				f.write(result + '\n')
+		#elif enc is not None:
+		#	data = codecs.encode(result, enc)
+		#	sys.stdout.buffer.write(data)
 		else:
-			print('\n'.join(adj_lines))
+			print(result)
+
+		self.log.info('final lines:\n\t{}'.format('\n\t'.join(adj_lines)))
 		return 0
 
 def show_args(args):
