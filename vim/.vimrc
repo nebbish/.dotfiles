@@ -1765,7 +1765,12 @@ nnoremap <leader>iw :Gwrite<cr>
 "
 " Mneumonic:    resolve merge
 "
-nnoremap <leader>rm gg/\v^[<=>]{4,}(\ [A-Z0-9a-z]{1,}\|$)<cr>
+nnoremap <leader>rm  <nop>
+nnoremap <leader>rmb gg/\v^[<=>]{4,}(\ [A-Z0-9a-z]{1,}\|$)<cr>zz
+" These two macros will not work on the first line (the 'k' will halt execution when it cannot go up a line)
+" TODO:  add functions to handle this, also enabling period-repitition
+nnoremap <leader>rm, ddkndnddknzz
+nnoremap <leader>rm. dnddknddknzz
 "
 "       Debugging problems with fugitive
 " I copied the below function from here:  https://stackoverflow.com/a/23318693/5844631
