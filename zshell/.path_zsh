@@ -25,6 +25,6 @@ fi;
 #    ~/.zprofile   runs  next:   prepends custom values
 #
 # We get around this by:  have our own "smart" adjustment after pre-pending our custom values
-# Entering the stage:    `path_remove_duplicates.py`
+# Entering the scene is the helper script named:    `path_remove_duplicates.py`
 eval `~/path_remove_duplicates.py`
 
