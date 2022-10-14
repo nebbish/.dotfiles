@@ -1743,6 +1743,10 @@ nnoremap <leader>ip :G pull<cr>
 nnoremap <leader>ic <nop>
 nnoremap <leader>icz <nop>
 nnoremap <leader>icz<space> :G stash 
+nnoremap <leader>iczl       :G stash list<cr>
+nnoremap <leader>iczu       :G stash push -m current<cr>
+nnoremap <leader>iczo       :G stash pop<cr>
+nnoremap <leader>iczw       :G stash show 
 nnoremap <leader>icc <nop>
 nnoremap <leader>icc<space> :G checkout 
 nnoremap <leader>icm <nop>
