@@ -2592,6 +2592,7 @@ nnoremap <leader>ftu :e ++ff=unix<cr>
 nnoremap <leader>fto :e ++ff=dos<cr>
 nnoremap <leader>ftm :%s/<C-V><cr>$//<bar>PopSearch<cr>
 nnoremap <leader>ftd :filetype detect<cr>
+nnoremap <leader>ft<space> :set filetype=
 
 nnoremap <leader>ftt :set ft=text<cr>
 nnoremap <leader>fth :set ft=help<cr>
