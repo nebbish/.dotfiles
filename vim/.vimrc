@@ -2607,7 +2607,7 @@ if has('win32')
                     "        (no need to check `has('win32')` for which slash to use)
                     let newvalWithSess = l:newval . '\' . l:sessID
                     if !empty(glob(l:newvalWithSess))
-                        let newval = l:newval .  '\' . l:sessID
+                        let newval = l:newval . '\' . l:sessID
                     endif
                 endif
             endif
@@ -2869,7 +2869,9 @@ autocmd! QuickfixCmdPost * call s:SortUniqQFList()
 "" Mappings that "float" straight vertically up and down until a non-white
 "" character is encountered (from:  https://vi.stackexchange.com/a/213/9912)
 nnoremap <leader>fj /\%<C-R>=virtcol(".")<CR>v\S<CR>
+vnoremap <leader>fj /\%<C-R>=virtcol(".")<CR>v\S<CR>
 nnoremap <leader>fk ?\%<C-R>=virtcol(".")<CR>v\S<CR>
+vnoremap <leader>fk ?\%<C-R>=virtcol(".")<CR>v\S<CR>
 "}}}
 
 
