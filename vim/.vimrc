@@ -867,6 +867,27 @@ endfunction
 xnoremap <expr> <leader>pz PosDump() . ':<c-u>13mes<cr>'
 nnoremap <expr> <leader>pz PosDump() . ':<c-u>13mes<cr>'
 " Other ways of launching PosDump(), with :N or :<range>, can be done manually
+
+function! VisualSelection()
+    if mode()=="v"
+        let [line_start, column_start] = getpos("v")[1:2]
+        let [line_end, column_end] = getpos(".")[1:2]
+    else
+        let [line_start, column_start] = getpos("'<")[1:2]
+        let [line_end, column_end] = getpos("'>")[1:2]
+    end
+    if (line2byte(line_start)+column_start) > (line2byte(line_end)+column_end)
+        let [line_start, column_start, line_end, column_end] =
+        \   [line_end, column_end, line_start, column_start]
+    end
+    let lines = getline(line_start, line_end)
+    if len(lines) == 0
+            return ''
+    endif
+    let lines[-1] = lines[-1][: column_end - 1]
+    let lines[0] = lines[0][column_start - 1:]
+    return join(lines, "\n")
+endfunction
 "}}}
 
 
@@ -1135,6 +1156,21 @@ nnoremap <leader>grdf :set grepprg&<cr>
 
 nnoremap <leader>grnv :set grepprg=<c-r>=substitute(substitute(&grepprg, '--vimgrep ', '', ''), ' ', '\\ ', 'g')<cr><cr>
 nnoremap <leader>grch :set grepprg=<c-r>=substitute(&grepprg, ' ', '\\ ', 'g')<cr>
+
+" NOTE:  these INTENTIONALLY end with a space!
+nnoremap <leader>gw  <nop>
+nnoremap <leader>gwc :Redir !=&grepprg->split(' ')[:-2]->join(' ') "" 
+nnoremap <leader>gwl :lgrep! "" 
+nnoremap <leader>ga  <nop>
+nnoremap <leader>gac :Redir !=&grepprg->split(' ')[:-2]->join(' ') "" 
+nnoremap <leader>gal :lgrep! "" 
+nnoremap <leader>gl  <nop>
+nnoremap <leader>glc :Redir !=&grepprg->split(' ')[:-2]->join(' ') "" 
+nnoremap <leader>gll :lgrep! "" 
+vnoremap <leader>gw  <nop>
+vnoremap <leader>gwc :<c-u>Redir !=&grepprg->split(' ')[:-2]->join(' ') "=Rescape(VisualSelection())" 
+vnoremap <leader>gwl :<c-u>lgrep! "=Rescape(VisualSelection())" 
+
 
 ""
 "" Here I'm creating a 3-letter shortcut for `substitute()`
