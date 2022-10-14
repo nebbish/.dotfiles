@@ -392,13 +392,17 @@ nnoremap <leader>rr :redraw!<cr>
 ""       groupings & zero-width:    '(', ')', '@'
 ""       word boundaries:           '<', '>'
 ""
+function! Rescape(val)
+    return escape(a:val, '\|&^$%.*+?={[\/()@~<>"''')
+endfunction
+
 vnoremap <silent> * :<C-U> let old_reg=getreg('"')<Bar>let old_regtype=getregtype('"')<CR>
                    \gvy/\v<C-R>=&ic?'\c':'\C'<CR>
-                   \<C-R><C-R>=substitute(escape(@", '\|&^$%.*+?={[\/()@~<>'), '\s\+', '\\s+', 'g')<CR><CR>
+                   \<C-R><C-R>=substitute(Rescape(@"), '\s\+', '\\s+', 'g')<CR><CR>
                    \gVzv:call setreg('"', old_reg, old_regtype)<CR>
 vnoremap <silent> # :<C-U> let old_reg=getreg('"')<Bar>let old_regtype=getregtype('"')<CR>
                    \gvy?\v<C-R>=&ic?'\c':'\C'<CR>
-                   \<C-R><C-R>=substitute(escape(@", '\|&^$%.*+?={[\/()@~<>'), '\s\+', '\\s+', 'g')<CR><CR>
+                   \<C-R><C-R>=substitute(Rescape(@"), '\s\+', '\\s+', 'g')<CR><CR>
                    \gVzv:call setreg('"', old_reg, old_regtype)<CR>
 
 " NOTE:  this will affect the behavior of the "unnamed" register and which
@@ -599,8 +603,17 @@ augroup END
 "
 "  NOTE:  'ccab' cannot be used within this file -- just the command line directly :/
 "
+function! ShouldReplaceCommand()
+    if getcmdtype() != ":"
+        return v:false
+    endif
+    if getcmdpos() == 1
+        return v:true
+    endif
+    return -1 == match(getcmdline(), "[^.$%'`<>,0-9 ]")
+endfunction
 function! CommandAbbrev(abbreviation, expansion)
-  execute 'cabbrev ' . a:abbreviation . ' <c-r>=getcmdpos() == 1 && getcmdtype() == ":" ? "' . a:expansion . '" : "' . a:abbreviation . '"<CR>'
+  execute 'cabbrev ' . a:abbreviation . ' <c-r>=ShouldReplaceCommand() ? "' . a:expansion . '" : "' . a:abbreviation . '"<CR>'
 endfunction
 
 command! -nargs=+ CommandAbbrev call CommandAbbrev(<f-args>)
@@ -622,6 +635,20 @@ command! -nargs=* -complete=command -range ArgTestQ call ArgTest(<range>, <line1
 CommandAbbrev argtestq ArgTestQ
 command! -nargs=* -complete=command -range ArgTestF call ArgTest(<range>, <line1>, <line2>, <f-args>)
 CommandAbbrev argtestf ArgTestF
+
+function! DbgTest()
+    if v:count == 0
+        let cnt = 10
+    else
+        let cnt = v:count
+    endif
+    let idx = l:cnt
+    while l:idx > 0
+        echo histget(":", "-" . l:idx)
+        let idx = l:idx - 1
+    endwhile
+endfunction
+nnoremap <leader>tz :<c-u>call DbgTest()<cr>
 
 " "}}}
 
@@ -751,7 +778,11 @@ function! Redir(cmd, rng, start, end)
 		redir END
 		let output = split(output, "\n")
 	endif
-	vnew
+    if a:rng == a:start && a:rng == a:end && a:rng == 1
+        vnew
+    else
+        new
+    endif
 	let w:redir_scratch_window = 1
 	setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile
 	call setline(1, output)
@@ -2150,6 +2181,7 @@ nnoremap <leader>cf :CtrlPBufTag<cr>
 if executable('ag')
 	" Currently I do not manage to have 'ag' in all my various environments
 	let g:ctrlp_max_files=0
+    " TODO:  set this up to have directories I want CtrlP to ignore
 	let g:ctrlp_user_command = 'ag %s -u -l --depth 50 --nocolor -g ""'
 	" When using 'ag' to search based on file names -- it is so fast CtrlP does not need to cache enything
 	" (we'll see about that claim ;)
@@ -2635,7 +2667,7 @@ nnoremap <leader>tr :%s/[ \t]\+$//<bar>PopSearch<cr>
 ""
 nnoremap <leader>ftu :e ++ff=unix<cr>
 nnoremap <leader>fto :e ++ff=dos<cr>
-nnoremap <leader>ftm :%s/<C-V><cr>$//<bar>PopSearch<cr>
+nnoremap <leader>ftm :%s/\v(<C-V><cr><bar>\^M)$//<bar>PopSearch<cr>
 nnoremap <leader>ftd :filetype detect<cr>
 nnoremap <leader>ft<space> :set filetype=
 
@@ -2987,7 +3019,7 @@ let g:windowswap_map_keys=0
 "   n  <leader>yw :call WindowSwap#DeprecatedMark()<CR>
 
 function! EchoWindowInfo(verbose)
-    if a:verbose
+    if a:verbose == 2
         echo tabpagebuflist()
         echo winlayout()
     endif
@@ -3033,8 +3065,8 @@ function! EqualizeWindows()
     endfor
     wincmd =
 endfunction
-nnoremap <leader>wz <cmd>call EchoWindowInfo(v:count)<cr>
-nnoremap <leader>ww <cmd>call EqualizeWindows()<cr>
+nnoremap <leader>ww <cmd>call EchoWindowInfo(v:count)<cr>
+nnoremap <leader>we <cmd>call EqualizeWindows()<cr>
 nnoremap <leader>ws :call WindowSwap#EasyWindowSwap()<CR>
 
 function! SetGuiSize(lines, columns)
