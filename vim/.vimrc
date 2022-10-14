@@ -9,21 +9,397 @@
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-"" Here is the LEADER setting
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"" MAIN Setting(s)
 let mapleader = "\\"
+"" NOTE:  the 'nocompatible' option automatically adjusts many other options
+""        do it first, and only this once (defaults to off, but good to have)
+set nocompatible
+" This option causes the editer to change options based on the first N lines
+" of a text file (like a "sh'bang" line).  Disable it for security & safety
+set modelines=0
+
+" Prevent the storing of file marks (0-9 and A-Z)
+" NOTE:  I'm adding 'f0' BECAUSE through trial and error, I discovered that
+"        VIM will **automatically** load LOTS of files behind the scenes
+"        when "file marks" are saved in viminfo.  The automatically loaded
+"        files are "unlisted" so the only way to notice them is `:ls!`
+"        This greatly slows down the editor when the loaded buffers get
+"        into the hundreds (and even low thousands)
+"
+"        this does NOT affect the lowercase a-z marks, they are still saved
+"
+"        default 'viminfo': '100,<50,s10,h,rA:,rB:
+"
+"        (also upping some of the limits)
+"
+set viminfo='999,<500,s100,h,rA:,rB:,f0
+
+nnoremap <leader>v    <nop>
+nnoremap <leader>vr   :so $MYVIMRC<cr>
+nnoremap <leader>vi   <nop>
+nnoremap <leader>vif  <nop>
+nnoremap <leader>vifc :set viminfofile?<cr>
+nnoremap <leader>vifn :set viminfofile=NONE<cr>
+nnoremap <leader>vifd :set viminfofile&<cr>
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-"" These options come from a nice 'Coming home to Vim' article on the web here,
-""		http://stevelosh.com/blog/2010/09/coming-home-to-vim/
+"" This bit of magic will force this file to reload every time it is saved
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Settings that should be right at the top "{{{
+augroup myvimrc
+	au!
+	""  NOTE:  currently I don't have a ".gvimrc file, so I have commented that part out
+	""au bufwritepost $MYVIMRC,$MYGVIMRC so $MYVIMRC | if has('gui_running') | so $MYGVIMRC | endif
+	au bufwritepost $MYVIMRC so $MYVIMRC
+augroup end
+
+
+
+
+" Customized versions of the 'default' settings "{{{
+" """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" from a 8.2.1-2735 default install _vimrc
+
+
 ""
-"" NOTE:  the 'nocompatible' option automatically adjusts many other options
-""        do it first, and only this once
+"" My take on the settings contained within '$VIMRUNTIME/defaults.vim'
+""     (which is loaded when no other vimrc file is found)
 ""
-set nocompatible		" defaults to off, but good to have
-set modelines=0			" for security and safety
+
+" The default vimrc file.
+"
+" Maintainer:	Bram Moolenaar <Bram@vim.org>
+" Last change:	2020 Sep 30
+"
+" This is loaded if no vimrc file was found.
+" Except when Vim is run with "-u NONE" or "-C".
+" Individual settings can be reverted with ":set option&".
+" Other commands can be reverted as mentioned below.
+
+" When started as "evim", evim.vim will already have done these settings.
+"if v:progname =~? "evim"
+"  finish
+"endif
+
+" Bail out if something that ran earlier, e.g. a system wide vimrc, does not
+" want Vim to use these default values.
+"if exists('skip_defaults_vim')
+"  finish
+"endif
+
+" Use Vim settings, rather than Vi settings (much better!).
+" This must be first, because it changes other options as a side effect.
+" Avoid side effects when it was already reset.
+"if &compatible
+"  set nocompatible
+"endif
+
+" When the +eval feature is missing, the set command above will be skipped.
+" Use a trick to reset compatible only when the +eval feature is missing.
+"silent! while 0
+"  set nocompatible
+"silent! endwhile
+
+" Allow backspacing over everything in insert mode.
+set backspace=indent,eol,start
+
+set history=5000	" keep 200 lines of command line history
+set ruler		" show the cursor position all the time
+set showcmd		" display incomplete commands
+set wildmenu		" display completion matches in a status line
+
+set timeout         " activates BOTH time outs:  ':mappings' and 'key codes'
+set ttimeoutlen=50  " 'key code' time out length (for <ESC> and <ALT> which are multi-code keys)
+                    " The above '50' solves the delay after pressing Esc (default is 100ms)
+set timeoutlen=2000 " ':mappings' time out length (one more sec than default of 1000)
+
+" Show @@@ in the last line if it is truncated.
+set display=truncate
+
+" Show a few lines of context around the cursor.  Note that this makes the
+" text scroll if you mouse-click near the start or end of the window.
+"set scrolloff=5
+
+" Do incremental searching when it's possible to timeout.
+if has('reltime')
+  set incsearch
+endif
+
+" Set this up for all options (default is just "bin,octal,hex")
+set nrformats=alpha,bin,octal,hex
+
+
+" Default guioptions:  egmrLtT
+" NOTE:  the default vimrc file will remove 't' on Win32
+"   e: pretty tabs (vs ascii tabs)
+"   g: grey out inactive menu items
+"   m: menu bar is present
+"   r: right-hand scroll bar is present
+"   L: left-hand scroll bar is present when vert split exists
+"   t: include tear off menus
+"   T: include toolbar
+" I disable most of the above just to save screen real-estate
+" I don't need the typical menu/tool bars or fancy tabs
+" Regarding the scroll bars... I hardly use them, but they provide visual "clues"
+set guioptions=
+
+" Don't use Ex mode, use Q for formatting.
+" Revert with ":unmap Q".
+"map Q gq
+
+" CTRL-U in insert mode deletes a lot.  Use CTRL-G u to first break undo,
+" so that you can undo CTRL-U after inserting a line break.
+" Revert with ":iunmap <C-U>".
+inoremap <C-U> <C-G>u<C-U>
+" To understand more see:  ":help i_CTRL-G_u"
+" Do the same for <C-W>, see:  http://vim.wikia.com/wiki/Recover_from_accidental_Ctrl-U
+inoremap <C-W> <C-G>u<C-W>
+
+
+" In many terminal emulators the mouse works just fine.  By enabling it you
+" can position the cursor, Visually select and scroll with the mouse.
+" Only xterm can grab the mouse events when using the shift key, for other
+" terminals use ":", select text and press Esc.
+if has('mouse')
+  if &term =~ 'xterm'
+    set mouse=a
+  else
+    set mouse=nvi
+  endif
+endif
+
+" Only do this part when Vim was compiled with the +eval feature.
+if 1
+
+  " Enable file type detection.
+  " Use the default filetype settings, so that mail gets 'tw' set to 72,
+  " 'cindent' is on in C files, etc.
+  " Also load indent files, to automatically do language-dependent indenting.
+  " Revert with ":filetype off".
+  filetype plugin indent on
+  " NOTE: down below 'filetype' is disabled for Vundle and re-enabled
+
+  " Put these in an autocmd group, so that you can revert them with:
+  " ":augroup vimStartup | au! | augroup END"
+  augroup vimStartup
+    au!
+
+    " When editing a file, always jump to the last known cursor position.
+    " Don't do it when the position is invalid, when inside an event handler
+    " (happens when dropping a file on gvim) and for a commit message (it's
+    " likely a different one than last time).
+    autocmd BufReadPost *
+      \ if line("'\"") >= 1 && line("'\"") <= line("$") && &ft !~# 'commit'
+      \ |   exe "normal! g`\""
+      \ | endif
+
+  augroup END
+
+endif
+
+" Switch syntax highlighting on when the terminal has colors or when using the
+" GUI (which always has colors).
+if &t_Co > 2 || has("gui_running")
+  " Revert with ":syntax off".
+  "syntax on
+
+  "" For an explanation of ':syntx on' -VS- ':syntax enable', and why I have
+  "" the 'if', see:  https://stackoverflow.com/a/33380495/5844631
+  if !exists("g:syntax_on")
+    syntax enable
+  endif
+
+  " I like highlighting strings inside C comments.
+  " Revert with ":unlet c_comment_strings".
+  let c_comment_strings=1
+endif
+
+" Convenient command to see the difference between the current buffer and the
+" file it was loaded from, thus the changes you made.
+" Only define it when not defined already.
+" Revert with: ":delcommand DiffOrig".
+if !exists(":DiffOrig")
+  command DiffOrig vert new | set bt=nofile | r ++edit # | 0d_ | diffthis
+		  \ | wincmd p | diffthis
+endif
+
+if has('langmap') && exists('+langremap')
+  " Prevent that the langmap option applies to characters that result from a
+  " mapping.  If set (default), this may break plugins (but it's backward
+  " compatible).
+  set nolangremap
+endif
+
+
+
+""
+"" My take on the settings contained within '$VIMRUNTIME/vimrc_example.vim'
+""     (which is loaded by the default vimrc, which is used when no other vimrc is found)
+""
+
+" An example for a vimrc file.
+"
+" Maintainer:	Bram Moolenaar <Bram@vim.org>
+" Last change:	2019 Dec 17
+"
+" To use it, copy it to
+"	       for Unix:  ~/.vimrc
+"	      for Amiga:  s:.vimrc
+"	 for MS-Windows:  $VIM\_vimrc
+"	      for Haiku:  ~/config/settings/vim/vimrc
+"	    for OpenVMS:  sys$login:.vimrc
+
+" When started as "evim", evim.vim will already have done these settings, bail
+" out.
+"if v:progname =~? "evim"
+"  finish
+"endif
+
+" Get the defaults that most users want.
+"source $VIMRUNTIME/defaults.vim
+
+if has("vms")
+  set nobackup		" do not keep a backup file, use versions instead
+else
+  set backup		" keep a backup file (restore to previous version)
+  if empty(glob(expand('~/.vim/backupdir')))
+    call mkdir(expand('~/.vim/backupdir'), 'p')
+  endif
+  if has('win32')
+    set backupdir=~/.vim/backupdir,$TEMP,c:/tmp,c:/temp
+  else
+    set backupdir=~/.vim/backupdir,~/tmp
+  endif
+  if has('persistent_undo')
+    set undofile	" keep an undo file (undo changes after closing)
+                    " create .<filename>.un~ files persist undo chains
+    if empty(glob(expand('~/.vim/undodir')))
+      call mkdir(expand('~/.vim/undodir'), 'p')
+    endif
+    if has('win32')
+      set undodir=~/.vim/undodir,$TEMP,c:/tmp,c:/temp
+    else
+      set undodir=~/.vim/undodir,~/tmp
+    endif
+  endif
+endif
+
+if &t_Co > 2 || has("gui_running")
+  " Switch on highlighting the last used search pattern.
+  set hlsearch
+endif
+
+" Put these in an autocmd group, so that we can delete them easily.
+"augroup vimrcEx
+"  au!
+"
+"  " For all text files set 'textwidth' to 78 characters.
+"  autocmd FileType text setlocal textwidth=78
+"augroup END
+
+" Add optional packages.
+"
+" NOTE:  this should be superceeded by the "chrisbra/matchit" plugin managed
+"        by my plugin manager (which is upstream from the built-in one)
+"
+""    " The matchit plugin makes the % command work better, but it is not backwards
+""    " compatible.
+""    " The ! means the package won't be loaded right away but when plugins are
+""    " loaded during initialization.
+""    if has('syntax') && has('eval')
+""      packadd! matchit
+""    endif
+
+
+" """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+" This bit is the default '_vimrc' file...
+" (it includes 'vimrc_example.vim' which in turn includes 'defaults.vim')
+
+"" Vim with all enhancements
+"source $VIMRUNTIME/vimrc_example.vim
+
+"" Use the internal diff if available.
+"" Otherwise use the special 'diffexpr' for Windows.
+"if &diffopt !~# 'internal'
+"  set diffexpr=MyDiff()
+"endif
+"function MyDiff()
+"  let opt = '-a --binary '
+"  if &diffopt =~ 'icase' | let opt = opt . '-i ' | endif
+"  if &diffopt =~ 'iwhite' | let opt = opt . '-b ' | endif
+"  let arg1 = v:fname_in
+"  if arg1 =~ ' ' | let arg1 = '"' . arg1 . '"' | endif
+"  let arg1 = substitute(arg1, '!', '\!', 'g')
+"  let arg2 = v:fname_new
+"  if arg2 =~ ' ' | let arg2 = '"' . arg2 . '"' | endif
+"  let arg2 = substitute(arg2, '!', '\!', 'g')
+"  let arg3 = v:fname_out
+"  if arg3 =~ ' ' | let arg3 = '"' . arg3 . '"' | endif
+"  let arg3 = substitute(arg3, '!', '\!', 'g')
+"  if $VIMRUNTIME =~ ' '
+"    if &sh =~ '\<cmd'
+"      if empty(&shellxquote)
+"        let l:shxq_sav = ''
+"        set shellxquote&
+"      endif
+"      let cmd = '"' . $VIMRUNTIME . '\diff"'
+"    else
+"      let cmd = substitute($VIMRUNTIME, ' ', '" ', '') . '\diff"'
+"    endif
+"  else
+"    let cmd = $VIMRUNTIME . '\diff'
+"  endif
+"  let cmd = substitute(cmd, '!', '\!', 'g')
+"  silent execute '!' . cmd . ' ' . opt . arg1 . ' ' . arg2 . ' > ' . arg3
+"  if exists('l:shxq_sav')
+"    let &shellxquote=l:shxq_sav
+"  endif
+"endfunction
+
+"}}}
+
+
+" Other settings that should be right at the top "{{{
+
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"" References:
+""
+""  Nice 'Coming home to Vim' article: http://stevelosh.com/blog/2010/09/coming-home-to-vim/
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+
+" tame searching/moving settings
+nnoremap / /\v
+vnoremap / /\v
+set ignorecase		" use case insensitive searching by default
+set smartcase		" however, if a capital letter was entered, go back to case SENSitive
+set showmatch		" briefly highlight the matching 'bracket' (i.e. '[]','()','{}',...)
+nnoremap <leader><space> :nohl<cr>
+nnoremap <leader>rr :redraw!<cr>
+
+""
+"" Search for selected text, forwards or backwards.
+"" (from https://vim.fandom.com/wiki/Search_for_visually_selected_text)
+"" NOTE:  I've changed it to pre-pend "\v" to the search so that it is VERY MAGIC
+""  WHY:  so that when I pull up the search history, and copy the search -- I can use it with PCRE engines as-is
+""   SO:  therefore, I have to escape all the "very magic" characters.  One of those characters
+""        has to be escaped EVEN in the string argument to `escape()`:  the pipe or branch, "|"
+""        (this is so weird, even the backslash does not need to be escaped
+""
+""       branching chars:           '|', '&'
+""       various anchors:           '^', '$', '%'
+""       any char & repeats:        '.', '*', '+', '?', '=', '{'
+""       char class & slashes:      '[', '\', '/'
+""       groupings & zero-width:    '(', ')', '@'
+""       word boundaries:           '<', '>'
+""
+vnoremap <silent> * :<C-U> let old_reg=getreg('"')<Bar>let old_regtype=getregtype('"')<CR>
+                   \gvy/\v<C-R>=&ic?'\c':'\C'<CR>
+                   \<C-R><C-R>=substitute(escape(@", '\|&^$%.*+?={[\/()@~<>'), '\s\+', '\\s+', 'g')<CR><CR>
+                   \gVzv:call setreg('"', old_reg, old_regtype)<CR>
+vnoremap <silent> # :<C-U> let old_reg=getreg('"')<Bar>let old_regtype=getregtype('"')<CR>
+                   \gvy?\v<C-R>=&ic?'\c':'\C'<CR>
+                   \<C-R><C-R>=substitute(escape(@", '\|&^$%.*+?={[\/()@~<>'), '\s\+', '\\s+', 'g')<CR><CR>
+                   \gVzv:call setreg('"', old_reg, old_regtype)<CR>
+
 " NOTE:  this will affect the behavior of the "unnamed" register and which
 "        actual REGister gets the stuff that goes into the "unnamed" register
 "  Deciding to disable this - I think I got used to the VIM default register NOT being the OS clipboard
@@ -48,6 +424,7 @@ set nofixendofline
 ""        whenever a shell is launched NON-interactively (which vim does ;)
 if has('macunix')
 	let $BASH_ENV = "~/.bashrc_for_vim"
+	set pyxversion=2
 elseif ! has('win32')
 	let $BASH_ENV = "~/.bashrc_for_vim"
 	set shellcmdflag=-l\ -c
@@ -59,23 +436,39 @@ endif
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Settings related to Fonts "{{{
 " This bit was inspired by the answer here:  https://stackoverflow.com/a/3316521/5844631
-if has('gui_running')
-	let s:guifont=''
-	if has('gui_win32')
-		let s:guifont='Lucida_Console:h8'
-	elseif has('gui_macvim')
-		let s:guifont='Menlo-Regular:h11'
-	elseif has('gui_gtk2') && !has('unix')
-		let s:guifont='Consolas:h11:cANSI'
-		"let s:guifont='Monospace:10'
-	endif
-	if s:guifont != ""
-		execute 'set guifont=' . s:guifont
-		execute 'nnoremap <leader>rf :set guifont=' . s:guifont . '<cr>'
-	endif
+if ! exists("s:font_set")
+    let s:font_set = 1
+    if has('gui_running')
+        let s:guifont=''
+        if has('gui_win32')
+            let s:guifont='Lucida_Console:h8:cANSI:qDRAFT'
+        elseif has('gui_macvim')
+            let s:guifont='Menlo-Regular:h11'
+        elseif has('gui_gtk2') && !has('unix')
+            let s:guifont='Consolas:h11:cANSI'
+            "let s:guifont='Monospace:10'
+        endif
+        ""
+        "" NOTE:  this is an attemped workaround for something that is VERY
+        ""        annoying.  my current VIM's `getfontname()` method returns
+        ""        NOTHING at first!  Then if I `:set guifont=` using the
+        ""        mapping below, it starts returning the right value?!?!?!?
+        ""
+        ""        So that is why I create a mapping for \rf -- and I must
+        ""        use it before attempting to 'resize' using vim-fontsize
+        ""
+        ""        Additionally -- even `:set`ting the value here, does not help
+        ""        I still must use the mapping after VIM finishes loading :(
+        ""
+        if s:guifont != ""
+            execute 'set guifont=' . s:guifont
+            execute 'nnoremap <leader>rf :set guifont=' . s:guifont . '<cr>'
+            execute "normal \<Plug>FontsizeDefault"
+        endif
+    endif
 endif
-set backspace=indent,eol,start
 "}}}
+
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "" Tabs/show.../listchar/...
@@ -88,17 +481,17 @@ set backspace=indent,eol,start
 "syntax on
 syntax enable
 
+" I am *TIRED* of accidentally bringing up help via 'F1' on my touchbar Mac --
+" so this will turn that into the '<Esc>' I was likely trying to hit
+map  <F1> <esc>
+imap <F1> <esc>
+
 "set autoread        " This allows smooth re-read of altered files when no changes
 set encoding=utf-8
-" Default guioptions:  egmrLtT
-set guioptions=gm   " FROM my Windows GVim
 set sidescroll=1
-" set scrolloff=3	" when cursor is at top/bot of screen, keep X lines visable
 " set showmode		" on by default anyway
-set showcmd			" display (bottom right) the cmd characters typed so far
 " set visualbell	" turn the beeps into flashes
 set ttyfast			" smoother redrawing when terminal connection is fast
-" set ruler			" on already
 set laststatus=2	" show status line ('2' == always)
 
 set relativenumber	" display relative line numbers (new in 7.3)
@@ -111,7 +504,6 @@ augroup END
 " NOTE:  the listchars settings are in the section borrowed from 'gmarik'
 "set breakindent
 "set breakindentopt=sbr
-"set undofile		" create .<filename>.un~ files persist undo chains
 if has('win32')
 	"set showbreak=└→\ 
 	"set showbreak=∟\ 
@@ -130,7 +522,9 @@ endif
 " I did this a loooong time aga - i'm not even exactly sure where the parts I took from gmarik's repo conclude...
 " Anyhow, here is the URL for reference;  https://github.com/gmarik/dotfiles/blob/master/.vim/vimrc
 "" NOTE:  gmarik uses F10 for this, but I have not disabled F10 in gnome
-set pastetoggle=<c-p>	" easy toggle of paste mode
+set pastetoggle=<F11>	" easy toggle of paste mode
+"inoremap c-v :set paste!<cr>
+
 ""
 "" NOTE:  In order to prevent the annoying 'Press ENTER or type command to coninue'
 ""        message from appearing, even with all shortening flags enabled (i.e. 'a')
@@ -145,7 +539,65 @@ nnoremap <silent> <F12> :set invlist<CR>
 set listchars=tab:›·,eol:¬
 set listchars+=trail:·
 set listchars+=extends:»,precedes:«
+
+
+""
+"" NOTE:  this is me TRYing to get alt+ left/right to navigate the jump list
+""
+"nnoremap <esc>[1;3D <c-o>
+"nnoremap <esc>[1;3C <c-i>
+nnoremap <a+left> <c-o>
+nnoremap <a+right> <c-i>
+
+""
+"" Lots of times syntax highlighting is soooo slow that redrawtime is exceeded
+"" and it is auto disabled.   Even if it does not get that bad, there is still
+"" super slow scrolling :(
+""
+"" Found this issue that has a lot of explanation, and a work around to
+"" reclaim some of that lost performance:
+""
+""     https://github.com/vim/vim/issues/2712
+""
+set regexpengine=1
+
+"" Here's something to speed up the opening of the jump list
+nnoremap <leader>j :jumps<cr>
 "}}}
+
+
+" Helper to create command abbreviations, i.e. all lowercase user-commands "{{{
+
+" see lower-case user commands: http://vim.wikia.com/wiki/Replace_a_builtin_command_using_cabbrev
+"                          and: https://learnvimscriptthehardway.stevelosh.com/chapters/08.html
+"
+"  NOTE:  'ccab' cannot be used within this file -- just the command line directly :/
+"
+function! CommandAbbrev(abbreviation, expansion)
+  execute 'cabbrev ' . a:abbreviation . ' <c-r>=getcmdpos() == 1 && getcmdtype() == ":" ? "' . a:expansion . '" : "' . a:abbreviation . '"<CR>'
+endfunction
+
+command! -nargs=+ CommandAbbrev call CommandAbbrev(<f-args>)
+
+" Use it on itself to define a simpler abbreviation for itself.
+"    (abbrev only for manual use in interactive command line mode)
+"    (i.e. 'ccab' cannot be used below in this script)
+CommandAbbrev ccab CommandAbbrev
+
+function! ArgTest(...)
+    echo 'Count: ' . a:0
+    let idx = 1
+    for i in a:000
+        echo '  arg ' l:idx . ': ' . i
+        let idx = l:idx + 1
+    endfor
+endfunction
+command! -nargs=* -complete=command -range ArgTestQ call ArgTest(<range>, <line1>, <line2>, <q-args>)
+CommandAbbrev argtestq ArgTestQ
+command! -nargs=* -complete=command -range ArgTestF call ArgTest(<range>, <line1>, <line2>, <f-args>)
+CommandAbbrev argtestf ArgTestF
+
+" "}}}
 
 
 " Functions/mappings for toggling options like Unimpaired "{{{
@@ -188,49 +640,296 @@ set listchars+=extends:»,precedes:«
 "              that works in all situations
 "
 "" NOTE:  this one to gather all the autocmd entries in a buffer DOES NOT WORK :(
-nnoremap <leader>gm :call GetSpecifiedInfo("map", 0)<cr>
-nnoremap <leader>gc :call GetSpecifiedInfo("command", 0)<cr>
-nnoremap <leader>ga :call GetSpecifiedInfo("autocmd", 0)<cr>
-nnoremap <leader>gh :call GetSpecifiedInfo("highlight", 0)<cr>
-nnoremap <leader>gl :call GetSpecifiedInfo("let", 0)<cr>
-nnoremap <leader>gr :call GetSpecifiedInfo("registers", 0)<cr>
-nnoremap <leader>gs :call GetSpecifiedInfo("scriptnames", 0)<cr>
-nnoremap <leader>gg :call GetSpecifiedInfo("messages", 0)<cr>
-nnoremap <leader>gl :call GetSpecifiedInfo("clist", 0)<cr>
+nnoremap <leader>g <nop>
+nnoremap <leader>ge <nop>
+nnoremap <leader>gem :<c-u>call GetSpecifiedInfo("map", 0)<cr>
+nnoremap <leader>gek :<c-u>call GetSpecifiedInfo("marks", 0)<cr>
+nnoremap <leader>gec :<c-u>call GetSpecifiedInfo("command", 0)<cr>
+nnoremap <leader>gea :<c-u>call GetSpecifiedInfo("autocmd", 0)<cr>
+nnoremap <leader>geh :<c-u>call GetSpecifiedInfo("highlight", 0)<cr>
+nnoremap <leader>gel :<c-u>call GetSpecifiedInfo("let", 0)<cr>
+nnoremap <leader>ger :<c-u>call GetSpecifiedInfo("registers", 0)<cr>
+nnoremap <leader>ges :<c-u>call GetSpecifiedInfo("scriptnames", 0)<cr>
+nnoremap <leader>geg :<c-u>call GetSpecifiedInfo("messages", 0)<cr>
+nnoremap <leader>geq :<c-u>call GetSpecifiedInfo("clist", 0)<cr>
+nnoremap <leader>geb <nop>
+nnoremap <leader>gebq :<c-u>call GetSpecifiedInfo("clist!", 0)<cr>
 
-nnoremap <leader>gvm :call GetSpecifiedInfo("map", 1)<cr>
-nnoremap <leader>gvc :call GetSpecifiedInfo("command", 1)<cr>
-nnoremap <leader>gva :call GetSpecifiedInfo("autocmd", 1)<cr>
-nnoremap <leader>gvh :call GetSpecifiedInfo("highlight", 1)<cr>
-nnoremap <leader>gvl :call GetSpecifiedInfo("let", 1)<cr>
-nnoremap <leader>gvr :call GetSpecifiedInfo("registers", 1)<cr>
-nnoremap <leader>gvs :call GetSpecifiedInfo("scriptnames", 1)<cr>
-nnoremap <leader>gvg :call GetSpecifiedInfo("messages", 1)<cr>
-nnoremap <leader>gvl :call GetSpecifiedInfo("clist", 1)<cr>
+nnoremap <leader>gev <nop>
+nnoremap <leader>gevm :<c-u>call GetSpecifiedInfo("map", 1)<cr>
+nnoremap <leader>gevk :<c-u>call GetSpecifiedInfo("marks", 1)<cr>
+nnoremap <leader>gevc :<c-u>call GetSpecifiedInfo("command", 1)<cr>
+nnoremap <leader>geva :<c-u>call GetSpecifiedInfo("autocmd", 1)<cr>
+nnoremap <leader>gevh :<c-u>call GetSpecifiedInfo("highlight", 1)<cr>
+nnoremap <leader>gevl :<c-u>call GetSpecifiedInfo("let", 1)<cr>
+nnoremap <leader>gevr :<c-u>call GetSpecifiedInfo("registers", 1)<cr>
+nnoremap <leader>gevs :<c-u>call GetSpecifiedInfo("scriptnames", 1)<cr>
+nnoremap <leader>gevg :<c-u>call GetSpecifiedInfo("messages", 1)<cr>
+nnoremap <leader>gevq :<c-u>call GetSpecifiedInfo("clist", 1)<cr>
+nnoremap <leader>gevb <nop>
+nnoremap <leader>gevbq :<c-u>call GetSpecifiedInfo("clist!", 1)<cr>
+
+nnoremap <leader>geyd :<c-u>call GetSpecifiedInfo("YcmDebugInfo", 0)<cr>
+
 function! GetSpecifiedInfo(cmd, verbose)
 	redir @"
 	if a:verbose
 		execute "verbose silent " . a:cmd
+		" There is a special case for 'map' which does not print the mappings
+		" for insert mode...  ever.       So we have to also call 'imap'
+		if a:cmd == 'map'
+			execute "verbose silent imap"
+		endif
 	else
 		execute "silent " . a:cmd
+		if a:cmd == 'map'
+			execute "silent imap"
+		endif
 	endif
 	redir END
-	new
-	put! \"
+	if v:count == 1
+		put \"
+	else
+		new
+		put! \"
+	endif
 endfunc
+
+""
+"" This helper is a modified copy of: https://gist.github.com/romainl/eae0a260ab9c135390c30cd370c20cd7
+""
+function! Redir(cmd, rng, start, end)
+	"for win in range(1, winnr('$'))
+	"	if getwinvar(win, 'redir_scratch_window')
+	"		execute win . 'windo close'
+	"	endif
+	"endfor
+	if a:cmd =~ '^!'
+        let cmd = a:cmd
+        " NOTE:  this only handles the simpliest case:  just a single '%'
+        if l:cmd =~ ' %\($\|\s\)'
+            let cmd = substitute(l:cmd, ' %\($\|\s\)', ' ' . shellescape(escape(expand('%:p'), '\')), '')
+        endif
+        let cmd = matchstr(l:cmd, '^!\zs.*')
+		if a:rng == 0
+			let output = systemlist(cmd)
+		else
+			let joined_lines = join(getline(a:start, a:end), '\n')
+			let cleaned_lines = substitute(shellescape(joined_lines), "'\\\\''", "\\\\'", 'g')
+			"let output = systemlist(cmd . " <<< $" . cleaned_lines)
+			let output = split(cleaned_lines, "\n")
+		endif
+	else
+		redir => output
+		execute a:cmd
+		redir END
+		let output = split(output, "\n")
+	endif
+	vnew
+	let w:redir_scratch_window = 1
+	setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile
+	call setline(1, output)
+endfunction
+command! -nargs=1 -complete=command -range Redir silent call Redir(<q-args>, <range>, <line1>, <line2>)
+CommandAbbrev cap Redir
+
 "}}}
 
 
-" tame searching/moving settings "{{{
-nnoremap / /\v
-vnoremap / /\v
-set ignorecase		" use case insensitive searching by default
-set smartcase		" however, if a capital letter was entered, go back to case SENSitive
-set incsearch		" when typing a search ('/') starts finding/highlighting right away
-set showmatch		" briefly highlight the matching 'bracket' (i.e. '[]','()','{}',...)
-set hlsearch		" highlight the search results (use :nohl to clear highlights)
-nnoremap <leader><space> :nohl<cr>
-nnoremap <leader>rr :redraw!<cr>
+" Exploring getpos() and getcurpos() and other marks "{{{
+function! PosDump() range
+    " A few notes about "v:count" ...
+    "
+    "    First, typing `N:` (populates command w/ :.,.+N-1) then finishing with `call PosDump()`
+    "       WILL populate v:count  (and a:firstline & a:lastline)
+    "
+    "    However, manually inputting a range will NOT -- v:count will always be zero
+    "        (though a:firstline & a:lastline will be populated)
+    "
+    "    Also, if you used something like !8j to build it, then backspace the '!' char,
+    "    and complete the command manually -- it WILL populate v:count (and first/last line)
+    "
+    "    But, similarly, if you used !ip to build it...  it will NOT populate v:count
+    "        (though a:firstline & a:lastline will be populated)
+    "
+    " A few notes about "mode()" ...
+    "
+    "    When using the command line (:) -- it will NEVER be "v" for visual
+    "
+    "    The only way I have seen to get that, is a "x" mode mapping that runs in visual
+    "    mode and that does NOT include ":" to enter a command (i.e. an "<expr>" mapping)
+    "    (also maybe a "<cmd>" mapping -- which can execute a command without a ":")
+    "
+    " A few notes about "'<" and "'>" ...
+    "
+    "    ...
+    "
+    " A note about: curswant
+    "
+    "    curswant is a value included in the dictionary returned by `winsaveview()`
+    "
+    "    winsaveview() returns a dictionary that can be used with
+    "    winrestview() to restore the view if the function jumps around
+    "
+    let view = winsaveview()
+    try
+        echom "mode        : " . mode()
+        echom "visualmode  : " . visualmode()
+        echom "getcurpos() : " . join(getcurpos(), ", ")
+        echom "getpos(.)   : " . join(getpos("."), ", ")
+        echom "getpos(v)   : " . join(getpos("v"), ", ")
+        echom "getpos('<)  : " . join(getpos("'<"), ", ")
+        echom "getpos('>)  : " . join(getpos("'>"), ", ")
+        echom "getpos('{)  : " . join(getpos("'{"), ", ")
+        echom "getpos('})  : " . join(getpos("'}"), ", ")
+        echom "v:count     : " . v:count
+        echom "a:firstline : " . a:firstline
+        echom "a:lastline  : " . a:lastline
+
+        " SEE:  https://vi.stackexchange.com/a/14294/9912
+        " NOTE: I changed the patterns to only match fully blank lines
+        "       to match the behavior of the "{}" marks & motion
+        "
+        "       It seems the S.O. author was attempting to mimic the
+        "       behavior of the "inner paragraph" object which DOES
+        "       use lines containing only spaces as a boundary
+        let mark_is_ptop = (match(getline("'{"),'^$') == -1)
+        let mark_is_pbot = (match(getline("'}"),'^$') == -1)
+        "echom "{ is ptop   : " . l:mark_is_ptop
+        "echom "} is pbot   : " . l:mark_is_pbot
+        echom "p linecount : " . (line("'}") - line("'{") + (l:mark_is_ptop + l:mark_is_pbot - 1))
+    finally
+        call winrestview(l:view)
+    endtry
+    " Without this return statement -- the <expr> mappings just below RESET the cursor to column 1 :/
+    return ''
+endfunction
+" This kind of mapping, with <expr>, that calls the helper to build the string, is
+" the ONLY way I've found so far to execute a function while staying in Visual mode
+" NOTE:  I think I found another way:   <cmd> mappings  (:h :map-cmd)
+xnoremap <expr> <leader>pz PosDump() . ':<c-u>13mes<cr>'
+nnoremap <expr> <leader>pz PosDump() . ':<c-u>13mes<cr>'
+" Other ways of launching PosDump(), with :N or :<range>, can be done manually
+"}}}
+
+
+" Mappings to execute the current line "{{{
+
+""
+"" Options and Helper functions first...
+""
+if has('win32')
+    set shellcmdflag=/v:on\ /c
+endif
+function! LineAsShellCmd(capture) abort
+    let line = '(' . escape(getline('.'), '#%!') . ')'
+    if a:capture
+        let line = l:line . ' 2>&1 | tee -ai out.txt'
+    endif
+    return l:line
+endfunction
+function! InnerParagraphAsShellCmd(capture) abort
+    ""
+    "" The below block is a home-made version of "inner paragraph"
+    "" this avoids using `normal yip` -- providing 2 benefits:
+    ""   - this function can be called from an <expr> mapping
+    ""   - no need to save & restore register contents
+    ""
+    " Flags for search:  b=backward, n=do not move cursor, W=do not wrap
+    let empty = search('^\s*$', 'bnW')
+    let l:first = l:empty ? l:empty + 1 : 1
+    let empty = search('^\s*$', 'nW')
+    let l:last = l:empty ? l:empty - 1 : line('$')
+    let lines = getline(l:first, l:last)
+
+    " NOTE:  Here, each line will be surrounded by "()" and joined by "&"
+    "        to combine multiple commands onto a single command line.
+    "        the whole thing is intended to be executed with a single :!
+
+    "        we cannot use shellescape(), since it surrounds each line with
+    "        quotes so we use escape() to do what shellescape(..., 1) would do
+    "        (i.e. escape the 'special' items)
+    let lines = map(l:lines, '"(" . escape(v:val, "#%!") . ")"')
+
+    if a:capture
+        let lines = map(l:lines, 'v:val . " 2>&1 | tee -ai out.txt"')
+    endif
+    return join(l:lines, ' & ')
+endfunction
+" NOTE:  because this helpful debugging macro is using single-quotes to surround the whole expression,
+"        AND b/c it is executing a VIM command, :echo, the rules for escaping contained "'" is to double them up
+"        if this were actually getting sent to the shell -- the rules would be different:  see shellescape()
+nnoremap <leader>ep  <nop>
+nnoremap <leader>epz :<c-u>echo '<c-r>=substitute(InnerParagraphAsShellCmd(v:count), "'", "''", "g")<cr>'<cr>
+
+
+""
+"" Now the MAPPINGS  (w/ comments of mnemonic)
+""
+
+"" ee     : [E]xecute [E]xpression   (run as expression, paste output just below current line)
+"" em     : [E]xecute [M]ath         (run with `bc` tool, ... forgot where output goes)
+"" ec     : [E]xecute [C]ommand      (run as command, no pasting)
+nnoremap <leader>e  <nop>
+nnoremap <leader>ee :norm ]op<c-r>=eval(getline('.'))<cr><cr>
+nnoremap <leader>em yypkA =<Esc>jOscale=2<Esc>:.,+1!bc<CR>kJ0
+nnoremap <leader>ec :<c-r>=getline('.')<cr><cr>
+
+
+""
+"" For Lines
+""
+"" eg       : [E]xecute [G]et    -- in foreground, paste output just below
+nnoremap <leader>eg :r !<c-r>=LineAsShellCmd(0)<cr><cr>
+
+"" er.    : [E]xecute [R]un           -- in foreground (no pasting)
+"" el.    : [E]xecute [L]aunch        -- in background (no pasting)
+"" e.f    : [E]xecute ... [F]ree      -- no redirection
+"" e.c    : [E]xecute ... [C]apture   -- redirection & tee  (with: "2>&1 | tee -ai out.txt")
+"" NEW:
+"" elr    : [E]xecute [L]ine [R]un    -- w/o count: "free", with count: "capture"
+"" ell    : [E]xecute [L]ine [L]aunch -- w/o count: "free", with count: "capture"
+nnoremap <leader>er <nop>
+nnoremap <leader>erf :<c-u>!<c-r>=LineAsShellCmd(0)<cr><cr>
+nnoremap <leader>erc :<c-u>!<c-r>=LineAsShellCmd(1)<cr><cr>
+
+nnoremap <leader>el <nop>
+nnoremap <leader>elr :<c-u>!<c-r>=LineAsShellCmd(v:count)<cr><cr>
+
+if has('win32')
+	nnoremap <leader>elf :<c-u>!start cmd /c "<c-r>=LineAsShellCmd(0)<cr> & pause"<cr>
+	nnoremap <leader>elc :<c-u>!start cmd /c "<c-r>=LineAsShellCmd(1)<cr> & pause"<cr>
+	nnoremap <leader>ell :<c-u>!start cmd /c "<c-r>=LineAsShellCmd(v:count)<cr> & pause"<cr>
+else
+	nnoremap <leader>elf :<c-u>!<c-r>=LineAsShellCmd(0)<cr> &<cr>
+	nnoremap <leader>elc :<c-u>!<c-r>=LineAsShellCmd(1)<cr> &<cr>
+	nnoremap <leader>ell :<c-u>!<c-r>=LineAsShellCmd(v:count)<cr> &<cr>
+endif
+
+""
+"" For paragraphs
+""
+"" e.p.   : [E]xecute [R][L] [P]aragraph [F][C]
+"" NEW:
+"" epr    : [E]xecute [P]aragraph [R]un    -- w/o count: "free", w/ count: "capture"
+"" epl    : [E]xecute [P]aragraph [L]aunch -- w/o count: "free", w/ count: "capture"
+
+nnoremap <leader>erp <nop>
+nnoremap <leader>erpf :<c-u>!<c-r>=InnerParagraphAsShellCmd(0)<cr><cr>
+nnoremap <leader>erpc :<c-u>!<c-r>=InnerParagraphAsShellCmd(1)<cr><cr>
+
+nnoremap <leader>epr  :<c-u>!<c-r>=InnerParagraphAsShellCmd(v:count)<cr><cr>
+
+nnoremap <leader>elp <nop>
+if has('win32')
+	nnoremap <leader>elpf :<c-u>!start cmd /c "<c-r>=InnerParagraphAsShellCmd(0)<cr> & pause"<cr>
+	nnoremap <leader>elpc :<c-u>!start cmd /c "<c-r>=InnerParagraphAsShellCmd(1)<cr> & pause"<cr>
+	nnoremap <leader>epl  :<c-u>!start cmd /c "<c-r>=InnerParagraphAsShellCmd(v:count)<cr> & pause"<cr>
+else
+	nnoremap <leader>elpf :<c-u>!<c-r>=InnerParagraphAsShellCmd(0)<cr> &<cr>
+	nnoremap <leader>elpc :<c-u>!<c-r>=InnerParagraphAsShellCmd(1)<cr> &<cr>
+	nnoremap <leader>epl  :<c-u>!<c-r>=InnerParagraphAsShellCmd(v:count)<cr> &<cr>
+endif
 "}}}
 
 
@@ -243,7 +942,6 @@ nnoremap <leader>rr :redraw!<cr>
 ""
 set hidden			"" keeps buffers alive when the window/tab closes
 set path=.,,**,~/**,~/bin,/usr/include
-set history=5000
 ""
 "" For managing tabs/buffers
 ""
@@ -258,15 +956,64 @@ set smartindent
 nnoremap <leader>si :setl si! si?<cr>
 nnoremap <leader>ci :setl cin! cin?<cr>
 nnoremap <leader>ai :setl ai! ai?<cr>
-"set expandtab
-set tabstop=4
-set shiftwidth=4
-set softtabstop=4
+
+"" Cliff-notes on tab properties:
+""
+""      expandtab       never put in '\t' chars
+""      tabstop=4       size of a '\t' char
+""      shiftwidth=4    size of an "indent"  ('<<' and '>>')
+""      softtabstop=4   size of pressing 'tab' or 'backspace'
+""      smarttab        when on, tab/bs @ front of line uses 'shiftwidth'
+""                      (@ other places, 'tabstop' or 'softtabstop' is used)
+""                      when off, tab/bs uses 'tabstop' or 'softtabstop' everywhere
+""
+function! ShowTabSettings()
+	execute 'set expandtab?'
+	execute 'set tabstop?'
+	execute 'set shiftwidth?'
+	execute 'set softtabstop?'
+endfunc
+function! SetSpaceSize()
+	execute 'set expandtab'
+	"" NOTE:  because I use the 'vim-stabs' plugin, it over-rides the '=' key
+	""        when 'equalprg' is set, 'vim-stabs' honors it as an over-ride
+	""        therefore, I default to allowing 'vim-stabs' to handle things
+	""        but if it goes wonky, this mapping can setup my own tool
+	""        (the mapping is redefined every time, to honor 'v:count')
+	execute 'nnoremap <leader>se :<c-u>set equalprg=tabtool\ -tw\ ' . v:count . '\ -cls<cr>'
+	execute 'set tabstop=' . v:count
+	execute 'set shiftwidth=' . v:count
+	execute 'set softtabstop=' . v:count
+	echo "Set spaces to be:  " . v:count
+endfunc
+function! SetTabSize()
+	execute 'set noexpandtab'
+	execute 'nnoremap <leader>se :<c-u>set equalprg=tabtool\ -tw\ ' . v:count . '\ -clt<cr>'
+	execute 'set tabstop=' . v:count
+	execute 'set shiftwidth=' . v:count
+	execute 'set softtabstop=' . v:count
+	echo "Set tabs to be:  " . v:count
+endfunc
+
+" NOTE:  if you provide a count of ZERO -- it displays the curret settings
+nnoremap <expr> <leader>ss ":<c-u>call " . (v:count ? "SetSpaceSize" : "ShowTabSettings") . "()<cr>"
+nnoremap <expr> <leader>st ":<c-u>call " . (v:count ? "SetTabSize" : "ShowTabSettings") . "()<cr>"
+" 'smarttab' does not have to be in the functions and re-adjusted every time
+execute 'set smarttab'
+execute "silent normal 4\\ss\\se"
+
+
 "" This is new after I started using this file with MacVIM on my new Macbook
 "" Perhaps this is just from a newer version of VIM behind it all
 ""    see:  https://github.com/vim/vim/issues/989
 let g:python_recommended_style=0
+"}}}
 
+
+" grep'ing preferences "{{{
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"" These settings are all about "searching":   'grepprg' and the like
+"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " https://aonemd.github.io/blog/finding-things-in-vim
 
 "" NOTE:  I just found a TREASURE of a S.O. answer regarding some GREAT searching options...
@@ -276,13 +1023,23 @@ let g:python_recommended_style=0
 "   https://codeinthehole.com/tips/using-the-silver-searcher-with-vim/
 "   https://aonemd.github.io/blog/finding-things-in-vim
 "   Searching in hidden files:  --hidden
-"   Searching in hidden subdirs:  -u
+"   Searching vcs ignored:  -U (stuff specified in .gitignore, and the like, will also be searched)
+"   Searching unrestricted:  -u (nothing is ignored, EVEN the cmd-line '--ignore' specified stuff)
+"
+"      * if the windows attribute "h" is set -- AG does not consider that "hidden"
+"        * HOWEVER, if the file starts with a DOT (eg: .filename) that WILL be considered hidden
+"        * files ending with '~' are not considered hidden either
+"
+"      * if '-t' is specified the '--ignore' cmd line option is DISREGARDED!!!!
+"        * same with '-u' (for unrestricted)
+"
+"      * if '-U' (ignore vcs ignore files) is present, '--ignore' cmd-line is still honored :D
+"
+
 "
 " Also:  about 'ag' - if you specify 'nogroup' (implies *both* nobreak &
 "         noheading) ...   and THEN also specify 'noheading'...    you get BREAKS
-" let s:ag_cmd = 'ag\ --column\ --nogroup\ --nocolor\ $*'
-" let s:ag_cmd = 'ag\ --vimgrep\ $*'
-let s:ag_cmd = 'ag\ --hidden\ -t\ -U\ --vimgrep\ $*'
+let s:ag_cmd = 'ag\ --depth\ 50\ --hidden\ --search-binary\ --ignore\ tags\ --vimgrep\ $*'
 let s:gg_cmd = 'ggrep\ -PIn\ $*'
 "" On my windows there is a Cygwin version of GNU grep renamed "cgrep"
 " Currently the only option differences:    -H and -r  (maybe can be removed)
@@ -301,23 +1058,64 @@ endif
 
 " Next we map some mappings to switch between the programs on system that have more than one choice
 if executable('ag')
-	execute 'nnoremap <leader>rag :set grepprg=' . s:ag_cmd . '<cr>'
+	execute 'nnoremap <leader>grag :set grepprg=' . s:ag_cmd . '<cr>'
 else
-	execute 'nnoremap <leader>rag <Nop>'
+	execute 'nnoremap <leader>grag <Nop>'
 endif
 " NOTE:  no 'elseif'   -- all mappings defined if programs exist
 if executable('ggrep')
-	execute 'nnoremap <leader>rgg :set grepprg=' . s:gg_cmd . '<cr>'
+	execute 'nnoremap <leader>grgg :set grepprg=' . s:gg_cmd . '<cr>'
 else
-	execute 'nnoremap <leader>rgg <Nop>'
+	execute 'nnoremap <leader>grgg <Nop>'
 endif
 if executable('cgrep')
-	execute 'nnoremap <leader>rcg :set grepprg=' . s:cg_cmd . '<cr>'
+	execute 'nnoremap <leader>grcg :set grepprg=' . s:cg_cmd . '<cr>'
 else
-	execute 'nnoremap <leader>rcg <Nop>'
+	execute 'nnoremap <leader>grcg <Nop>'
 endif
-execute 'nnoremap <leader>rgr :set grepprg=' . s:gr_cmd . '<cr>'
-nnoremap <leader>rdf :set grepprg&<cr>
+execute 'nnoremap <leader>grgr :set grepprg=' . s:gr_cmd . '<cr>'
+nnoremap <leader>grdf :set grepprg&<cr>
+
+nnoremap <leader>grnv :set grepprg=<c-r>=substitute(substitute(&grepprg, '--vimgrep ', '', ''), ' ', '\\ ', 'g')<cr><cr>
+nnoremap <leader>grch :set grepprg=<c-r>=substitute(&grepprg, ' ', '\\ ', 'g')<cr>
+
+""
+"" Here I'm creating a 3-letter shortcut for `substitute()`
+""
+function! Sub(...)
+    return call('substitute', a:000)
+endfunc
+
+""
+"" Cool function to simplify "search all open buffers", from here:
+""     https://stackoverflow.com/questions/11975174/how-do-i-search-the-open-buffers-in-vim
+""
+funct! GallFunction(re)
+  ""
+  "" NOTE:  this depends on 'errorformat' having a VALID value :(
+  ""        for a while I have had it set to EMPTY by default down
+  ""        below because it seemed to interfere with :Dispatch.
+  ""
+  ""        HOWEVER, I just commented out my command below that always set it to empty
+  ""
+  ""        I may be able to solve the :Dispatch problem using
+  ""        compiler definitions under "~/.vim/vimfiles/compiler"
+  ""        From the :Dispatch help...
+  ""            :Dispatch picks a compiler by looking for either
+  ""            CompilerSet makeprg={program}\ [arguments] or
+  ""            CompilerSet makeprg={program} in compiler plugins.
+  ""            To force a given {program} to use a given {compiler},
+  ""            create ~/.vim/after/compiler/{compiler}.vim and add to
+  ""            it a line like the following: >
+  ""
+  cexpr []
+  execute 'echo "noautocmd bufdo grepadd ' . escape(a:re, '"') . '" "%"'
+  " I think I prefer 'grep' so it uses PCRE via my 'grepprg' setting
+  "execute 'silent! noautocmd bufdo vimgrepadd /' . a:re . '/j "%"'
+  execute 'silent! noautocmd bufdo grepadd ' . a:re . ' "%"'
+  cw
+endfunct
+command! -nargs=1 Gall call GallFunction(<q-args>)
 "}}}
 
 
@@ -330,20 +1128,139 @@ set formatoptions-=tc	" without this, wrapping is automatic for certain file typ
 nnoremap <leader>nw :set formatoptions-=tc<cr>
 
 
+" settings related to saving folds in 'viewdir' (:h 'viewdir') "{{{
+" https://vi.stackexchange.com/questions/13864/bufwinleave-mkview-with-unnamed-file-error-32
+
+augroup AutoSaveGroup_Views
+  "autocmd!
+  "" view files are about 500 bytes
+  "" bufleave but not bufwinleave captures closing 2nd tab
+  "" nested is needed by bufwrite* (if triggered via other autocmd)
+  "" BufHidden for for compatibility with `set hidden`
+  "autocmd BufWinLeave,BufLeave,BufWritePost,BufHidden,QuitPre ?* nested silent! mkview!
+  "autocmd BufWinEnter ?* silent! loadview
+augroup end
+
+" # Function to permanently delete views created by 'mkview'
+" #     from:  https://stackoverflow.com/a/28460676/5844631
+" #
+" #  NOTE:  the view will be re-created upon closing the buffer, unless other steps are taken
+" #         such as:  :noautocmd bd
+" #
+function! MyDeleteView()
+    let path = fnamemodify(bufname('%'),':p')
+    " vim's odd =~ escaping for /
+    let path = substitute(path, '=', '==', 'g')
+    if empty($HOME)
+    else
+        if has('win32')
+            let homeexpr = substitute($HOME, '\\', '\\\\', 'g')
+            let path = substitute(path, '^'.homeexpr, '~', '')
+        else
+            let path = substitute(path, '^'.$HOME, '~', '')
+        endif
+    endif
+	if has('win32')
+        let path = substitute(path, ':', '=-', '')
+        let path = substitute(path, '\\', '=+', 'g')
+    else
+        let path = substitute(path, '/', '=+', 'g')
+    endif
+    " view directory & final '=' decorator
+    let path = &viewdir.'/'.path . '='
+
+    echo "About to delete:  ".path
+    if delete(path)
+        echo "    Failed to delete: ".path
+    else
+        echo "    Deleted: ".path
+    endif
+endfunction
+
+" # Command delview ( without having to create a Delview command :D )
+CommandAbbrev delview call\ MyDeleteView()
+" "}}}
+
+
+" settings related to saving sessions "{{{
+
+""
+"" option:  'sessionoptions'  ('ssop')
+"" Default value: blank,buffers,curdir,folds,help,options,tabpages,winsize,terminal
+""
+""     blank        empty windows
+""     buffers      hidden and unloaded buffers, not just those in windows
+""     curdir       the current directory
+""     folds        manually created folds, opened/closed folds and local fold options
+""     globals      global variables that start with an uppercase letter and contain at least one lowercase letter.  Only String and Number types are stored.
+""     help         the help window
+""     localoptions options and mappings local to a window or buffer (not global values for local options)
+""     options      all options and mappings (also global values for local options)
+""     skiprtp      exclude 'runtimepath' and 'packpath' from the options
+""     resize       size of the Vim window: 'lines' and 'columns'
+""     sesdir       the directory in which the session file is located will become the current directory (useful with projects accessed over a network from different systems)
+""     slash        backslashes in file names replaced with forward slashes
+""     tabpages     all tab pages; without this only the current tab page is restored, so that you can make a session for each tab page separately
+""     terminal     include terminal windows where the command can be restored
+""     unix         with Unix end-of-line format (single <NL>), even when on Windows or DOS
+""     winpos       position of the whole Vim window
+""     winsize      window sizes
+""
+set ssop=blank,buffers,curdir,folds,globals,help,options,resize,slash,tabpages,unix,winpos,winsize
+
+function! SaveSession(name)
+    if len(a:name) == 0
+        let fname = ''
+    else
+        let fname = '_' . fnameescape(a:name)
+    endif
+    exe 'mksession! .vimsess' . l:fname
+    exe 'wviminfo .viminfo' . l:fname
+    exe 'set viminfofile=' . fnameescape(getcwd() . '\.viminfo' . l:fname)
+endfunction
+command! -nargs=? SaveSession call SaveSession(<q-args>)
+CommandAbbrev saveses SaveSession
+
+function! LoadSession(name)
+    if len(a:name) == 0
+        let fname = ''
+    else
+        let fname = '_' . fnameescape(a:name)
+    endif
+    exe 'rviminfo .viminfo' . l:fname
+    exe 'silent! source .vimsess' . l:fname
+    exe 'set viminfofile=' . fnameescape(getcwd() . '\.viminfo' . l:fname)
+endfunction
+command! -nargs=? LoadSession call LoadSession(<q-args>)
+CommandAbbrev loadses LoadSession
+
+nnoremap <leader>vs  <nop>
+nnoremap <leader>vsl :LoadSession<cr>
+nnoremap <leader>vss :SaveSession<cr>
+
+" "}}}
+
+
 " settings related to 'diff' mode "{{{
 set diffopt+=vertical
-nnoremap <leader>df :diffoff<cr>
-nnoremap <leader>dt :diffthis<cr>
+"" Disabling these two in favor of using the unimpaired shortcuts
+"nnoremap <leader>df :diffoff<cr>
+"nnoremap <leader>dt :diffthis<cr>
+nnoremap <leader>xbdf :bufdo diffoff<cr>
 nnoremap <leader>du :diffupdate<cr>
-" This is a neat little expression that cleanly lists all the windows
+" This is a functional version of an expression that cleanly lists all the windows
 " currently in 'diff' mode.  from:  https://vi.stackexchange.com/a/16949/9912
-nnoremap <leader>dl :echo join(
-\								filter(
-\										map(
-\											range(1, winnr('$')),
-\											'getwinvar(v:val, "&diff") ? "windows:".v:val." buffer:".winbufnr(v:val)." -> ".bufname(winbufnr(v:val)) : ""'),
-\										'!empty(v:val)'),
-\								"\n")<cr>
+function! ListDiffs()
+    let diffs = []
+    for widx in range(1, winnr('$'))
+        if getwinvar(l:widx, "&diff")
+            let msg = "windows:".l:widx." buffer:".winbufnr(l:widx)." -> ".bufname(winbufnr(l:widx))
+            call add(l:diffs, l:msg)
+        endif
+    endfor
+    return l:diffs
+endfunction
+nnoremap <leader>dl :echo join(ListDiffs(), "\n")<cr>
 
 "
 " Here I create two handy wrappers around the built-in 'do' and 'dp' commands
@@ -381,25 +1298,17 @@ nmap <leader>dp <Plug>VimdiffPut
 "command! -bar -count VimdiffPut call VimdiffUpdate('put',<count>)
 
 " This is here to manually re-run the commands that I have in my p4vimdiff.sh script
-function! Maximize()
-	" Inspired from: https://vim.fandom.com/wiki/Maximize_or_set_initial_window_size
-	" But for me, when not in GUI - ANY attempt to adjust lines messed up the
-	" display *beyond* the ability of "redraw!" to repair - so that part is commented out
-	if has("gui_running")
-		set lines=1000 columns=1000
-	"else
-	"	if exists("+lines")
-	"		set lines=60
-	"	endif
-	"	if exists("+coluns")
-	"		set coluns=235
-	"	endif
-	endif
-endfunction
-nnoremap <leader>xx :call Maximize()<cr>
-
 nnoremap <leader>ds :set diffopt=filler<cr>:wincmd =<cr>:normal gg]c<cr>:redraw!<cr>
 nnoremap <leader>di :set diffopt+=iwhite<cr>
+nnoremap <leader>dw :set diffopt-=iwhite<cr>
+function! SetDiffContext() range
+    let opts = filter(split(&diffopt, ','), 'v:val !~ "^context"')
+    if v:count != 0
+        call add(l:opts, 'context:' . v:count)
+    endif
+    let &diffopt=join(l:opts, ',')
+endfunction
+nnoremap <leader>dc :<c-u>call SetDiffContext()<cr>
 " This also switch tabs when diff mode is not ON
 nnoremap <expr> <c-pageup>   &diff ? '[czz' : ':tabprev<cr>'
 nnoremap <expr> <c-pagedown> &diff ? ']czz' : ':tabnext<cr>'
@@ -445,23 +1354,9 @@ nmap     <silent> gS "_yiw?\k?<cr>gs
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-"" This is for 'pathogen' (which manages plugins) and comes from advice here:
-""	http://stevelosh.com/blog/2010/09/coming-home-to-vim/
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Pathogen section (DISABLED) "{{{
-""
-""	DISABLED in favor of "Vundle" just below
-""
-"" filetype off
-"" call pathogen#runtime_append_all_bundels()
-"" filetype plugin indent on
-""
-" "}}}
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-"" This is for Vundle,  hosted on github here:  https://github.com/VundleVim/Vundle.vim
-"" Vundle is a 'plugin manager' (but really a 'runtimepath' manager) that helps with
-"" vim plugins:  installing/uninstalling/updating/...
+"" This is for Vundle,  hosted on github here:  https://github.com/nebbish/Vundle.vim
+"" Vundle is a 'plugin manager' (but really a 'runtimepath' manager) I forked that
+"" helps with vim plugins:  installing/uninstalling/updating/...
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Vundle section    >>>  PLUGINs are in here  <<<    "{{{
 ""
@@ -483,23 +1378,49 @@ filetype off			"" required for Vundle to load, will be re-enabled below
 ""        system with only 'git' available.
 ""  see:  https://gist.github.com/klaernie/db37962e955c82254fed
 ""
+"" I have modified it in the following ways:
+""    * to work on multiple platforms
+""    * to use :exe instead of :! so that no windows pop up
+""    * to activate my work branch from my Vundle fork
+""
 set runtimepath+=~/.vim/bundle/Vundle.vim
 let s:bootstrap = 0
+let s:vundlerepo = 'https://github.com/nebbish/Vundle.vim.git'
+let s:vundlehome = expand('~/.vim/bundle/Vundle.vim') " expand(...) also makes it OS specific
+let s:bundledir = fnamemodify(s:vundlehome, ':h')
 try
-	call vundle#begin()		"" can pass in a path for alternate plugin location
-catch /E117:/
-	let s:bootstrap = 1
-if has('win32')
-	silent !mkdir \%USERPROFILE\%\\.vim\\bundle
-	silent !set GIT_DIR= && git clone https://github.com/VundleVim/Vundle.vim.git \%USERPROFILE\%\\.vim\\bundle\\Vundle.vim
-else
-	silent !mkdir -p ~/.vim/bundle
-	silent !unset GIT_DIR && git clone https://github.com/VundleVim/Vundle.vim.git ~/.vim/bundle/Vundle.vim
-endif
-	redraw!
-	call vundle#begin()
+	"
+	" NOTE:  I *want* to use shellescape() below for the path arguments, but since I need to run
+	"        this on BOTH Windows & *nix/Mac -- I need to manually surround with double quotes.
+	"
+	"           * On Windows  shellescape() surrounds with double quotes
+	"           * On *nix/mac shellescape() surrounds with single quotes
+	"
+	"        However, in both situations, this needs to work within:  exe "... system('... <here> ...') ..."
+	"
+    exe "silent call system('cd \"" . s:vundlehome . "\" && git checkout neb-dev')"
+    call vundle#begin()		"" can pass in a path for alternate plugin location
+catch /\vE117:|E282:/
+    let s:bootstrap = 1
+    if has('win32')
+        exe "silent call system('mkdir \"" . s:bundledir . "\"')"
+        exe "silent call system('set GIT_DIR= && git clone " . s:vundlerepo . " \"" . s:vundlehome . "\"')"
+    else
+        exe "silent call system('mkdir -p \"" . s:bundledir . "\"')"
+        exe "silent call system('unset GIT_DIR && git clone " . s:vundlerepo . " \"" . s:vundlehome . "\"')"
+    endif
+    let s:ocwd = getcwd()
+    try
+        exe 'cd ' . s:vundlehome
+        exe "call system('git checkout neb-dev')"
+    finally
+        exe 'cd ' . s:ocwd
+    endtry
+    redraw!
+    call vundle#begin()
 endtry
-Plugin 'VundleVim/Vundle.vim'	"" let Vundle manage Vundle, REQUIRED
+""   my fork of 'VundleVim/Vundle.vim'
+Plugin 'nebbish/Vundle.vim', {'revision': 'neb-dev'} "" let Vundle manage Vundle, REQUIRED
 ""
 "" Other plugins here...
 ""
@@ -514,8 +1435,9 @@ Plugin 'VundleVim/Vundle.vim'	"" let Vundle manage Vundle, REQUIRED
 ""   Enhanced:  https://github.com/andymass/vim-matchup
 Plugin 'chrisbra/matchit'
 "" Found through this question:  "how to convert html escape codes"
-""    http://stackoverflow.com/questions/5733660/is-there-an-html-escape-paste-mode-for-vim
-Plugin 'tpope/vim-unimpaired'
+"" http://stackoverflow.com/questions/5733660/is-there-an-html-escape-paste-mode-for-vim
+""   my fork of 'tpope/unimpaired'
+Plugin 'nebbish/vim-unimpaired', {'revision': 'neb-dev'}
 "" After discovering the above, I just poked around the other stuff by Tim Pope, and liked this too:
 Plugin 'tpope/vim-eunuch'
 "" Found this one at: https://github.com/tmhedberg/SimpylFold
@@ -526,12 +1448,14 @@ Plugin 'ctrlpvim/ctrlp.vim'
 "" Found this one here:
 Plugin 'majutsushi/tagbar'
 "" Co-worker pointed me towards this guy...
-Plugin 'preservim/nerdtree'
+""   my fork of preservim/nerdtree
+Plugin 'nebbish/nerdtree', {'revision': 'neb-dev'}
 Plugin 'preservim/nerdcommenter'
 "" Found this from:  https://ricostacruz.com/til/navigate-code-with-ctags
 Plugin 'craigemery/vim-autotag'
-"" Found this just by searching for something like it.   it seems new -- ought to give a shout out or something
-Plugin 'MarSoft/nerdtree-grep-plugin'
+"" Found this just by searching for something like it.   there are LOTS of forks that tweak it one way or another
+""    my fork of 'masaakif/nerdtree-useful-plugins'
+Plugin 'nebbish/nerdtree-useful-plugins', {'revision': 'neb-dev'}
 "" Stumbled upon this while exploring peoples write-up comparison of CtrlP and CommandT
 Plugin 'jlanzarotta/bufexplorer'
 "" Here are some 'object types' that work with the noun/verb command structure :D
@@ -542,7 +1466,7 @@ Plugin 'vim-scripts/argtextobj.vim'
 Plugin 'michaeljsmith/vim-indent-object'
 "" This is meant to work with `ag` which I just installed
 if !has('win32')
-	Plugin 'rking/ag.vim'
+    Plugin 'rking/ag.vim'
 endif
 "Plugin 'Chun-Yang/vim-action-ag'
 "" Found while looking for an easy way to jump b/w decl & defn   -- not that easy, even with CTags & CtrlP
@@ -552,16 +1476,23 @@ Plugin 'vim-airline/vim-airline'
 Plugin 'tpope/vim-fugitive'
 "" Another one from tpope - that helps manage scripts (helps a developer of scripts)
 Plugin 'tpope/vim-scriptease'
+"" Another one from tpope - that helps launch sub-programs
+Plugin 'tpope/vim-dispatch'
+"" This was something I found looking for "vim as a merge tool"
+Plugin 'sjl/splice.vim'
+"" Here is another plugin for "generically" helping with conflict markers
+"" (does not have any SCM specifics, just open a file with markers, and start it)
+Plugin 'samoshkin/vim-mergetool'
 "" I found this while searching around about Tmux mappings - and I'm gonna try it :)
 ""    Found here:  https://vimawesome.com/plugin/vim-tmux-navigator
 ""    Great writeup here:  https://gist.github.com/mislav/5189704
 if has('macunix')
-	"" Right now, I only use tmux on my MacOS dev box
-	Plugin 'christoomey/vim-tmux-navigator'
+    "" Right now, I only use tmux on my MacOS dev box
+    Plugin 'christoomey/vim-tmux-navigator'
 endif
 "" Stumbled across this while searching for something else...    but
 "" considering my own VIM use case...   this is PERFECT for me :)  (if it works)
-Plugin 'unblevable/quick-scope'
+"Plugin 'unblevable/quick-scope'
 "" Found this when I wanted to repeat my own mappings - surprised I didn't already have it
 Plugin 'tpope/vim-repeat'
 "" Not sure if I want this - but gonna grab it together with 'vim-repeat'
@@ -577,7 +1508,8 @@ Plugin 'lifepillar/vim-solarized8'
 ""   If I use /usr/bin/vim - (came with Catalina) it works.   grrrrrrrrrrrr
 "Plugin 'gilligan/vim-lldb'
 "" Here's something for comparing folders
-Plugin 'will133/vim-dirdiff'
+""    my fork of 'will133/vim-dirdiff'
+Plugin 'nebbish/vim-dirdiff', {'revision': 'neb-dev'}
 "" Found this when searching for a good way to swap words
 ""     see:  https://vim.fandom.com/wiki/Swapping_characters,_words_and_lines
 "" There are other options -- I am trying this one for now :)
@@ -611,20 +1543,34 @@ Plugin 'sonph/onehalf', { 'rtp': 'vim' }
 "" Found this when looking for better c++ highlighting
 Plugin 'octol/vim-cpp-enhanced-highlight'
 "" Found this when looking up help for "nroff" for the '[[' and ']]' commands
-Plugin 'arp242/jumpy.vim'
+"Plugin 'arp242/jumpy.vim'
 "" Found this when trying to fix ONE highlighting
 Plugin 'coldfix/hexHighlight'
 Plugin 'guns/xterm-color-table.vim'
+"" I stumbled upon this handy page while searching for a built-in
+"" way to treat the current line as if an :Ex command and run it
+""   https://www.hillelwayne.com/post/intermediate-vim/
+"" On that page of great advice, was this little gem of a plugin:
+Plugin 'mbbill/undotree'
+"" I discovered this when looking up ".editconfig" which is a CROSS-IDE config file!!
+"" Apparently VS and IntelliJ, and Pycharm, and others all honor this tab-settings file
+"" For VIM, though -- this plugin adds mappings for <tab> and <cr> to handle something
+"" I'm calling "smart alignment", where tabs are used for the indent, but spaces are
+"" used to align wrapped lines
+"Plugin 'Thyrum/vim-stabs'   NOTE:   Disbaled b/c of the 'o' and 'O' mappings
+Plugin 'udalov/kotlin-vim'
+
 
 call vundle#end()			"" required
 
 if s:bootstrap
-	silent PluginInstall
-	quit
+    silent PluginInstall
+    quit
 end
 
 filetype plugin indent on	"" required (the 'indent' clause is fine absent or present)
 "}}}
+
 
 " Settings relatd to the vim-unimpaired "{{{
 " NOTE:  this option, 'unimpaired_recenter_after_jump', relies on my own
@@ -639,7 +1585,87 @@ filetype plugin indent on	"" required (the 'indent' clause is fine absent or pre
 "        The key is the addition of the 'sfx' local value, and its use
 let g:unimpaired_recenter_after_jump=1
 
-" Adding a new function exploring interations b/w Vim & Python.   Not used yet.
+
+"
+" Unimpaired does not handle encoding or decoding Unicode -- I would like to add it
+" In the meantime, here is a "whole-line" way of getting it done...
+" (inspired by:  https://stackoverflow.com/a/21076866/5844631)
+"
+nnoremap [t :s#\v\\u([0-9a-f]{4})#\=nr2char(str2nr(submatch(1),16))#g<cr>:nohl<cr>
+nnoremap ]t :s#.#\=printf("\\u%04x", char2nr(submatch(0)))#g<cr>:nohl<cr>
+
+"
+" unimpaired also does not support base64 encoding/decoding
+" In the meantime, here are some home made "motion-based mappings" for getting
+" it done. I copied a bit from Unimpaired, and studied a lot so I could add
+" something minimal here in my own .vimrc file for Base64 encoding
+"
+" (inspired by: " https://stackoverflow.com/questions/7845671/how-to-execute-base64-decode-on-selected-text-in-vim)
+"
+function! s:PyBase64Decode(str) abort
+    return system('python -m base64 -d', a:str)
+endfunction
+function! s:Base64Decode(str) abort
+    return system('base64 -d', a:str)
+endfunction
+
+function! s:PyBase64Encode(str) abort
+    return system('python -m base64 -e', a:str)
+endfunction
+function! s:Base64Encode(str) abort
+    " '-w 0' turns off wrapping of the output
+    " otherwise the default wrapping is at column 76
+    return system('base64 -w 0', a:str)
+endfunction
+
+function! TransformMotionSetup(algorithm) abort
+    let s:transform_algorithm = a:algorithm
+    let &opfunc = 'TransformMotion'
+    return 'g@'
+endfunction
+
+function! TransformMotion(type) abort
+    " This was modified from 's:Transform' within Unimpaired
+    let sel_save = &selection
+    let cb_save = &clipboard
+    set selection=inclusive clipboard-=unnamed clipboard-=unnamedplus
+    let reg_save = exists('*getreginfo') ? getreginfo('@') : getreg('@')
+    if a:type ==# 'line'
+        silent exe "normal! '[V']y"
+        let @@ = substitute(@@, "\n$", '', '')
+    elseif a:type ==# 'block'
+        silent exe "normal! `[\<C-V>`]y"
+    else
+        silent exe "normal! `[v`]y"
+    endif
+    echom 'Pretransform:  "' . @@ . '"'
+    let @@ = {s:transform_algorithm}(@@)
+    echom 'Postransform:  "' . @@ . '"'
+    " NOTE:  there are some ISSUES regarding newlines.
+    "        sometimes the python transformation adds a final newline
+    "        when this happens, the 'paste' operation adds a PRECEDING newline
+    norm! gvp
+    call setreg('@', reg_save)
+    let &selection = sel_save
+    let &clipboard = cb_save
+endfunction
+
+" NOTE:  these expression mappings cannot use "s:" prefixed functions :(
+nnoremap <expr> <leader>]p TransformMotionSetup('s:PyBase64Decode')
+xnoremap <expr> <leader>]p TransformMotionSetup('s:PyBase64Decode')
+nnoremap <expr> <leader>]pp TransformMotionSetup('s:PyBase64Decode') . '_'
+nnoremap <expr> <leader>[p TransformMotionSetup('s:PyBase64Encode')
+xnoremap <expr> <leader>[p TransformMotionSetup('s:PyBase64Encode')
+nnoremap <expr> <leader>[pp TransformMotionSetup('s:PyBase64Encode') . '_'
+nnoremap <expr> <leader>]b TransformMotionSetup('s:Base64Decode')
+xnoremap <expr> <leader>]b TransformMotionSetup('s:Base64Decode')
+nnoremap <expr> <leader>]bb TransformMotionSetup('s:Base64Decode') . '_'
+nnoremap <expr> <leader>[b TransformMotionSetup('s:Base64Encode')
+xnoremap <expr> <leader>[b TransformMotionSetup('s:Base64Encode')
+nnoremap <expr> <leader>[bb TransformMotionSetup('s:Base64Encode') . '_'
+
+
+" Adding a new function exploring interactions b/w Vim & Python.   Not used yet.
 function! PyPrint() range
 	let startline = line("'<")
 	let endline = line("'>")
@@ -654,14 +1680,89 @@ EOF
 endfunction
 "}}}
 
+
+" Undotree mappings and settings "{{{
+nnoremap <leader>ut :UndotreeToggle<cr>
+let g:undotree_SetFocusWhenToggle = 1 " default 0
+
+"" The plugin docs also have this example:
+""
+""		if has("persistent_undo")
+""			let target_path = expand('~/.undodir')
+""
+""			" create the directory and any parent directories
+""			" if the location does not exist.
+""			if !isdirectory(target_path)
+""				call mkdir(target_path,	"p", 0700)
+""			endif
+""
+""			let	&undodir=target_path
+""			set	undofile
+""		endif
+""
+"}}}
+
+
+" DirDiff mappings and settings "{{{
+"" NOTE:  this setting depends on my local edits to the plugin, I have not
+""        yet asked to be pulled into the official author's repo
+let g:DirDiffRecursive=1
+let g:DirDiffIgnoreLineEndings=1
+let g:DirDiffExcludes = "_.sw?,.*.sw?"
+"}}}
+
+
 " BufExplorer mappings and settings "{{{
 let g:bufExplorerShowNoName=1        " Show "No Name" buffers.
 "}}}
 
-" Debugging problems with fugitive "{{{
-nnoremap <leader>i0 :0Gstatus<cr>
-nnoremap <leader>is :Gstatus<cr>
+
+" Mappings & settings for fugitive "{{{
+nnoremap <leader>i <nop>
+"  NOTE: the trailing space on some of these, leaving a "ready" command line
+nnoremap <leader>i<space> :G 
+nnoremap <expr> <leader>ii (v:count == '0' ? ':<c-u>G<cr>' : (v:count == '1' ? ':<c-u>vert G<cr>' : ':<c-u>0G<cr>'))
+"nnoremap <expr> <leader>it ':<c-u>echo ' . v:count . '<cr>'
+
+nnoremap <leader>id :Gdiffsplit<cr>
+
+""NOTE:  this is *OFTEN* not defined when I think it should be, so I'm adding my own mapping for it
+nnoremap <leader>dq :<c-u>call fugitive#DiffClose()<cr>
+
+nnoremap <leader>ig <nop>
+nnoremap <leader>igl :Glgrep! 
+nnoremap <leader>igc :Ggrep! 
+
+nnoremap <leader>ib :G blame<cr>
+
+nnoremap <leader>if :G fetch<cr>
+nnoremap <leader>ip :G pull<cr>
+
+nnoremap <leader>ic <nop>
+nnoremap <leader>icz <nop>
+nnoremap <leader>icz<space> :G stash 
+nnoremap <leader>icc <nop>
+nnoremap <leader>icc<space> :G checkout 
+nnoremap <leader>icm <nop>
+nnoremap <leader>icm<space> :G merge 
+
+nnoremap <leader>il <nop>
+nnoremap <expr> <leader>ilo (v:count == '0' ? ':<c-u>G hlog<cr>' : (v:count == '1' ? ':<c-u>vert G hlog<cr>' : ':<c-u>0G hlog<cr>'))
+nnoremap <expr> <leader>ila (v:count == '0' ? ':<c-u>G hlag<cr>' : (v:count == '1' ? ':<c-u>vert G hlag<cr>' : ':<c-u>0G hlag<cr>'))
+" These next two mappings will populate the "local" and "quickfix" lists respectively
+" NOTE: this involves an 'efm' within the Fugitive plugin that does NOT work with '--graph' or my '--pretty' formats
+"       (i.e.  if I add --graph, then the quickfix window does not find the commits to jump to)
+nnoremap <leader>ill :Gllog! --date=human --decorate --
+nnoremap <leader>ilc :Gclog! --date=human --decorate --
+
+nnoremap <leader>ilg <nop>
+nnoremap <leader>ilgl :Gllog! --date=human --decorate --all --grep 
+nnoremap <leader>ilgc :Gclog! --date=human --decorate --all --grep 
+
+nnoremap <leader>ib :G branch --list -a<cr>
+
 "
+"       Debugging problems with fugitive
 " I copied the below function from here:  https://stackoverflow.com/a/23318693/5844631
 " and was gonna use it to help debug some stuff.  I never got around to trying
 " it.   Instead...   I used the technique of running plugin functions by hand
@@ -678,19 +1779,137 @@ nnoremap <leader>is :Gstatus<cr>
 " Then I pasted the contents of the 's' register into a new buffer to analyze
 "
 function! ToJson(input)
-    let json = ''
-    if type(a:input) == type({})
-        let parts = copy(a:input)
-        call map(parts, '"\"" . escape(v:key, "\"") . "\":" . ToJson(v:val)')
-        let json .= "{" . join(values(parts), ",") . "}"
-    elseif type(a:input) == type([])
-        let parts = map(copy(a:input), 'ToJson(v:val)')
-        let json .= "[" . join(parts, ",") . "]"
-    else
-        let json .= '"'.escape(a:input, '"').'"'
-    endif
-    return json
+	let json = ''
+	if type(a:input) == type({})
+		let parts = copy(a:input)
+		call map(parts, '"\"" . escape(v:key, "\"") . "\":" . ToJson(v:val)')
+		let json .= "{" . join(values(parts), ",") . "}"
+	elseif type(a:input) == type([])
+		let parts = map(copy(a:input), 'ToJson(v:val)')
+		let json .= "[" . join(parts, ",") . "]"
+	else
+		let json .= '"'.escape(a:input, '"').'"'
+	endif
+	return json
 endfunction
+"}}}
+
+
+" Dispatch mappings and settings "{{{
+
+nnoremap `; :AbortDispatch<cr>
+
+""
+"" Basic mappings to focus dispatch using the current line ( and maybe also the 'b' register, 'b' for 'build' :) )
+""
+nnoremap <leader>fd     <nop>
+nnoremap <leader>fdl    :FocusDispatch <c-r><c-l><cr>
+nnoremap <leader>fdr    <nop>
+nnoremap <leader>fdrl   :FocusDispatch <c-r>b <c-r><c-l><cr>
+
+""
+"" Next are mappings (& helper function) specifically for MSBuild
+""
+function! SetMSBuildDispatch(cmd)
+    ""
+    "" MSBuild options: /m /nodeReuse:False
+    ""                  /t:Rebuild
+    ""                  /verbosity:detailed
+    ""                  levels: q[uiet], m[inimal], n[ormal] (default), d[etailed], and diag[nostic].
+    ""                  /p:Configuration=Release
+    ""                  /p:Platform=x86
+    ""                  /p:CM_ConfigToUse=.\Windows\Build\CM\config-dev.conf
+    ""
+    let mainargs = '/m /nr:False /p:GenerateFullPaths=true /verbosity:normal'
+    if exists("g:msbuild_dispatch_args")
+        let mainargs = l:mainargs + g:msbuild_dispatch_args
+    endif
+
+    let logargs = [
+                \ '/flp1:logfile=' . getcwd() . '_build-logs\msbuild-minimal.log;verbosity=minimal',
+                \ '/flp2:logfile=' . getcwd() . '_build-logs\msbuild-normal.log;verbosity=normal',
+                \ '/flp3:logfile=' . getcwd() . '_build-logs\msbuild-detailed.log;verbosity=detailed',
+                \ '/flp4:logfile=' . getcwd() . '_build-logs\msbuild-diagnostic.log;verbosity=diag',
+                \ ]
+
+    if v:count == 0
+        let allargs = [a:cmd, l:mainargs, join(l:logargs)]
+    elseif v:count == 1
+        let allargs = [a:cmd, l:mainargs]
+    else
+        let allargs = [a:cmd]
+    endif
+    exe 'FocusDispatch ' . join(l:allargs) . ' ' . getline('.')
+endfunc
+
+nnoremap <leader>fdm    <nop>
+nnoremap <leader>fdms   :<c-u>call SetMSBuildDispatch('msbuild')<cr>
+nnoremap <leader>fd1    <nop>
+nnoremap <leader>fd17   <nop>
+nnoremap <leader>fd17b  :<c-u>call SetMSBuildDispatch('ms2017bt')<cr>
+nnoremap <leader>fd17p  :<c-u>call SetMSBuildDispatch('ms2017pro')<cr>
+nnoremap <leader>fd19   <nop>
+nnoremap <leader>fd19b  :<c-u>call SetMSBuildDispatch('ms2019bt')<cr>
+nnoremap <leader>fd19p  :<c-u>call SetMSBuildDispatch('ms2019pro')<cr>
+nnoremap <leader>fdd    <nop>
+nnoremap <leader>fddn   :<c-u>call SetMSBuildDispatch('dotnet publish')<cr>
+nnoremap <leader>fd19d  <nop>
+nnoremap <leader>fd19dn :<c-u>call SetMSBuildDispatch('dn2019bt publish')<cr>
+
+nnoremap <leader>fdq     <nop>
+nnoremap <leader>fdqm    <nop>
+nnoremap <leader>fdqms   :FocusDispatch msbuild <c-r><c-l><cr>
+nnoremap <leader>fdq1    <nop>
+nnoremap <leader>fdq17   <nop>
+nnoremap <leader>fdq17b  :FocusDispatch ms2017bt <c-r><c-l><cr>
+nnoremap <leader>fdq17p  :FocusDispatch ms2017pro <c-r><c-l><cr>
+nnoremap <leader>fdq19   <nop>
+nnoremap <leader>fdq19b  :FocusDispatch ms2019pro <c-r><c-l><cr>
+nnoremap <leader>fdq19p  :FocusDispatch ms2019pro <c-r><c-l><cr>
+nnoremap <leader>fdqd    <nop>
+nnoremap <leader>fdqdn   :FocusDispatch dotnet publish <c-r><c-l><cr>
+nnoremap <leader>fdq19d  <nop>
+nnoremap <leader>fdq19dn :FocusDispatch dn2019bt publish <c-r><c-l><cr>
+
+""
+"" Next are mappings (& helper function) specifically for Gradle
+""
+function! SetGradleDispatch(...) range
+    ""
+    "" NOTE:  this adjusts the JAVA_HOME environment variable within VIM
+    ""        generally when launching gradle, this is what I want.
+    ""        this will only become trouble if I find myself interleaving my Gradle launching
+    ""        with some other Java work for which I want a different JAVA_HOME
+    ""
+    if v:count == 0
+        "
+        " NOTE:  This calculation of where to "glob" for Java is based on my
+        "        typical work project layout.  A "tools" directory is rooted
+        "        right next to the source tree on the local HDD, with the
+        "        same name but with a "_tools" suffix.  So, the following
+        "        expression produces the root folder of the 'tools' client
+        "        spec:    getcwd() . '_tools'
+        "
+        let $JAVA_HOME = fnamemodify(fnamemodify(glob(getcwd() . '_tools\o*\**\javac.exe'), ':h'), ':h')
+    endif
+
+    let mainargs = [
+                \ '--stacktrace',
+                \ ]
+    if exists("g:gradle_dispatch_args")
+        let mainargs = l:mainargs + g:gradle_dispatch_args
+    endif
+
+    exe 'FocusDispatch ' . join(l:mainargs + a:000) . ' ' . getline('.')
+endfunc
+
+nnoremap <leader>fdg    <nop>
+nnoremap <leader>fdgr   :<c-u>call SetGradleDispatch('--no-daemon')<cr>
+nnoremap <leader>fdgd   :<c-u>call SetGradleDispatch()<cr>
+
+" Mapping to copy the current :FocusDispatch value to the clipboard register
+nnoremap <leader>fdc    <nop>
+nnoremap <silent> <leader>fdcp :let @+='<c-r>=substitute(dispatch#focus()[0], ':Dispatch ', '', '')<cr>'<cr>
 "}}}
 
 
@@ -703,6 +1922,94 @@ endfunction
 "
 nmap <leader><leader>l <Plug>(EasyAlign)
 xmap <leader><leader>l <Plug>(EasyAlign)
+"}}}
+
+
+" AutoTag: options & settings "{{{
+" Enable this to have auto recentering after jumping
+" There is a new issue I experienced after upgrading.   I found this to
+" explain it:
+"       https://github.com/craigemery/vim-autotag/issues/34
+" Right now, I'm only seeing it on my Mac.
+if has('macunix')
+	let g:autotagStartMethod='fork'
+endif
+"}}}
+
+
+" YouCompleteMe:   options & settings "{{{
+nnoremap <leader>yfw <Plug>(YCMFindSymbolInWorkspace)
+nnoremap <leader>yfd <Plug>(YCMFindSymbolInDocument)
+
+nnoremap <leader>y5 :YcmForceCompileAndDiagnostics<cr>:YcmDiags<cr>
+nnoremap <leader>yl :YcmToggleLogs<cr>
+nnoremap <leader>yr :YcmRestartServer<cr>
+nmap <leader>yt <plug>(YCMHover)
+
+set completeopt=popup,menuone
+""
+"" These are the defaults copied from the help, here to be reminders of what is possible
+""
+"let g:ycm_min_num_of_chars_for_completion = 2
+"let g:ycm_min_num_identifier_candidate_chars = 0
+"let g:ycm_max_num_candidates = 50
+"let g:ycm_max_num_candidates_to_detail = 0
+"let g:ycm_max_num_identifier_candidates = 10
+"let g:ycm_auto_trigger = 1
+"" NOTE:  this is how to turn on completion when no file type is known
+"let g:ycm_filetype_whitelist = {'*': 1, 'ycm_nofiletype': 1}
+"let g:ycm_filetype_blacklist = { ... }
+"let g:ycm_filetype_specific_completion_to_disable = {
+"let g:ycm_filepath_blacklist = { 'html':1, 'jsx':1, 'xml':1 }
+"let g:ycm_show_diagnostics_ui = 1
+let g:ycm_error_symbol = 'E>' " default: '>>'
+let g:ycm_warning_symbol = 'W>' " default: '>>'
+"let g:ycm_enable_diagnostic_signs = 1
+"let g:ycm_enable_diagnostic_highlighting = 1
+"let g:ycm_echo_current_diagnostic = 1
+let g:ycm_auto_hover = '' " default: 'CursorHold'
+"let g:ycm_filter_diagnostics = {
+"let g:ycm_always_populate_location_list = 1 " default: 0
+"let g:ycm_open_loclist_on_ycm_diags = 1
+let g:ycm_complete_in_comments = 1 " default: 0
+"let g:ycm_complete_in_strings = 1
+"let g:ycm_collect_identifiers_from_comments_and_strings = 0
+"let g:ycm_collect_identifiers_from_tags_files = 0
+"let g:ycm_seed_identifiers_with_syntax = 0
+"let g:ycm_extra_conf_vim_data = []
+"let g:ycm_server_python_interpreter = ''
+"let g:ycm_keep_logfiles = 0
+"let g:ycm_log_level = 'info'
+"let g:ycm_auto_start_csharp_server = 1
+"let g:ycm_auto_stop_csharp_server = 1
+"let g:ycm_csharp_server_port = 0
+"let g:ycm_csharp_insert_namespace_expr = ''
+"let g:ycm_add_preview_to_completeopt = 0
+"let g:ycm_autoclose_preview_window_after_completion = 0
+"let g:ycm_autoclose_preview_window_after_insertion = 0
+"let g:ycm_max_diagnostics_to_display = 30
+"let g:ycm_key_list_select_completion = ['<TAB>', '<Down>']
+"let g:ycm_key_list_previous_completion = ['<S-TAB>', '<Up>']
+"let g:ycm_key_list_stop_completion = ['<C-y>']
+"let g:ycm_key_invoke_completion = '<C-Space>'
+let g:ycm_key_detailed_diagnostics = '<leader>yd'
+"let g:ycm_global_ycm_extra_conf = '~/.vim/global_ycm_extra_conf.py'
+let g:ycm_confirm_extra_conf = 0 " default: 1
+"let g:ycm_extra_conf_globlist = ['~/dev/*','!~/*']
+"let g:ycm_extra_conf_globlist = []
+"let g:ycm_filepath_completion_use_working_dir = 0
+"let g:ycm_semantic_triggers =  {
+"let g:ycm_cache_omnifunc = 1
+"let g:ycm_use_ultisnips_completer = 1
+"let g:ycm_goto_buffer_command = 'same-buffer'
+"let g:ycm_disable_for_files_larger_than_kb = 1000
+"let g:ycm_use_clangd = 1
+"let g:ycm_clangd_binary_path = ''
+"let g:ycm_clangd_args = []
+"let g:ycm_clangd_uses_ycmd_caching = 1
+"let g:ycm_language_server = []
+"let g:ycm_disable_signature_help = 1
+"let g:ycm_gopls_args = []
 "}}}
 
 
@@ -728,10 +2035,12 @@ set foldopen+=percent,mark
 set foldopen+=quickfix
 
 nnoremap <leader>fmm :set foldmethod=marker<cr>
+nnoremap <leader>fmu :set foldmethod=manual<cr>
 nnoremap <leader>fms :set foldmethod=syntax<cr>
 nnoremap <leader>fme :set foldmethod=expr<cr>
 nnoremap <leader>fmd :set foldmethod=diff<cr>
 nnoremap <leader>fmi :set foldmethod=indent<cr>
+nnoremap <expr> <leader>fc ":<c-u>set foldcolumn=" . v:count . "<cr>"
 "}}}
 
 
@@ -754,6 +2063,9 @@ let g:NERDTreeMapPreviewSplit='gs'
 let g:NERDTreeMapOpenVSplit='i'
 let g:NERDTreeMapPreviewVSplit='gi'
 
+" Default ignore list:  ['\~$']
+let g:NERDTreeIgnore=['\~$', '\.tmh$', '\.1\.tlog$']
+
 " Adding my own key mapping to NERDTree to yank the path
 "   found:  https://stackoverflow.com/a/16378375/5844631
 autocmd VimEnter * call NERDTreeAddKeyMap({
@@ -768,6 +2080,11 @@ function! NERDTreeYankCurrentNode()
 		call setreg('+', n.path.str())
 	endif
 endfunction
+
+" This value is only from my own NERDTree customizations.  It was born from
+" frustration that `NERDTreeFind` kept erroring for files that are opened via
+" a symlink, that actually reside on a network share.
+let g:NERDTreeFindWithResolve=0
 "}}}
 
 
@@ -788,12 +2105,22 @@ nnoremap <leader>cf :CtrlPBufTag<cr>
 if executable('ag')
 	" Currently I do not manage to have 'ag' in all my various environments
 	let g:ctrlp_max_files=0
-	let g:ctrlp_user_command = 'ag %s -l --hidden --nocolor -g ""'
+	let g:ctrlp_user_command = 'ag %s -u -l --depth 50 --nocolor -g ""'
 	" When using 'ag' to search based on file names -- it is so fast CtrlP does not need to cache enything
 	" (we'll see about that claim ;)
 	"let g:ctrlp_use_caching = 0
 endif
 let g:ctrlp_show_hidden = 1
+
+if has('win32')
+    " NOTE:  the default behavior is "smart" case sentivity, which is normally just what I want
+    "        but... I find myself copying existing file names as pasting them in the search
+    "        so I want this on all the time when on windows :)
+    "
+    "  :<  this is NOT working
+    "
+    let g:ctrlp_mruf_case_sensitive = 0
+endif
 
 "" Use this to customize the mappings inside CtrlP's prompt to your liking. You
 "" only need to keep the lines that you've changed the values (inside []): >
@@ -821,6 +2148,11 @@ let g:tagbar_sort=0
 " Settings for jumpy.vim "{{{
 " Enable this to have auto recentering after jumping
 "let g:jumpy_after = 'zz'
+
+"nnoremap [[ ?\v(^\s*)@<=\{\|\{(\s*$)@=<cr>w99[{
+"nnoremap ][ /\v^(\s*)@<=\}\|\}(\s*$)@=<cr>b99]}
+"nnoremap ]] j0[[%/\v^(\s*)@<=\{\|\{(\s*$)@=<cr>
+"nnoremap [] k$][%?\v^(\s*)@<=\}\|\}(\s*$)@=<cr>
 "}}}
 
 
@@ -886,9 +2218,10 @@ let g:cpp_experimental_simple_template_highlight = 1
 ""     cd ~/.vim/colors
 ""
 ""     "" For Windows
-""     !mkdir $HOME\vimfiles\colors
-""     cd $HOME\vimfiles\colors
-""
+""     !mklink /d %VIMRUNTIME%\..\vimfiles %USERPROFILE%\.vim\vimfiles
+""     !mkdir %USERPROFILE%\.vim\vimfiles\colors
+""     cd %USERPROFILE%\.vim\vimfiles\colors
+
 ""     "" NOTE:  zenburn is ONLY dark
 ""     !wget https://raw.githubusercontent.com/jnurmine/Zenburn/master/colors/zenburn.vim
 ""     !wget https://raw.githubusercontent.com/vim-scripts/moria/master/colors/moria.vim
@@ -929,7 +2262,9 @@ nnoremap <leader>l   <Nop>
 "nnoremap <leader>lbt :set background=light<cr>
 "nnoremap <leader>lbk :set background=dark<cr>
 "nnoremap <leader>lbu :colorscheme blue<cr>
+nnoremap <leader>la  <Nop>
 nnoremap <leader>lb :colorscheme blue<cr>
+nnoremap <leader>lc  <Nop>
 nnoremap <leader>ld  <Nop>
 nnoremap <leader>ldb :colorscheme darkblue<cr>
 nnoremap <leader>ldf :colorscheme default<cr>
@@ -938,12 +2273,16 @@ nnoremap <leader>lds :colorscheme desert<cr>
 nnoremap <leader>le  <Nop>
 nnoremap <leader>lel :colorscheme elflord<cr>
 nnoremap <leader>len :colorscheme evening<cr>
+nnoremap <leader>lf  <Nop>
 nnoremap <leader>lg  <Nop>
 nnoremap <leader>lgb :colorscheme gruvbox<cr>
+nnoremap <leader>lh  <Nop>
 nnoremap <leader>li  <Nop>
 nnoremap <leader>lib :colorscheme iceberg<cr>
 nnoremap <leader>liy :colorscheme industry<cr>
+nnoremap <leader>lj  <Nop>
 nnoremap <leader>lk :colorscheme koehler<cr>
+nnoremap <leader>ll  <Nop>
 nnoremap <leader>lm  <Nop>
 nnoremap <leader>lma :colorscheme moria<cr>
 nnoremap <leader>lmv :colorscheme macvim<cr>
@@ -960,6 +2299,7 @@ nnoremap <leader>lp  <Nop>
 nnoremap <leader>lpb :colorscheme pablo<cr>
 nnoremap <leader>lpc :colorscheme PaperColor<cr>
 nnoremap <leader>lpp :colorscheme peachpuff<cr>
+nnoremap <leader>lq  <Nop>
 nnoremap <leader>lr :colorscheme ron<cr>
 nnoremap <leader>ls  <Nop>
 nnoremap <leader>lsn :colorscheme shine<cr>
@@ -970,41 +2310,19 @@ nnoremap <leader>lsf :colorscheme solarized8_flat<cr>
 nnoremap <leader>lsh :colorscheme solarized8_high<cr>
 nnoremap <leader>lsl :colorscheme solarized8_low<cr>
 nnoremap <leader>lt :colorscheme torte<cr>
+nnoremap <leader>lu  <Nop>
+nnoremap <leader>lv  <Nop>
+nnoremap <leader>lw  <Nop>
+nnoremap <leader>lx  <Nop>
+nnoremap <leader>ly  <Nop>
 nnoremap <leader>lz  <Nop>
 nnoremap <leader>lzb :colorscheme zenburn<cr>
 nnoremap <leader>lzn :colorscheme zellner<cr>
 
 "colorscheme solarized8_high
-"set background=light
-"}}}
-
-
-" Settings from VIM help files & examples "{{{
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-"" These settings came from /usr/share/vim/vim74/vimrc_example.vim
-"" (i.e. the example vimrc that installs with Vim)
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Good stuff from the example that ships with Vim
-""
-"" Don't use Ex mode, use Q for formatting
-""
-"noremap Q gq
-""
-"" CTRL-U in insert mode deletes a lot.  Use CTRL-G u to first break undo,
-"" so that you can undo CTRL-U after inserting a line break.
-""	see:  ":help i_CTRL-G_u"
-inoremap <c-u> <c-g>u<c-u>
-"" The following is from:  http://vim.wikia.com/wiki/Recover_from_accidental_Ctrl-U
-inoremap <c-w> <c-g>u<c-w>
-""
-"" Convenient command to see the difference between the current buffer and the
-"" file it was loaded from, thus the changes you made.
-"" Only define it when not defined already.
-""
-if !exists(":DiffOrig")
-	command DiffOrig vert new | set bt=nofile | r ++edit # | 0d_ | diffthis
-	        \ | wincmd p | diffthis
-endif
+"if has('macunix')
+"	set background=light
+"endif
 "}}}
 
 
@@ -1012,8 +2330,6 @@ endif
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "" The following options came from:  https://github.com/nickaigi/config/blob/master/.vimrc#L12
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-set timeoutlen=2000         " one more second than the default 1000 for mappings
-set ttimeoutlen=50			" solves the delay after pressing Esc (default is 1000ms)
 set splitbelow
 set splitright
 set wildmode=longest,list	" what <tab> displays (or does) default was 'full'
@@ -1032,11 +2348,11 @@ nnoremap <leader>bb :b#<CR>
 "" nnoremap <silent> [B :bfirst<CR>
 "" nnoremap <silent> ]B :blast<CR>
 "" This is a way to delete the buffer but not the window
-command! Bd bp<bar>bd#		"" close the current buffer, but not the window
-nnoremap <leader>bd :bp<bar>bd#<cr>
-nnoremap <leader>bk :bp<bar>bd!#<cr>
-nnoremap <leader>bw :bp<bar>bw#<cr>
-nnoremap <leader>bq :bp<bar>bw!#<cr>
+command! Bd b#<bar>bd#		"" close the current buffer, but not the window
+nnoremap <leader>bd :b#<bar>bd#<cr>
+nnoremap <leader>bq :b#<bar>bd!#<cr>
+nnoremap <leader>bw :b#<bar>bw#<cr>
+nnoremap <leader>bk :b#<bar>bw!#<cr>
 
 " Command & mapping that take a {count} and reverse lines
 command! -bar -range=% Reverse <line1>,<line2>g/^/m<line1>-1|nohl
@@ -1048,11 +2364,185 @@ xnoremap <leader>re :Reverse<CR>
 ""
 "" NOTE:  this may not be working :(
 cnoremap <expr> %p  getcmdtype() == ':' ? expand('%:p') : '%p'
+cnoremap <expr> %d  getcmdtype() == ':' ? substitute(expand('%:p'), '[\\/][^\\/]*$', '', '') : '%d'
 cnoremap <expr> %%  getcmdtype() == ':' ? expand('%:h').'/' : '%%'
+cnoremap <expr> %f  getcmdtype() == ':' ? expand('%:t') : '%f'
+cnoremap <expr> %t  getcmdtype() == ':' ? expand('%:t:r') : '%t'
+nnoremap <leader>gp :let @+='<c-r>=expand('%:p')<cr>'<cr>
+nnoremap <leader>g4 :let @+='<c-r>=substitute(system('p4 where ' . shellescape(expand('%:p'))), '\v^(//depot/.{-}) //.*', '\1', '')<cr>'<cr>
+
+
+"" mapping to set the current directory from a specific buffer's file path
+""  w/o a count: uses the current buffer's path
+"" with a count: uses the path of that buffer
+"nnoremap <expr> <leader>cd ":<c-u>cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
+nnoremap <expr> <leader>xbcd ":<c-u>bufdo cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
+nnoremap <expr> <leader>xtcd ":<c-u>tabdo cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
+nnoremap <expr> <leader>xwcd ":<c-u>windo cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
+
 ""
 "" Save a file that requires root permissions (see ":help :w_c" and ":help c_%")
 ""
 cnoremap w!! w !sudo tee >/dev/null %
+" "}}}
+
+
+" settings related to environment variables (windows only)"{{{
+
+if has('win32')
+    function! GetRegValue(key, val)
+        " If 'val' is blank, we query for the "(default)" value (i.e. the un-named value)
+        if len(a:val) == 0
+            let varg = '/ve'
+        else
+            let varg = '/v ' . a:val
+        endif
+        let res = systemlist('reg query "' . a:key . '" ' . l:varg)
+        let errorline = match(l:res, '\v^ERROR: \S+')
+        if l:errorline >= 0
+            " NOTE:  this is often called with a value that may not be
+            "        there, no need to print an error for each time
+            "
+            "        (eg.  each ENV VAR is attempted to be read from)
+            "        (     both hives, and most only exist in one   )
+            "
+            "echoerr trim(l:res[l:errorline])
+            return ''
+        endif
+        let dataline = match(l:res, '\v REG_\S+ ')
+        if l:dataline == -1
+            echoerr 'Failed to parse non-error output'
+            return ''
+        endif
+        let data = trim(l:res[l:dataline])
+        " Next we remove the first two words from that line
+        return substitute(l:data, '\v^.{-}REG_\S+\s+', '', '')
+    endfunction
+
+    function! ExpandEnvVars(val)
+        if len(a:val) == 0
+            return ''
+        endif
+        let quotedval = trim(system('echo "' . a:val . '"'))
+        return substitute(l:quotedval, '\v^"|"$', '', 'g')
+    endfunction
+
+    let s:syskey = 'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\Environment'
+    let s:usrkey = 'HKEY_CURRENT_USER\Environment'
+
+    function! ReloadEnvVar(name)
+        " Default to reloading 'PATH' if nothing was provided
+        if len(a:name) == 0
+            let vname = 'PATH'
+        else
+            let vname = a:name
+        endif
+
+        " Special handling for 'USERNAME' -- use OS command to retrieve
+        if l:vname =~? 'username'
+            " This returns the fully qualified user name:  domain\username
+            let full = trim(system('whoami'))
+            " This strips the domain, and capitalizes it
+            let newval = substitute(l:full, '\v^.{-}\\(.+)$', '\u\1', '')
+        else
+            " For the rest -- we read the registry for the new value(s)
+            let sysval = ExpandEnvVars(GetRegValue(s:syskey, l:vname))
+            let usrval = ExpandEnvVars(GetRegValue(s:usrkey, l:vname))
+
+            if len(l:sysval) == 0 && len(l:usrval) == 0
+                " For VARs that are not set in either place, we do nothiing
+                "   this could be a VIM var, or a dynamic OS var (like 'ComSpec')
+                if l:vname =~? '^Path$'
+                    echoerr 'Unexpected:  [' . l:vname . '] was not found in either hive'
+                endif
+                return
+            endif
+
+            if len(l:sysval) > 0 && len(l:usrval) > 0
+                " For VARs that are set in BOTH locations -- we either combine, or just pick the User value
+                if l:vname =~? '^Path$'
+                    let newval = trim(l:sysval, ';', '2') . ';' . l:usrval
+                else
+                    let newval = l:usrval
+                endif
+            else
+                let newval = len(l:sysval) ? l:sysval : l:usrval
+            endif
+
+            if l:vname =~? '^Path$'
+                " Special handling for 'PATH' -- append the VIM runtime path (and capitalize)
+                let vname = 'PATH'
+                let newval = l:newval . ';' . $VIMRUNTIME
+            elseif l:vname =~? '\v^te?mp$'
+                " Special handling for 'TEMP' and 'TMP':
+                "   *)  first shorten the name to the old 8.3 filenames
+                "   *)  then check the current session ID and possibly append
+                let newval = fnamemodify(l:newval, ':8')
+                " Using 'query session' as advised from here:
+                "    https://superuser.com/questions/303927/how-can-i-retrieve-the-session-id-from-command-line
+                let sessID = split(trim(filter(systemlist('query session'), 'v:val =~ "^\>"')[0]))[2]
+                if sessID > 1
+                    " NOTE:  this whole function only exists on Windows (see ~93 lines above)
+                    "        (no need to check `has('win32')` for which slash to use)
+                    let newvalWithSess = l:newval . '\' . l:sessID
+                    if !empty(glob(l:newvalWithSess))
+                        let newval = l:newval .  '\' . l:sessID
+                    endif
+                endif
+            endif
+        endif
+
+        exe 'let $' . l:vname . '=''' . l:newval . ''''
+    endfunction
+    command! -nargs=? ReloadEnvVar call ReloadEnvVar(<q-args>)
+    CommandAbbrev revar ReloadEnvVar
+
+    function! ReloadAllEnvVars()
+        let allvars = {}
+
+        let varlist = filter(systemlist('reg query "' . s:syskey . '"'), 'v:val =~# " REG_"')
+        "let sysvars = {}
+        for varinfo in map(varlist, 'trim(v:val)')
+            let name = matchstr(l:varinfo, '\v^\S+')
+            "let type = matchstr(l:varinfo, '\v(^\S+\s+)@<=REG_\S+')
+            "let value = matchstr(l:varinfo, '\v(^\S+\s+REG_\S+\s+)@<=(\S.*)')
+            "let sysvars[l:name] = {'type':l:type, 'value':l:value}
+            let allvars[l:name] = ''
+        endfor
+
+        let varlist = filter(systemlist('reg query "' . s:usrkey . '"'), 'v:val =~# " REG_"')
+        "let usrvars = {}
+        for varinfo in map(varlist, 'trim(v:val)')
+            let name = matchstr(l:varinfo, '\v^\S+')
+            "let type = matchstr(l:varinfo, '\v(^\S+\s+)@<=REG_\S+')
+            "let value = matchstr(l:varinfo, '\v(^\S+\s+REG_\S+\s+)@<=(\S.*)')
+            "let usrvars[l:name] = {'type':l:type, 'value':l:value}
+            let allvars[l:name] = ''
+        endfor
+
+        "echo sysvars
+        "echo usrvars
+        "for var in filter(keys(l:sysvars), 'has_key(l:usrvars, v:val)')
+        "    if l:usrvars[l:var]['value'] != l:sysvars[l:var]['value']
+        "        echo 'Var [' . l:var . '] has different values b/w system & user hives'
+        "        echo '   system: ' . l:sysvars[l:var]['value']
+        "        echo '     user: ' . l:usrvars[l:var]['value']
+        "    else
+        "        echo 'Var [' . l:var . '] has the same values b/w system & user hives'
+        "    endif
+        "endfor
+
+        for var in keys(l:allvars)
+            call ReloadEnvVar(var)
+        endfor
+    endfunction
+
+    nnoremap <leader>r  <nop>
+    nnoremap <leader>rv <nop>
+    nnoremap <leader>rvp :ReloadEnvVar<cr>
+    nnoremap <leader>rva :call ReloadAllEnvVars()<cr>
+endif
+
 " "}}}
 
 
@@ -1084,27 +2574,28 @@ let g:airline#extensions#tabline#tab_nr_type=1
 "" These options are related to general source editing
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Source editing mappings & settings "{{{
-""
-"" This first 'simple' mapping just performs a ':s' command to delete trailing whitespace
-""
-""nnoremap <leader>tr :%s/[ \t]\+$//<cr>
 
-""
+"" This first 'simple' mapping just performs a ':s' command to delete trailing whitespace
+"nnoremap <leader>tr :%s/[ \t]\+$//<cr>
+
 "" This second version does the same thing but preserves the search history
-""
-nnoremap <leader>tr :let b:old = @/<bar>%s/[ \t]\+$//<bar>call histdel('/',-1)<bar>let @/ = b:old<cr>
-""
+nnoremap <leader>tr :%s/[ \t]\+$//<bar>PopSearch<cr>
+
 "" This third version was my inspiration, from http://stackoverflow.com/a/21087108/5844631
 "" However, I am not sure why there is a '<cr>==' in the middle.  I am not sure what that does
-""
-""nnoremap <leader>tr :let b:old = @/<bar>%s/[ \t]\+$//<cr>==:nohls<bar>call histdel('/',-1)<bar>let @/ = b:old<cr>
+"nnoremap <leader>tr :let b:old = @/<bar>%s/[ \t]\+$//<cr>==:nohls<bar>call histdel('/',-1)<bar>let @/ = b:old<cr>
 
 ""
 "" For easy file type conversion and cleanup of the extra ^M characters that appear when converting Dos->Unix
 ""
 nnoremap <leader>ftu :e ++ff=unix<cr>
-nnoremap <leader>ftd :e ++ff=dos<cr>
-nnoremap <leader>ftm :%s/<C-V><cr>$//<cr>
+nnoremap <leader>fto :e ++ff=dos<cr>
+nnoremap <leader>ftm :%s/<C-V><cr>$//<bar>PopSearch<cr>
+nnoremap <leader>ftd :filetype detect<cr>
+
+nnoremap <leader>ftt :set ft=text<cr>
+nnoremap <leader>fth :set ft=help<cr>
+
 
 ""
 "" These options are related to C/C++ source editing
@@ -1115,10 +2606,24 @@ nmap <leader>bi /\{<cr>j0mskn%k0me's0<c-v>'e0I	\tr's0kk
 nmap <leader>bu /\{<cr>j0mskn%k0me's0<c-v>'e0x's0kk
 nmap <leader>bf 0ms/\{<cr>%me's!'eclang-format<cr>
 
+if executable('vim-clang-format.py')
+    "dir /b /s /a-d "C:\Program Files (x86)\Microsoft Visual Studio\clang*.exe"
+    let g:clang_format_path = 'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\Llvm\bin\clang-format.exe'
+    let g:clang_format_style = 'file'
+    let g:clang_format_fallback_style = 'none'
+    noremap <leader><leader>k :pyf <c-r>=trim(system('where vim-clang-format.py'))<cr><cr>
+    inoremap <c-k> <c-o>:pyf <c-r>=trim(system('where vim-clang-format.py'))<cr><cr>
+endif
 
-nnoremap <leader>mr :!chmod -w %<cr>
-nnoremap <leader>mw :!chmod +w %<cr>
-nnoremap <leader>mx :!chmod +x %<cr>
+if has('win32')
+	nnoremap <leader>far :!attrib +r "<c-r>=expand("%:p")<cr>"<cr>
+	nnoremap <leader>faw :!attrib -r "<c-r>=expand("%:p")<cr>"<cr>
+	nnoremap <leader>fax <Nop>
+else
+	nnoremap <leader>far :!chmod -w "<c-r>=expand("%:p")<cr>"<cr>
+	nnoremap <leader>faw :!chmod +w "<c-r>=expand("%:p")<cr>"<cr>
+	nnoremap <leader>fax :!chmod +x "<c-r>=expand("%:p")<cr>"<cr>
+endif
 "}}}
 
 
@@ -1186,8 +2691,16 @@ if has("gui_running")
 else
 	nnoremap <esc>[1;2S :cp<cr>
 endif
-"nnoremap <c-j> :cn<cr>
-"nnoremap <c-k> :cp<cr>
+
+"" For moving back and forth between the remembered "lists"
+nnoremap <leader>[q :colder<cr>
+nnoremap <leader>]q :cnewer<cr>
+nnoremap <leader>q  <nop>
+nnoremap <leader>qq :chistory<cr>
+nnoremap <leader>[l :lolder<cr>
+nnoremap <leader>]l :lnewer<cr>
+nnoremap <leader>ll :lhistory<cr>
+
 
 ""nnoremap <esc>[6;5~ ]c
 ""nnoremap <esc>[5;5~ [c
@@ -1245,7 +2758,9 @@ nnoremap <leader>fk ?\%<C-R>=virtcol(".")<CR>v\S<CR>
 "" nnoremap <silent> [T :tabfirst<CR>
 "" nnoremap <silent> ]T :tablast<CR>
 " These three are still useful
+nnoremap <leader>aa :tabs<cr>
 nnoremap <leader>ae :tabedit
+nnoremap <leader>ab :tab sb
 nnoremap <leader>an :tabnew<cr>
 nnoremap <leader>ac :tabclose<cr>
 " For *moving* a tab, lets use ',' and '.'
@@ -1301,19 +2816,202 @@ nnoremap <leader>ah :call MoveWinToPrevTab()<cr>
 nnoremap <leader>al :call MoveWinToNextTab()<cr>
 "}}}
 
+function! OpenCompanionCode() range abort
+    " See if current file is "test" or "src"
+    let cur = bufname("%")
+    if l:cur !~? '\.java$'
+        echoerr "This mapping currently only works with JAVA code"
+        return
+    endif
 
-" Window mappings & settings (including resizing with shit/ctrl arrows) "{{{
-set noequalalways
+    let test = l:cur =~? '\wtest\.java$'
+    echom "Starting with " . (l:test ? "test" : "src") . " code"
+
+    let txforms = [
+                \     ['\v(Java[/\\])@<=src([/\\])@=', 'test'],
+                \     ['\v(Java[/\\])@<=test([/\\])@=', 'src'],
+                \ ]
+    for txf in l:txforms
+        if 0 <= match(l:cur, l:txf[0])
+            let new = substitute(l:cur, l:txf[0], l:txf[1], '')
+            break
+        endif
+    endfor
+    if ! exists('l:new') || l:new == l:cur
+        echoerr "Unable to figure out companion file's location"
+        return
+    endif
+
+    if l:test
+        let new = substitute(l:new, 'test\.java$', '.java', '')
+    else
+        let new = substitute(l:new, '\.java', 'Test.java', '')
+    endif
+
+    if v:count == 0
+        exe 'e ' . l:new
+    elseif v:count == 1
+        exe 'vs ' . l:new
+    else
+        exe 'sp ' . l:new
+    endif
+endfunction
+
+" Opening & Closing mappings (utility windows and gui elements) "{{{
+nnoremap <silent> <leader>o    <nop>
+nnoremap <silent> <leader>oc   :<c-u>call OpenCompanionCode()<cr>
+
+if has('win32')
+    nnoremap <silent> <leader>of   <nop>
+    nnoremap <silent> <leader>ofd  <nop>
+    nnoremap <silent> <leader>ofdt :!start <c-r>=substitute(system('echo %USERPROFILE%'), '\v[\s\n\r]+$', '', '')<cr>\Desktop<cr>
+    nnoremap <silent> <leader>oft  <nop>
+    nnoremap <silent> <leader>oftp :!start <c-r>=substitute(system('echo %TEMP%'), '\v[\s\n\r]+$', '', '')<cr><cr>
+    nnoremap <silent> <leader>ofu  <nop>
+    nnoremap <silent> <leader>ofup :!start <c-r>=substitute(system('echo %USERPROFILE%'), '\v[\s\n\r]+$', '', '')<cr><cr>
+endif
+
+nnoremap <silent> <leader>og  <nop>
+nnoremap <silent> <leader>ogm :set guioptions+=m<cr>
+nnoremap <silent> <leader>ogs :set guioptions+=rL<cr>
+
 nnoremap <silent> <leader>oq :copen<cr>
 nnoremap <silent> <leader>ol :lopen<cr>
 nnoremap <silent> <leader>on :NERDTree<cr>
 nnoremap <silent> <leader>ot :TagbarOpen<cr>
+
+nnoremap <silent> <leader>z <nop>
 nnoremap <silent> <leader>zq :cclose<cr>
 nnoremap <silent> <leader>zl :lclose<cr>
+nnoremap <silent> <leader>zm :set guioptions-=m<cr>
 nnoremap <silent> <leader>zn :NERDTreeClose<cr>
+nnoremap <silent> <leader>zs :set guioptions-=rL<cr>
 nnoremap <silent> <leader>zt :TagbarClose<cr>
 nnoremap <silent> <leader>za :cclose<bar>lclose<bar>NERDTreeClose<bar>TagbarClose<cr>
 nnoremap <silent> <leader>zz :hide<cr>
+"}}}
+
+" Settings for vim-swap -- so the mappings do not clash with my own "{{{
+""
+"" By defining our own mappings, the plugin should detect this and NOT
+"" set the default mappings (which are otherwise identical but use just
+"" one leader).
+""
+"" My mapping that is clashing is "\xx" for maximizing a window.  When both
+"" "\xx" and "\x" are defined, VIM pauses for the full timeout waiting for
+"" the possible second 'x' -- making the swap mapping frustrating at best
+""
+"" The way I see it, plugins that are to be downloaded should have a well
+"" thought out mapping scheme, and if not possible, default to double-leader
+"" mappings
+""
+xmap <leader><leader>x  <plug>SwapSwapOperands
+xmap <leader><leader>cx <plug>SwapSwapPivotOperands
+nmap <leader><leader>x  <plug>SwapSwapWithR_WORD
+nmap <leader><leader>X  <plug>SwapSwapWithL_WORD
+"}}}
+
+
+" argdo / bufdo / tabdo / windo mappings (i.e. my 'x' mappings) "{{{
+
+" NOTE:  there will be other '\x?' mappings besides these, let's make them all safe
+nnoremap <leader>x <nop>
+
+nnoremap <leader>xb <nop>
+nnoremap <leader>xt <nop>
+nnoremap <leader>xw <nop>
+
+" NOTE:  these have a TRAILING SPACE in the right-hand-side too (so the :... is ready to go)
+nnoremap <leader>xa<space> :argdo 
+nnoremap <leader>xb<space> :bufdo 
+nnoremap <leader>xt<space> :tabdo 
+nnoremap <leader>xw<space> :windo 
+
+"}}}
+
+
+" Window mappings & settings (including resizing with shit/ctrl arrows) "{{{
+set noequalalways
+
+" Settings for vim-windowswap
+let g:windowswap_map_keys=0
+" Without the above, these mappings get set:
+"   n  <leader>pw :call WindowSwap#DeprecatedDo()<CR>
+"   n  <leader>ww :call WindowSwap#EasyWindowSwap()<CR>
+"   n  <leader>yw :call WindowSwap#DeprecatedMark()<CR>
+
+function! EchoWindowInfo(verbose)
+    if a:verbose
+        echo tabpagebuflist()
+        echo winlayout()
+    endif
+
+    "for win in range(1, winnr('$'))
+    "    echo [win, win_getid(l:win)]
+    "endfor
+    for bid in tabpagebuflist()
+        let name = bufname(l:bid)
+
+        if ! a:verbose
+            echo printf('win:%-2d buf:%-2d -> "%s"', bufwinnr(l:bid), bufnr(l:bid), l:name)
+        else
+            let binfo = getbufinfo(l:bid)
+            let bopts = getbufvar(l:bid, '&')
+            let winfo = getwininfo(bufwinid(l:bid))
+            let wopts = getwinvar(bufwinnr(l:bid), '&')
+
+            echo '"' . l:name . '"'
+            " NOTE:  getbufinfo() returns a HUGE dictionary for Nerd tree windows
+            "        a) the PP (pretty print) function takes so long it seems like a hang
+            "        b) even it was just echo'd it is pages and pages of packed text
+            if l:name !~? "^NERD_tree_"
+                PP l:binfo
+            endif
+            echo l:bopts
+            PP l:winfo
+            echo l:wopts
+        endif
+    endfor
+endfunction
+function! EqualizeWindows()
+    for bid in tabpagebuflist()
+        let bopts = getbufvar(l:bid, '&')
+        let wopts = getwinvar(bufwinnr(l:bid), '&')
+
+        " For "normal" editor windows with swap files that are listed -- reset their "winfix" options
+        if l:bopts['buftype'] == '' && l:bopts['buflisted'] == 1 && l:bopts['swapfile'] == 1  && (l:wopts['winfixheight'] == 1 || l:wopts['winfixwidth'] == 1)
+            echo "Resetting 'winfix...' options for " . bufname(l:bid)
+            call setwinvar(bufwinnr(l:bid), '&winfixheight', 0)
+            call setwinvar(bufwinnr(l:bid), '&winfixwidth', 0)
+        endif
+    endfor
+    wincmd =
+endfunction
+nnoremap <leader>wz <cmd>call EchoWindowInfo(v:count)<cr>
+nnoremap <leader>ww <cmd>call EqualizeWindows()<cr>
+nnoremap <leader>ws :call WindowSwap#EasyWindowSwap()<CR>
+
+function! SetGuiSize(lines, columns)
+	" Inspired from: https://vim.fandom.com/wiki/Maximize_or_set_initial_window_size
+	" But for me, when not in GUI - ANY attempt to adjust lines messed up the
+	" display *beyond* the ability of "redraw!" to repair - so that part is commented out
+	if has("gui_running")
+		exe 'set lines='.a:lines
+        exe 'set columns='.a:columns
+	"else
+	"	if exists("+lines")
+	"		set lines=60
+	"	endif
+	"	if exists("+coluns")
+	"		set coluns=235
+	"	endif
+	endif
+endfunction
+nnoremap <leader>xx :call SetGuiSize(1000, 1000)<cr>
+" This is the size that corresponds with my laptop monitor size (think of 'n' for 'normal')
+nnoremap <leader>xn :call SetGuiSize(93, 293)<cr>
+nnoremap <leader>xs :call SetGuiSize(40, 134)<cr>
+
 
 ""
 "" Disabling these on MacOS - due to a new plugin i have:  vim-tmux-navigator
@@ -1439,22 +3137,27 @@ nnoremap <c-kminus> zc
 "}}}
 
 
+" Java development section "{{{
+augroup Java
+	au!
+	au BufEnter *.java setlocal makeprg=javac\ -g\ %
+	nnoremap <leader>8 :w<cr>:make<cr>:cwindow<cr>
+	"nnoremap <leader>9 :!clear; echo <c-r>=expand('%:t')<cr> \| xargs java<cr>
+	nnoremap <leader>9 :!clear; java <c-r>=expand('%:t')<cr><cr>
+augroup END
+"}}}
+
+
 ""
 "" These mappings are helpful for perforce
 ""
-if has('win32')
-	" NOTE:  the 'realpath' utility does not exist on windows :(
-	nnoremap <leader>pe :!p4 edit "%"<cr>
-	nnoremap <leader>pd :!p4 diff "%"<cr>
-	nnoremap <leader>pa :!p4 add "%"<cr>
-	nnoremap <leader>pr :!p4 revert "%"<cr>
-else
-	nnoremap <leader>pe :!p4 edit "$(realpath "%")"<cr>
-	nnoremap <leader>pd :!p4 diff "$(realpath "%")"<cr>
-	nnoremap <leader>pa :!p4 add "$(realpath "%")"<cr>
-	"" I'm nervous about this - accidentally losing work and all...
-	nnoremap <leader>pr :!p4 revert "$(realpath "%")"<cr>
-endif
+nnoremap <leader>pe :!p4 edit "<c-r>=expand("%:p")<cr>"<cr>
+nnoremap <leader>pd :!p4 diff "<c-r>=expand("%:p")<cr>"<cr>
+nnoremap <leader>pa :!p4 add "<c-r>=expand("%:p")<cr>"<cr>
+nnoremap <leader>pr :!p4 revert "<c-r>=expand("%:p")<cr>"<cr>
+nnoremap <leader>pb :Redir !p4 annotate -I -c -a -u <c-r>=shellescape(expand("%:p"))<cr><cr>
+
+nnoremap <leader>pv :!start /min cmd /k "set P4DIFF=c:\Users\Administrator\bin\vimdiff.bat && echo p4 diff ^"<c-r>=expand("%:p")<cr>^""<cr>
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -1474,8 +3177,22 @@ endif
 ""
 "    Missing these: [exec] File: /home/engineer/depot/components/stargate/work_branches/trunk/dev/src/platform/modules/sef/sef_wrapper.cpp Line Number: 278 Line: 		DoTraceFatal(msg.c_str());
 "    (from CCX pre processor)
+
+
+" NOTE:  (regarding:   vim-dispatch)
 "
-set efm=
+"   I've noticed that when there is a non-empty efm value, then
+"   it will be used to parse the output of a dispatch EVEN THOUGH
+"   a compiler was not set prior to dispatch, and during dispatch
+"   the compiler option was set by the plugin prior to invoking
+"   the current dispach command.
+"
+"   So while I intend to use vim-dispatch to launch my compiles,
+"   I think I need this to be globally set to empty.
+"      (so the default value is NOT used, and instead the value
+"       from the 'compiler' settings are used)
+"
+"set efm=
 
 ""
 "" old scanf()-like notation:      %*[^[] --(into vim regex)-->  %*[^\[]
@@ -1489,14 +3206,58 @@ set efm=
 ""      set efm+=%[%^[]%#[cc]\ %f(%l)\ %#:\ %m
 ""
 
-"" For MSVC output (which uses parantheses)
-set efm+=%.%#[cc]\ %f(%l)\ %#:\ %m
-"" For GCC  output (which uses colons)
-set efm+=%.%#[cc]\ %f:%l:%c:%m
-"set efm+=%.%#[cc]%.%#\ %f:%l%.
-set efm+=%.%#[exec]\ %f(%l)\ %#:\ %m
-"set efm+=%.%#[exec]\ %#%f(%l)\ %#:\ %m    I found this with the extra '%#'.  Not sure what I was thinking
-set efm+=%f(%l)\ %#:\ %m
+nnoremap <leader>m    <nop>
+nnoremap <leader>mm   :set errorformat?<cr>
+nnoremap <leader>mc   <nop>
+nnoremap <leader>mcl  :set errorformat=<cr>
+nnoremap <leader>ms   <nop>
+nnoremap <leader>msg  <nop>
+nnoremap <leader>msgr :set errorformat=%f\ %#%[\\|(:]\ %#%l%m<cr>
+nnoremap <leader>msm  <nop>
+nnoremap <leader>msms :set errorformat=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l):\ %m,%[0-9:.]%#\ %#%[0-9>:]%#%f(%l\\\,%c):\ %m<cr>
+nnoremap <leader>msd  <nop>
+nnoremap <leader>msdf :set errorformat=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l\\\,%c):\ %m,%[0-9:.]%#\ %#%[0-9>:]%#%f(%l):\ %m,%[0-9:.]%#\ %#%[0-9>:]%#%f:%l:\ %m,\ %#%f(%l\\\,%c):\ %m,\ %#%f(%l):\ %m,\ %#%f:%l:\ %m,\ %#%f\ %#:\ %m<cr>
+
+        "errorformat+=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l):\ %m
+        "errorformat+=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l\\\,%c):\ %m
+        "errorformat+=%f:%l:\ %m<cr>
+
+nmap <leader>mg    <nop>
+nmap <leader>mgb   :cgetb<cr>
+nmap <leader>mgm   <nop>
+nmap <leader>mgms  <nop>
+nmap <leader>mgmsa :cget <c-r>=getcwd()<cr>_build-logs\msbuild-diagnostic.log<cr>
+nmap <leader>mgmse :cget <c-r>=getcwd()<cr>_build-logs\msbuild-detailed.log<cr>
+nmap <leader>mgmsn :cget <c-r>=getcwd()<cr>_build-logs\msbuild-normal.log<cr>
+nmap <leader>mgmsm :cget <c-r>=getcwd()<cr>_build-logs\msbuild-minimal.log<cr>
+
+""" For MSVC output (which uses parantheses)
+""
+"" Parts:
+""   %[0-9:.]%#    optional timestamp at start of line
+""   \ %#          optional whitespace
+""   %[0-9>:]%#    optional project ID
+""   %f            source file path
+""   (%l)          source line number
+""   :\ %m         colon, space, then error message
+""
+"set errorformat=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l):\ %m
+
+"set efm+=%.%#[cc]\ %f(%l)\ %#:\ %m
+""" For GCC  output (which uses colons)
+"set efm+=%.%#[cc]\ %f:%l:%c:%m
+""set efm+=%.%#[cc]%.%#\ %f:%l%.
+"set efm+=%.%#[exec]\ %#%f(%l)\ %#:\ %m
+"set efm+=%f(%l)\ %#:\ %m
+"set efm+=%f:%l:%c:%m
+"set efm+=%f:%l:\ %m
+"
+"" for AG searching and reporting results in binary files
+"set efm+=Binary\ file\ %f\ matches\.
+
+" For Java development (the "pointer" line is always there)
+"set efm+=%A%f:%l:\ %t%\\w%#:\ %m,%-Z%p^,%-C%.%#
+
 
 " for :grep   output
 "set efm+=%.%#%f(%l)\ %#:\ %m
@@ -1547,14 +3308,58 @@ set efm+=%f(%l)\ %#:\ %m
 " "}}}
 
 
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-"" This bit of magic will force this file to reload every time it is saved
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-augroup myvimrc
-	au!
-	""  NOTE:  currently I don't have a ".gvimrc file, so I have commented that part out
-	""au bufwritepost $MYVIMRC,$MYGVIMRC so $MYVIMRC | if has('gui_running') | so $MYGVIMRC | endif
-	au bufwritepost $MYVIMRC so $MYVIMRC
-augroup end
-nnoremap <leader>rv :so $MYVIMRC<cr>
+
+
+""
+"" Experimenting with disabling plugins to see what's interfering with
+"" Fugitive (specifically it hangs when exiting a diff)
+""          (and spikes CPU when hanging)
+""
+"set runtimepath-=~\.vim\bundle\Vundle.vim
+"set runtimepath-=~\.vim\bundle\YouCompleteMe
+"set runtimepath-=~\.vim\bundle\matchit
+"set runtimepath-=~\.vim\bundle\vim-unimpaired
+"set runtimepath-=~\.vim\bundle\vim-eunuch
+"set runtimepath-=~\.vim\bundle\SimpylFold
+"set runtimepath-=~\.vim\bundle\ctrlp.vim
+"set runtimepath-=~\.vim\bundle\tagbar
+"set runtimepath-=~\.vim\bundle\nerdtree
+"set runtimepath-=~\.vim\bundle\nerdcommenter
+"set runtimepath-=~\.vim\bundle\vim-autotag
+"set runtimepath-=~\.vim\bundle\nerdtree-useful-plugins
+"set runtimepath-=~\.vim\bundle\bufexplorer
+"set runtimepath-=~\.vim\bundle\argtextobj.vim
+"set runtimepath-=~\.vim\bundle\vim-indent-object
+"set runtimepath-=~\.vim\bundle\vim-airline
+"set runtimepath-=~\.vim\bundle\vim-fugitive
+"set runtimepath-=~\.vim\bundle\vim-scriptease
+"set runtimepath-=~\.vim\bundle\vim-dispatch
+"set runtimepath-=~\.vim\bundle\splice.vim
+"set runtimepath-=~\.vim\bundle\vim-mergetool
+"set runtimepath-=~\.vim\bundle\quick-scope
+"set runtimepath-=~\.vim\bundle\vim-repeat
+"set runtimepath-=~\.vim\bundle\vim-surround
+"set runtimepath-=~\.vim\bundle\vim-solarized8
+"set runtimepath-=~\.vim\bundle\vim-dirdiff
+"set runtimepath-=~\.vim\bundle\vim-swap
+"set runtimepath-=~\.vim\bundle\vim-windowswap
+"set runtimepath-=~\.vim\bundle\vim-easy-align
+"set runtimepath-=~\.vim\bundle\vim-argumentative
+"set runtimepath-=~\.vim\bundle\vim-fontsize
+"set runtimepath-=~\.vim\bundle\gruvbox
+"set runtimepath-=~\.vim\bundle\nord-vim
+"set runtimepath-=~\.vim\bundle\onedark.vim
+"set runtimepath-=~\.vim\bundle\iceberg.vim
+"set runtimepath-=~\.vim\bundle\vim-one
+"set runtimepath-=~\.vim\bundle\papercolor-theme
+"set runtimepath-=~\.vim\bundle\vim-colors-solarized
+"set runtimepath-=~\.vim\bundle\onehalf
+"set runtimepath-=~\.vim\bundle\vim-cpp-enhanced-highlight
+"set runtimepath-=~\.vim\bundle\jumpy.vim
+"set runtimepath-=~\.vim\bundle\hexHighlight
+"set runtimepath-=~\.vim\bundle\xterm-color-table.vim
+"set runtimepath-=~\.vim\bundle\undotree
+set runtimepath-=~\.vim\bundle\vim-stabs
+
+
 
