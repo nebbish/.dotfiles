@@ -15,3 +15,5 @@ alias hist="history 1"
 alias which="whence -fa"
 alias wwhich="whence -faw"
 
+alias ip4s='ifconfig | grep "inet " -B4'
+

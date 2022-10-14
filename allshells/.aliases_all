@@ -66,12 +66,16 @@ elif [ "${OSTYPE:0:6}" = "darwin" ]; then
 
 	alias gla="gls -la --color=auto"
 	alias glad="gls -lad --color=auto"
+	alias ll="ls -G -l"
 	alias la="ls -G -la"
 	alias lad="ls -G -lad"
+	alias l.="ls -G -d .*"
+	alias ls="ls -G"
 
 	alias rezsh="source ~/.zshrc"
 	alias dd="cd .."
-	alias rmemptydirs="find . -depth ! -path . -type d -empty -exec echo Removing {} \; -and -exec rmdir {} \;"
+    #  'mfind' is defined in .functions_all, and on MacOS automatically hides errors that otherwise almost always print
+	alias rmemptydirs="mfind . -depth ! -path . -type d -empty -exec echo Removing {} \; -and -exec rmdir {} \;"
 	alias path="echo \$PATH | tr ':' '\n'"
 	alias myhist='history 0 | awk '\''{if (/exit$/) {chk=$0 RS} else {chk=chk $0 RS}} END {printf "%s", chk}'\'''
 	alias rcp="rsync -av --info=progress2"
