@@ -35,6 +35,7 @@ set modelines=0
 set viminfo='999,<500,s100,h,rA:,rB:,f0
 
 nnoremap <leader>v    <nop>
+nnoremap <leader>ve   :tabedit $MYVIMRC<cr>
 nnoremap <leader>vr   :so $MYVIMRC<cr>
 nnoremap <leader>vi   <nop>
 nnoremap <leader>vif  <nop>
@@ -1738,18 +1739,19 @@ nnoremap <leader>ibl :G blame<cr>
 nnoremap <leader>ibr :G branch --list -a<cr>
 
 nnoremap <leader>if :G fetch<cr>
-nnoremap <leader>ip :G pull<cr>
+nnoremap <leader>iu :G push<cr>
+nnoremap <leader>ip :G pull --rebase<cr>
 
-nnoremap <leader>ic <nop>
-nnoremap <leader>icz <nop>
+nnoremap <leader>ic         <nop>
+nnoremap <leader>icz        <nop>
 nnoremap <leader>icz<space> :G stash 
 nnoremap <leader>iczl       :G stash list<cr>
 nnoremap <leader>iczu       :G stash push -m current<cr>
-nnoremap <leader>iczo       :G stash pop<cr>
+nnoremap <leader>iczp       :G stash pop<cr>
 nnoremap <leader>iczw       :G stash show 
-nnoremap <leader>icc <nop>
+nnoremap <leader>icc        <nop>
 nnoremap <leader>icc<space> :G checkout 
-nnoremap <leader>icm <nop>
+nnoremap <leader>icm        <nop>
 nnoremap <leader>icm<space> :G merge 
 
 nnoremap <leader>il <nop>
