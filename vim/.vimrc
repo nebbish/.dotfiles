@@ -3215,6 +3215,7 @@ nnoremap <leader>msg  <nop>
 nnoremap <leader>msgr :set errorformat=%f\ %#%[\\|(:]\ %#%l%m<cr>
 nnoremap <leader>msm  <nop>
 nnoremap <leader>msms :set errorformat=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l):\ %m,%[0-9:.]%#\ %#%[0-9>:]%#%f(%l\\\,%c):\ %m<cr>
+nnoremap <leader>msmv :set errorformat=[%[a-z]%\\+]\ /%f[%l\\\,%c]\ %m<cr>
 nnoremap <leader>msd  <nop>
 nnoremap <leader>msdf :set errorformat=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l\\\,%c):\ %m,%[0-9:.]%#\ %#%[0-9>:]%#%f(%l):\ %m,%[0-9:.]%#\ %#%[0-9>:]%#%f:%l:\ %m,\ %#%f(%l\\\,%c):\ %m,\ %#%f(%l):\ %m,\ %#%f:%l:\ %m,\ %#%f\ %#:\ %m<cr>
 
