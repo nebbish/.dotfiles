@@ -1781,7 +1781,10 @@ nnoremap <leader>i<space> :G
 nnoremap <expr> <leader>ii (v:count == '0' ? ':<c-u>G<cr>' : (v:count == '1' ? ':<c-u>vert G<cr>' : ':<c-u>0G<cr>'))
 "nnoremap <expr> <leader>it ':<c-u>echo ' . v:count . '<cr>'
 
-nnoremap <leader>id :Gdiffsplit<cr>
+nnoremap <leader>id  <nop>
+nnoremap <leader>idd :Gdiffsplit<cr>
+nnoremap <leader>idv :Gvdiffsplit<cr>
+nnoremap <leader>idh :Ghdiffsplit<cr>
 
 ""NOTE:  this is *OFTEN* not defined when I think it should be, so I'm adding my own mapping for it
 nnoremap <leader>dq :<c-u>call fugitive#DiffClose()<cr>
@@ -2447,6 +2450,11 @@ cnoremap <expr> %f  getcmdtype() == ':' ? expand('%:t') : '%f'
 cnoremap <expr> %t  getcmdtype() == ':' ? expand('%:t:r') : '%t'
 nnoremap <leader>gp :let @+='<c-r>=expand('%:p')<cr>'<cr>
 nnoremap <leader>g4 :let @+='<c-r>=substitute(system('p4 where ' . shellescape(expand('%:p'))), '\v^(//depot/.{-}) //.*', '\1', '')<cr>'<cr>
+
+cnoremap <expr> <c-o>a  getcwd().'_build-logs\msbuild-diagnostic.log'
+cnoremap <expr> <c-o>e  getcwd().'_build-logs\msbuild-detailed.log'
+cnoremap <expr> <c-o>n  getcwd().'_build-logs\msbuild-normal.log'
+cnoremap <expr> <c-o>m  getcwd().'_build-logs\msbuild-minimal.log'
 
 
 "" mapping to set the current directory from a specific buffer's file path
