@@ -897,9 +897,9 @@ nnoremap <leader>el <nop>
 nnoremap <leader>elr :<c-u>!<c-r>=LineAsShellCmd(v:count)<cr><cr>
 
 if has('win32')
-	nnoremap <leader>elf :<c-u>!start cmd /c "<c-r>=LineAsShellCmd(0)<cr> & pause"<cr>
-	nnoremap <leader>elc :<c-u>!start cmd /c "<c-r>=LineAsShellCmd(1)<cr> & pause"<cr>
-	nnoremap <leader>ell :<c-u>!start cmd /c "<c-r>=LineAsShellCmd(v:count)<cr> & pause"<cr>
+	nnoremap <leader>elf :<c-u>!start cmd /v:on /c "<c-r>=LineAsShellCmd(0)<cr> & pause"<cr>
+	nnoremap <leader>elc :<c-u>!start cmd /v:on /c "<c-r>=LineAsShellCmd(1)<cr> & pause"<cr>
+	nnoremap <leader>ell :<c-u>!start cmd /v:on /c "<c-r>=LineAsShellCmd(v:count)<cr> & pause"<cr>
 else
 	nnoremap <leader>elf :<c-u>!<c-r>=LineAsShellCmd(0)<cr> &<cr>
 	nnoremap <leader>elc :<c-u>!<c-r>=LineAsShellCmd(1)<cr> &<cr>
@@ -922,9 +922,9 @@ nnoremap <leader>epr  :<c-u>!<c-r>=InnerParagraphAsShellCmd(v:count)<cr><cr>
 
 nnoremap <leader>elp <nop>
 if has('win32')
-	nnoremap <leader>elpf :<c-u>!start cmd /c "<c-r>=InnerParagraphAsShellCmd(0)<cr> & pause"<cr>
-	nnoremap <leader>elpc :<c-u>!start cmd /c "<c-r>=InnerParagraphAsShellCmd(1)<cr> & pause"<cr>
-	nnoremap <leader>epl  :<c-u>!start cmd /c "<c-r>=InnerParagraphAsShellCmd(v:count)<cr> & pause"<cr>
+	nnoremap <leader>elpf :<c-u>!start cmd /v:on /c "<c-r>=InnerParagraphAsShellCmd(0)<cr> & pause"<cr>
+	nnoremap <leader>elpc :<c-u>!start cmd /v:on /c "<c-r>=InnerParagraphAsShellCmd(1)<cr> & pause"<cr>
+	nnoremap <leader>epl  :<c-u>!start cmd /v:on /c "<c-r>=InnerParagraphAsShellCmd(v:count)<cr> & pause"<cr>
 else
 	nnoremap <leader>elpf :<c-u>!<c-r>=InnerParagraphAsShellCmd(0)<cr> &<cr>
 	nnoremap <leader>elpc :<c-u>!<c-r>=InnerParagraphAsShellCmd(1)<cr> &<cr>
