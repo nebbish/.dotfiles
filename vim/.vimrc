@@ -1774,10 +1774,21 @@ nnoremap <leader>iw :Gwrite<cr>
 "
 nnoremap <leader>rm  <nop>
 nnoremap <leader>rmb gg/\v^[<=>]{4,}(\ [A-Z0-9a-z]{1,}\|$)<cr>zz
+"
 " These two macros will not work on the first line (the 'k' will halt execution when it cannot go up a line)
 " TODO:  add functions to handle this, also enabling period-repitition
-nnoremap <leader>rm, ddkndnddknzz
-nnoremap <leader>rm. dnddknddknzz
+"
+" Here I create two "<Plug>" mappings that also incorporate Unimpaired's 'repeat' feature
+
+"nnoremap <silent> <Plug>ResolvePickLeft  ddkndnddknzz
+"nnoremap <silent> <Plug>ResolvePickRight dnddknddknzz
+nnoremap <silent> <Plug>ResolvePickLeft  ddkndnddknzz:silent! call repeat#set("\<Plug>ResolvePickLeft", v:count)<cr>
+nnoremap <silent> <Plug>ResolvePickRight dnddknddknzz:silent! call repeat#set("\<Plug>ResolvePickRight", v:count)<cr>
+
+"" below i just call the new '<Plug>'-defined mapping - but unfortunately I cannot provide a {count}.
+nmap <leader>rm, <Plug>ResolvePickLeft
+nmap <leader>rm. <Plug>ResolvePickRight
+
 "
 "       Debugging problems with fugitive
 " I copied the below function from here:  https://stackoverflow.com/a/23318693/5844631
