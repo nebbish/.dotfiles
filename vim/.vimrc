@@ -563,7 +563,32 @@ nnoremap <a+right> <c-i>
 set regexpengine=1
 
 "" Here's something to speed up the opening of the jump list
-nnoremap <leader>j :jumps<cr>
+nnoremap <leader>j  <nop>
+nnoremap <leader>jj :jumps<cr>
+"}}}
+
+
+" Java development section "{{{
+nnoremap <leader>jh :call SetJavaHomeToToolsArea()<cr>
+function! SetJavaHomeToToolsArea()
+    "
+    " NOTE:  This calculation of where to "glob" for Java is based on my
+    "        typical work project layout.  A "tools" directory is rooted
+    "        right next to the source tree on the local HDD, with the
+    "        same name but with a "_tools" suffix.  So, the following
+    "        expression produces the root folder of the 'tools' client
+    "        spec:    getcwd() . '_tools'
+    "
+    let $JAVA_HOME = fnamemodify(fnamemodify(glob(getcwd() . '_tools\o*\**\javac.exe'), ':h'), ':h')
+endfunction
+
+augroup Java
+	au!
+	au BufEnter *.java setlocal makeprg=javac\ -g\ %
+	nnoremap <leader>8 :w<cr>:make<cr>:cwindow<cr>
+	"nnoremap <leader>9 :!clear; echo <c-r>=expand('%:t')<cr> \| xargs java<cr>
+	nnoremap <leader>9 :!clear; java <c-r>=expand('%:t')<cr><cr>
+augroup END
 "}}}
 
 
@@ -1910,15 +1935,7 @@ function! SetGradleDispatch(...) range
     ""        with some other Java work for which I want a different JAVA_HOME
     ""
     if v:count == 0
-        "
-        " NOTE:  This calculation of where to "glob" for Java is based on my
-        "        typical work project layout.  A "tools" directory is rooted
-        "        right next to the source tree on the local HDD, with the
-        "        same name but with a "_tools" suffix.  So, the following
-        "        expression produces the root folder of the 'tools' client
-        "        spec:    getcwd() . '_tools'
-        "
-        let $JAVA_HOME = fnamemodify(fnamemodify(glob(getcwd() . '_tools\o*\**\javac.exe'), ':h'), ':h')
+        call SetJavaHomeToToolsArea()
     endif
 
     let mainargs = [
@@ -3163,17 +3180,6 @@ nnoremap <c-kmultiply> zR
 nnoremap <c-kdivide> zM
 nnoremap <c-kplus> zo
 nnoremap <c-kminus> zc
-"}}}
-
-
-" Java development section "{{{
-augroup Java
-	au!
-	au BufEnter *.java setlocal makeprg=javac\ -g\ %
-	nnoremap <leader>8 :w<cr>:make<cr>:cwindow<cr>
-	"nnoremap <leader>9 :!clear; echo <c-r>=expand('%:t')<cr> \| xargs java<cr>
-	nnoremap <leader>9 :!clear; java <c-r>=expand('%:t')<cr><cr>
-augroup END
 "}}}
 
 
