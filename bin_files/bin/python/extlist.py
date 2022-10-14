@@ -1,9 +1,9 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 import sys, os, re, argparse
 from pprint import pformat
 
 def main():
-	parser = argparse.ArgumentParser(description="Scan a folder recursively for text vs binary files (by type)")
+	parser = argparse.ArgumentParser(description="Scan a folder (maybe recursively) for text vs binary files (by type)")
 
 	parser.add_argument("root", nargs='?',
 						help = 'Specify the folder to scan')
@@ -24,6 +24,9 @@ def main():
 	maxcount = 1
 	exts = {}
 	for root, dirs, files in os.walk(args.root):
+		# Prune all the directories if we are not recursive
+		if not args.recursive:
+			dirs[:] = []
 		for f in files:
 			if '.' in f:
 				ext = os.path.splitext(f)[1][1:]
