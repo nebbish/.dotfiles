@@ -1572,7 +1572,7 @@ filetype plugin indent on	"" required (the 'indent' clause is fine absent or pre
 "}}}
 
 
-" Settings relatd to the vim-unimpaired "{{{
+" Settings related to the vim-unimpaired "{{{
 " NOTE:  this option, 'unimpaired_recenter_after_jump', relies on my own
 "        edit to the unimpaired plugin - it is harmless if the edit is
 "        missing.  To edit the unimpaired here, just replace the first 3 lines
@@ -1760,7 +1760,12 @@ nnoremap <leader>ilgl :Gllog! --date=human --decorate --all --grep
 nnoremap <leader>ilgc :Gclog! --date=human --decorate --all --grep 
 
 nnoremap <leader>ib :G branch --list -a<cr>
+nnoremap <leader>iw :Gwrite<cr>
 
+"
+" Mneumonic:    resolve merge
+"
+nnoremap <leader>rm gg/\v^[<=>]{4,}(\ [A-Z0-9a-z]{1,}\|$)<cr>
 "
 "       Debugging problems with fugitive
 " I copied the below function from here:  https://stackoverflow.com/a/23318693/5844631
@@ -2998,7 +3003,7 @@ function! SetGuiSize(lines, columns)
 	" display *beyond* the ability of "redraw!" to repair - so that part is commented out
 	if has("gui_running")
 		exe 'set lines='.a:lines
-        exe 'set columns='.a:columns
+		exe 'set columns='.a:columns
 	"else
 	"	if exists("+lines")
 	"		set lines=60
