@@ -3157,7 +3157,7 @@ nnoremap <leader>pa :!p4 add "<c-r>=expand("%:p")<cr>"<cr>
 nnoremap <leader>pr :!p4 revert "<c-r>=expand("%:p")<cr>"<cr>
 nnoremap <leader>pb :Redir !p4 annotate -I -c -a -u <c-r>=shellescape(expand("%:p"))<cr><cr>
 
-nnoremap <leader>pv :!start /min cmd /k "set P4DIFF=c:\Users\Administrator\bin\vimdiff.bat && echo p4 diff ^"<c-r>=expand("%:p")<cr>^""<cr>
+nnoremap <leader>pv :!start /min cmd /c "set P4DIFF=C:\Users\Administrator\bin\simple-vimdiff.bat&& p4 diff ^"<c-r>=expand("%:p")<cr>^""<cr>
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
