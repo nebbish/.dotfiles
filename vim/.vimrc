@@ -1733,7 +1733,9 @@ nnoremap <leader>ig <nop>
 nnoremap <leader>igl :Glgrep! 
 nnoremap <leader>igc :Ggrep! 
 
-nnoremap <leader>ib :G blame<cr>
+nnoremap <leader>ib  <nop>
+nnoremap <leader>ibl :G blame<cr>
+nnoremap <leader>ibr :G branch --list -a<cr>
 
 nnoremap <leader>if :G fetch<cr>
 nnoremap <leader>ip :G pull<cr>
@@ -1759,7 +1761,6 @@ nnoremap <leader>ilg <nop>
 nnoremap <leader>ilgl :Gllog! --date=human --decorate --all --grep 
 nnoremap <leader>ilgc :Gclog! --date=human --decorate --all --grep 
 
-nnoremap <leader>ib :G branch --list -a<cr>
 nnoremap <leader>iw :Gwrite<cr>
 
 "
