@@ -71,71 +71,37 @@ elif [ "${OSTYPE:0:6}" = "darwin" ]; then
 	xterm=/opt/X11/bin/xterm
 fi
 #DIFFPREPCMDS=(+"colorscheme $color" +"set diffopt+=iwhite" +"set lines=$lines" +"set columns=$columns" +"wincmd =" +"normal gg]c")
-DIFFPREPCMDS=(+"colorscheme $color" +"set lines=$lines" +"set columns=$columns" +"wincmd =" +"normal ggzR]c")
-
-#do_gvim_test() {
-#	# This was intended to be the beginning of a solution which allows multiple 'diffs'
-#	# to be launched from Perforce, and all living in a single instance of GVim.
-#	# However my initial test below (using --remote-silent) didn't work out so good.
-#	# Therefore, I was thinking about using these instructions:
-#	#	http://stackoverflow.com/questions/4444547/using-single-vim-instance-with-remote-silent
-#	echo "calling 'do_gvim'..."
-#	#exec "/usr/bin/gvim" -d --remote-silent "$1" "$2" || exit $?
-#	#exec "/usr/bin/gvimdiff" --remote-silent "$1" "$2" || exit $?
-#}
-
-#do_diff() {
-#	#GVIM_SERVERS=$(/usr/bin/gvim --serverlist)
-#	#if [ -z $GVIM_SERVERS ]; then
-#		#exec /usr/bin/gvim "${DIFFPREPCMDS[@]}" -d "$1" "$2" || exit $?
-#	#else
-#		#DIFFCMD="vert diffsplit $2 | colorscheme $color | set lines=$lines | set columns=$columns | wincmd ="
-#		#exec /usr/bin/gvim --remote-tab +"${DIFFCMD}" "$1" || exit $?
-#	#fi
-#
-#	DIFFCMD="vert diffsplit $2 | colorscheme $color | set lines=$lines | set columns=$columns | wincmd ="
-#	exec /usr/bin/gvim --remote-tab-silent +"${DIFFCMD}" "$1" || exit $?
-#}
+DIFFPREPCMDS=(+"colorscheme $color" +"set lines=$lines" +"set columns=$columns" +"wincmd =" +"normal ggzR]c" -d)
+SPLICEPREPCMDS=(+"colorscheme $color" +"set lines=$lines" +"set columns=$columns" +SpliceInit)
 
 do_gvim() {
-	#
-	# These were my attempts at storing my gvim arguments in a variable for re-use
-	# NONE of them worked.  I had to use the array you see above
-	#
-	#	cmd_val='/usr/bin/gvim'
-	#	cmd_val='~/bin/showargs.sh'
-	#	var_method=10
-	#	exec_method=1
-	#	case $var_method in
-	#		11)	DIFFPREPCMDS="+\"set lines=$lines\" +\"set columns=$columns\" +\"wincmd =\" +\"wincmd w\" +\"normal gg]c\""	;;
-	#		12)	DIFFPREPCMDS="\+\"set lines=$lines\" \+\"set columns=$columns\" \+\"wincmd =\" \+\"wincmd w\" \+\"normal gg]c\""	;;
-	#		13)	DIFFPREPCMDS="\"+set lines=$lines\" \"+set columns=$columns\" \"+wincmd =\" \"+wincmd w\" \"+normal gg]c\""	;;
-	#		14)	DIFFPREPCMDS="\"\+set lines=$lines\" \"\+set columns=$columns\" \"\+wincmd =\" \"\+wincmd w\" \"\+normal gg]c\""	;;
-	#
-	#		21)	DIFFPREPCMDS='+"set lines=$lines" +"set columns=$columns" +"wincmd =" +"wincmd w" +"normal gg]c"'				;;
-	#		22)	DIFFPREPCMDS='"+set lines=$lines" "+set columns=$columns" "+wincmd =" "+wincmd w" "+normal gg]c"'				;;
-	#
-	#		31)	DIFFPREPCMDS="+'set lines=$lines' +'set columns=$columns' +'wincmd =' +'wincmd w' +'normal gg]c'"				;;
-	#		32)	DIFFPREPCMDS="\+'set lines=$lines' \+'set columns=$columns' \+'wincmd =' \+'wincmd w' \+'normal gg]c'"		;;
-	#		33)	DIFFPREPCMDS="'+set lines=$lines' '+set columns=$columns' '+wincmd =' '+wincmd w' '+normal gg]c'"				;;
-	#	esac
-	#	case $exec_method in
-	#		2)	exec $cmd_val "${DIFFPREPCMDS}" -d "$1" "$2" || exit $?	;;
-	#		3)	exec $cmd_val ${DIFFPREPCMDS} -d "$1" "$2" || exit $?	;;
-	#		4)	exec $cmd_val '"'${DIFFPREPCMDS}'"' -d "$1" "$2" || exit $?	;;
-	#		5)	exec $cmd_val "'"${DIFFPREPCMDS}"'" -d "$1" "$2" || exit $?	;;
-	#
-	#		99)	exec '/usr/bin/gvim' "${DIFFPREPCMDS}" -d "$1" "$2" || exit $?	;;
-	#		99)	exec '/usr/bin/gvim' ${DIFFPREPCMDS} -d "$1" "$2" || exit $?	;;
-	#	esac
+	#>>~/vimlog.txt echo Starting 'do_gvim' "$@"
+	$tool "${DIFFPREPCMDS[@]}" "$@" || exit $?
+}
 
-	$tool "${DIFFPREPCMDS[@]}" -d "$@" || exit $?
+do_splice() {
+	#>>~/vimlog.txt echo Starting 'do_splice' "$@"
+	$tool "${SPLICEPREPCMDS[@]}" "$@" || exit $?
+}
 
-	#echo "===---===---===--- Command that works ---===---===---==="
-	#exec /usr/bin/gvim +'set lines=$lines' +'set columns=$columns' +'wincmd =' +'wincmd w' +'normal gg]c' -d "$1" "$2" || exit $?
+do_splice_merge() {
+	#>>~/vimlog.txt echo Starting 'do_splice_merge' "$@"
+	cookie=$1
+	if [ $cookie != "vimdiffcookie" ]; then
+		>>~/vimlog.txt echo "Something went wrong launching this script"
+		exit -1
+	fi
+	base_arg=$2
+	theirs_arg=$3
+	ours_arg=$4
+	merged_arg=$5
+	#>>~/vimlog.txt echo do_splice -f "$base_arg" "$theirs_arg" "$ours_arg" "$merged_arg"
+	do_splice -f "$base_arg" "$theirs_arg" "$ours_arg" "$merged_arg"
 }
 
 do_merge() {
+	#>>~/vimlog.txt echo Starting 'do_merge' "$@"
+
 	cookie=$1
 	if [ $cookie != "vimdiffcookie" ]; then
 		echo "Something went wrong launching this script"
@@ -232,6 +198,8 @@ do_merge() {
 
 main()
 {
+	#>>~/vimlog.txt echo Starting 'main' "$@"
+
 	##
 	## Simple, just invoke gvim with the arguments we were given
 	##
@@ -288,11 +256,12 @@ main()
 
 	##
 	## Here we are performing a merge, and the terminal window has already been setup
-	## So we call our "do_merge" helper function to prepare temp files for the merge.
+	## So we call our merge helper function to prepare temp files for the merge.
 	## When gvim closes, the temp files are examined and the edited one becomes the result
 	##
 	if [ $# -eq 5 ]; then
-		do_merge "$@"
+		#do_merge "$@"
+		do_splice_merge "$@"
 		exit 0
 	fi
 
