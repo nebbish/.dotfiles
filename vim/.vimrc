@@ -900,7 +900,13 @@ if has('win32')
     set shellcmdflag=/v:on\ /c
 endif
 function! LineAsShellCmd(capture) abort
-    let line = '(' . escape(getline('.'), '#%!') . ')'
+    " TODO:  this OS detection is duplicated just below, remove that
+    "        duplication
+    if has('win32')
+        let line = '(' . escape(getline('.'), '#%!') . ')'
+    else
+        let line = escape(getline('.'), '#%!')
+    endif
     if a:capture
         let line = l:line . ' 2>&1 | tee -ai out.txt'
     endif
@@ -927,7 +933,11 @@ function! InnerParagraphAsShellCmd(capture) abort
     "        we cannot use shellescape(), since it surrounds each line with
     "        quotes so we use escape() to do what shellescape(..., 1) would do
     "        (i.e. escape the 'special' items)
-    let lines = map(l:lines, '"(" . escape(v:val, "#%!") . ")"')
+    if has('win32')
+        let lines = map(l:lines, '"(" . escape(v:val, "#%!") . ")"')
+    else
+        let lines = map(l:lines, 'escape(v:val, "#%!")')
+    endif
 
     if a:capture
         let lines = map(l:lines, 'v:val . " 2>&1 | tee -ai out.txt"')
