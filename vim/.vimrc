@@ -39,9 +39,10 @@ nnoremap <leader>ve   :tabedit $MYVIMRC<cr>
 nnoremap <leader>vr   :so $MYVIMRC<cr>
 nnoremap <leader>vi   <nop>
 nnoremap <leader>vif  <nop>
-nnoremap <leader>vifc :set viminfofile?<cr>
 nnoremap <leader>vifn :set viminfofile=NONE<cr>
 nnoremap <leader>vifd :set viminfofile&<cr>
+nnoremap <leader>vif? :set viminfofile?<cr>
+nnoremap <leader>vif= :set viminfofile=
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "" This bit of magic will force this file to reload every time it is saved
@@ -370,6 +371,8 @@ endif
 " tame searching/moving settings
 nnoremap / /\v
 vnoremap / /\v
+nnoremap ? ?\v
+vnoremap ? ?\v
 set ignorecase		" use case insensitive searching by default
 set smartcase		" however, if a capital letter was entered, go back to case SENSitive
 set showmatch		" briefly highlight the matching 'bracket' (i.e. '[]','()','{}',...)
@@ -394,6 +397,16 @@ nnoremap <leader>rr :redraw!<cr>
 ""
 function! Rescape(val)
     return escape(a:val, '\|&^$%.*+?={[\/()@~<>"''')
+endfunction
+
+function! SpecialEscape(val)
+    return escape(a:val, "#%!")
+endfunction
+
+function! CygEscape(val)
+    let rv = substitute(a:val, "'", "'\\\\''", 'g')
+    let rv = substitute(l:rv, '"', "'\"'", 'g')
+    return SpecialEscape(l:rv)
 endfunction
 
 vnoremap <silent> * :<C-U> let old_reg=getreg('"')<Bar>let old_regtype=getregtype('"')<CR>
@@ -510,12 +523,13 @@ augroup END
 "set breakindent
 "set breakindentopt=sbr
 if has('win32')
-	"set showbreak=└→\ 
-	"set showbreak=∟\ 
-	set showbreak=└\ 
+	"let &showbreak='└→\ '
+	"let &showbreak='∟\ '
+	"let &showbreak='└\ '
+	let &showbreak='└\ '
 else
-	"set showbreak=⤹→\ 
-	set showbreak=⤹\ 
+	"let &showbreak='⤹→\ '
+	let &showbreak='⤹\ '
 endif
 
 "" This is an attempt to create an inverse of the 'J' command (split)
@@ -545,6 +559,32 @@ set listchars=tab:›·,eol:¬
 set listchars+=trail:·
 set listchars+=extends:»,precedes:«
 
+""
+"" I just encountered a situation where a Markdown file I created had a bunch of it's
+"" 'space' characters -- not all, but a bunch -- changed into NBSP characters by
+"" another developer's editor.
+""
+"" In UTF-8:    c2a0
+"" In UTF-16:   00a0
+""
+"" Ctrl-V can be used to enter it:  <c-v>u00a0
+""
+"" This command can be used to highlight all NBSP with bright red:
+"" (b/w the quotes is a NBSP)
+""
+""      :syn match ErrorMsg " "
+""
+"" (note:  had to escape the '|' just to make the mapping, i think because i'm not using '<bar>'
+nnoremap <leader><leader><space> :syn match ErrorMsg " "<cr>:syn match ErrorMsg /\s\+$/<cr>/<c-u>\v%u00a0\|\s+$<cr>
+
+"" Advice from S.O. here: https://stackoverflow.com/a/48951029/5844631
+"" is to put the following at the end of your .vimrc:
+""
+""    highlight RedundantSpaces ctermbg=red guibg=red
+""    match RedundantSpaces /\s\+$/
+""
+"" But I'll just add something to my above mapping to do it on demand together with my NBSP highlight
+""
 
 ""
 "" NOTE:  this is me TRYing to get alt+ left/right to navigate the jump list
@@ -564,7 +604,19 @@ nnoremap <a+right> <c-i>
 ""
 ""     https://github.com/vim/vim/issues/2712
 ""
-set regexpengine=1
+"" NOTE: I just discovered that 're=1' actually causes TypeScript files to
+""       hang the IDE when opened.  ahgharghaghghrhghragaggagghrhgh!!!!!
+""
+""       (see: https://vi.stackexchange.com/questions/25086/vim-hangs-when-i-open-a-typescript-file)
+""
+""       So now I have a mapping to set it to '1' only when my scrolling sucks
+""
+""
+set regexpengine=0
+nnoremap <leader>rx <nop>
+nnoremap <leader>rx? :set regexpengine?<cr>
+nnoremap <leader>rx= :set regexpengine=
+nnoremap <expr> <leader>rxx ':<c-u>set regexpengine=' . v:count . '<cr>:set regexpengine?<cr>'
 
 "" Here's something to speed up the opening of the jump list
 nnoremap <leader>j  <nop>
@@ -572,8 +624,29 @@ nnoremap <leader>jj :jumps<cr>
 "}}}
 
 
+" Artifactory section "{{{
+function! SetApiKey()
+    for line in readfile(expand('~\.gradle\gradle.properties'))
+        let tokens = l:line->split('=')
+        if len(l:tokens) && l:tokens[0] == 'artifactoryUser'
+            let $ORG_GRADLE_PROJECT_artifactoryUser=l:tokens[1]
+            echo 'Setting %ORG_GRADLE_PROJECT_artifactoryUser% to: ' . l:tokens[1]
+            let $APIUSR=l:tokens[1]
+            echo 'Setting %APIUSR% to: ' . l:tokens[1]
+        endif
+        if len(l:tokens) && l:tokens[0] == 'artifactoryApiKey'
+            let $ORG_GRADLE_PROJECT_artifactoryApiKey=l:tokens[1]
+            echo 'Setting %ORG_GRADLE_PROJECT_artifactoryApiKey% to: ' . l:tokens[1]
+            let $APIKEY=l:tokens[1]
+            echo 'Setting %APIKEY% to: ' . l:tokens[1]
+        endif
+    endfor
+endfunction
+nnoremap <leader>ak :call SetApiKey()<cr>
+"}}}
+
+
 " Java development section "{{{
-nnoremap <leader>jh :call SetJavaHomeToToolsArea()<cr>
 function! SetJavaHomeToToolsArea()
     "
     " NOTE:  This calculation of where to "glob" for Java is based on my
@@ -583,8 +656,46 @@ function! SetJavaHomeToToolsArea()
     "        expression produces the root folder of the 'tools' client
     "        spec:    getcwd() . '_tools'
     "
-    let $JAVA_HOME = fnamemodify(fnamemodify(glob(getcwd() . '_tools\o*\**\javac.exe'), ':h'), ':h')
+    let search_dir = getcwd() . '_tools'
+    if !isdirectory(l:search_dir)
+        let search_dir = '.\SDK\tools'
+    endif
+    if !isdirectory(l:search_dir)
+        echom "WARNING:  Leaving the JAVA_HOME env var alone, cannot find tools area"
+        return
+    endif
+
+    "" # glob() arg2:  {nosuf}, if TRUE ignore 'suffixes' and 'wildignore' options
+    "" # glob() arg3:  {list}, if TRUE return a list
+    "" # The only reason I have the 2nd is to get to the 3rd
+    let matches = glob(fnamemodify(l:search_dir, ':p') . 'o*\**\javac.exe', 0, 1)
+    if !len(matches)
+        echom "WARNING:  Search dir [".l:search_dir."] exists, but javac.exe still not found"
+        return
+    endif
+    let $JAVA_HOME = fnamemodify(fnamemodify(l:matches[0], ':h'), ':h')
+    echom 'Set JAVA_HOME to:  ' . $JAVA_HOME
 endfunction
+
+function! SetJavaInPath()
+    call ReloadEnvVar('PATH')
+    let jbin = join([$JAVA_HOME, 'bin'], '\')
+    let $PATH = join([$PATH, l:jbin], ';')
+    echom 'Appended [' . l:jbin . '] to the %PATH% env var'
+    echo join(split($PATH, ";"), "\n")
+endfunction
+
+nnoremap <leader>jh :call SetJavaHomeToToolsArea()<cr>
+nnoremap <leader>jp :call SetJavaInPath()<cr>
+
+nnoremap <expr> <leader>jc ':w<cr>:!cd "'.expand('%:p:h').'" && javac '.expand('%:t').'<cr>'
+nnoremap <expr> <leader>jr ':w<cr>:!cd "'.expand('%:p:h').'" && java '.expand('%:t:r').' '
+"" #
+"" # JDK 11 and newer can run single Java files with a single launch:
+"" #
+nnoremap <expr> <leader>ja ':w<cr>:!cd "'.expand('%:p:h').'" && java '.expand('%:t').' '
+
+
 
 augroup Java
 	au!
@@ -644,6 +755,13 @@ function! DbgTest()
     endif
     let idx = l:cnt
     while l:idx > 0
+		"" # one of:					*hist-names*
+		"" # 	"cmd"	 or ":"	  command line history
+		"" # 	"search" or "/"   search pattern history
+		"" # 	"expr"	 or "="   typed expression history
+		"" # 	"input"  or "@"	  input line history
+		"" # 	"debug"  or ">"   debug command history
+		"" # 	empty		  the current or last used history
         echo histget(":", "-" . l:idx)
         let idx = l:idx - 1
     endwhile
@@ -748,6 +866,17 @@ function! GetSpecifiedInfo(cmd, verbose)
 	endif
 endfunc
 
+function! MakeScratch()
+    " setl bt=nofile bh=wipe nobl noswf
+    setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile
+endfunc
+nnoremap <leader>wc <cmd>call MakeScratch()<cr>
+function! MakeUnscratch()
+    " setl bt= bh= bl swf
+    setlocal buftype= bufhidden= buflisted swapfile
+endfunc
+nnoremap <leader>wu <cmd>call MakeUnscratch()<cr>
+
 ""
 "" This helper is a modified copy of: https://gist.github.com/romainl/eae0a260ab9c135390c30cd370c20cd7
 ""
@@ -764,19 +893,17 @@ function! Redir(cmd, rng, start, end)
             let cmd = substitute(l:cmd, ' %\($\|\s\)', ' ' . shellescape(escape(expand('%:p'), '\')), '')
         endif
         let cmd = matchstr(l:cmd, '^!\zs.*')
-		if a:rng == 0
-			let output = systemlist(cmd)
-		else
-			let joined_lines = join(getline(a:start, a:end), '\n')
-			let cleaned_lines = substitute(shellescape(joined_lines), "'\\\\''", "\\\\'", 'g')
-			"let output = systemlist(cmd . " <<< $" . cleaned_lines)
-			let output = split(cleaned_lines, "\n")
-		endif
+        let output = systemlist(l:cmd)
+		"if a:rng == 0
+		"	let output = systemlist(cmd)
+		"else
+		"	let joined_lines = join(getline(a:start, a:end), '\n')
+		"	let cleaned_lines = substitute(shellescape(joined_lines), "'\\\\''", "\\\\'", 'g')
+		"	"let output = systemlist(cmd . " <<< $" . cleaned_lines)
+		"	let output = split(cleaned_lines, "\n")
+		"endif
 	else
-		redir => output
-		execute a:cmd
-		redir END
-		let output = split(output, "\n")
+        let output = execute(a:cmd)->split("\n")
 	endif
     if a:rng == a:start && a:rng == a:end && a:rng == 1
         vnew
@@ -888,6 +1015,56 @@ function! VisualSelection()
     let lines[0] = lines[0][column_start - 1:]
     return join(lines, "\n")
 endfunction
+
+function! GetMarksFile(fname)
+    let path = a:fname->resolve()
+    " Determine path to "marks" file
+    if l:path =~? '\vDocuments\\build-files\\[^\\]{-}-cmds\.txt$'
+        return substitute(l:path, '\v-cmds\.txt$', '-marks.txt', '')
+    elseif l:path =~? '\vDocuments\\test-files\\cmds-[^\\]+\.txt$'
+        return substitute(l:path, '\vcmds-([^\\]+\.txt)$', 'marks-\1', '')
+    endif
+    echoe "Only know how to save marks for my cmds files"
+    return
+endfunction
+
+function! LoadMarks(fname)
+    let markspath = GetMarksFile(a:fname)
+    for line in l:markspath->readfile()
+        let fields = l:line->split()
+        " if it is an a-z mark...
+        if len(l:fields) > 0 && l:fields[0] =~# '^[a-z]$'
+            " set the mark in the current buffer
+            echo l:fields[1] . 'mark ' . l:fields[0]
+            exe l:fields[1] . 'mark ' . l:fields[0]
+        endif
+    endfor
+endfunction
+
+function! SaveMarks(fname)
+    let markspath = GetMarksFile(a:fname)
+    let cmdout = execute("marks")->split("\n")
+    let marks = []
+    for line in l:cmdout
+        let fields = l:line->split()
+        " if it is an a-z mark...
+        if len(l:fields) > 0 && l:fields[0] =~# '^[a-z]$'
+            echo l:fields[1] . 'mark ' . l:fields[0]
+            let marks += [l:line]
+        endif
+    endfor
+    call writefile(l:marks, l:markspath)
+endfunction
+
+" See this S.O. answer for a good explanation of PRECISELY when the '%' character
+" will be expaned into a filename, and how to do it when it is not automatic:
+"
+"    https://stackoverflow.com/a/28612666/5844631
+"
+" Here, I choose to use the register notation:  @%
+nnoremap <leader>kl :call LoadMarks(@%)<cr>
+nnoremap <leader>ks :call SaveMarks(@%)<cr>
+
 "}}}
 
 
@@ -899,13 +1076,29 @@ endfunction
 if has('win32')
     set shellcmdflag=/v:on\ /c
 endif
+function! LineAsWatchCmd() abort
+    let cmd0 = split(getline('.'))[0]
+    let loc = trim(system('where ' . l:cmd0))
+    let ext = fnamemodify(l:loc, ':e')
+    if v:count == 0
+        let cmd = "term watch -d "
+    else
+        let cmd = "term watch -n " . v:count . " -d "
+    endif
+    if tolower(l:ext) == 'exe'
+        let cmd = l:cmd . "'" . getline('.') . "'"
+    else
+        let cmd = l:cmd . 'cmd /c ' . CygEscape(getline('.'))
+    endif
+    return l:cmd
+endfunction
 function! LineAsShellCmd(capture) abort
     " TODO:  this OS detection is duplicated just below, remove that
     "        duplication
     if has('win32')
-        let line = '(' . escape(getline('.'), '#%!') . ')'
+        let line = '(' . SpecialEscape(getline('.')) . ')'
     else
-        let line = escape(getline('.'), '#%!')
+        let line = SpecialEscape(getline('.'))
     endif
     if a:capture
         let line = l:line . ' 2>&1 | tee -ai out.txt'
@@ -934,9 +1127,9 @@ function! InnerParagraphAsShellCmd(capture) abort
     "        quotes so we use escape() to do what shellescape(..., 1) would do
     "        (i.e. escape the 'special' items)
     if has('win32')
-        let lines = map(l:lines, '"(" . escape(v:val, "#%!") . ")"')
+        let lines = map(l:lines, '"(" . SpecialEscape(v:val) . ")"')
     else
-        let lines = map(l:lines, 'escape(v:val, "#%!")')
+        let lines = map(l:lines, 'SpecialEscape(v:val)')
     endif
 
     if a:capture
@@ -960,9 +1153,35 @@ nnoremap <leader>epz :<c-u>echo '<c-r>=substitute(InnerParagraphAsShellCmd(v:cou
 "" ec     : [E]xecute [C]ommand      (run as command, no pasting)
 nnoremap <leader>e  <nop>
 nnoremap <leader>ee :norm ]op<c-r>=eval(getline('.'))<cr><cr>
+vnoremap <leader>ee :<c-u>norm ]op<c-r>=eval(VisualSelection())<cr><cr>
 nnoremap <leader>em yypkA =<Esc>jOscale=2<Esc>:.,+1!bc<CR>kJ0
 nnoremap <leader>ec :<c-r>=getline('.')<cr><cr>
 
+""
+"" ODDball ECHO mappings..
+"" I don't like this, but for now, don't know where to put them.
+""
+nnoremap <leader>ed :norm ]op<c-r>=system('cdate --date @<c-r><c-w>')->trim()<cr><cr>
+vnoremap <leader>ed :<c-u>norm ]op<c-r>=system('cdate --date @'.VisualSelection())->trim()<cr><cr>
+
+nnoremap <leader>shrug :echo '¯\_(ツ)_/¯'<cr>
+inoremap <expr> <c-s> '¯\_(ツ)_/¯'
+
+""
+"" The above mapping was created and used when dealing with a saved VIMINFO file
+"" which saves a timestamp for most saved items.  This mapping helped quickly see
+"" in human terms the age of the oldest entry.
+""
+"" Also, at that time, I used this macro to 'condense' the timestamps so
+"" I could merge two VIMINFO files, intending for one to 'appear' older.
+""
+""     let @q='yiw?\v%<.l\d{10}ciw010b'
+""
+"" It moves to and sets the entry above it to 10 seconds later in time
+"" The technique to save so I don't forget:  %<.
+"" That expression limits results to lines above the current line
+"" I used it to prevent the search from wrapping without changing options
+""
 
 ""
 "" For Lines
@@ -992,6 +1211,10 @@ else
 	nnoremap <leader>elf :<c-u>!<c-r>=LineAsShellCmd(0)<cr> &<cr>
 	nnoremap <leader>elc :<c-u>!<c-r>=LineAsShellCmd(1)<cr> &<cr>
 	nnoremap <leader>ell :<c-u>!<c-r>=LineAsShellCmd(v:count)<cr> &<cr>
+endif
+
+if has ('win32')
+    nnoremap <leader>wal :<c-u><c-r>=LineAsWatchCmd()<cr><cr><c-w>p
 endif
 
 ""
@@ -1127,7 +1350,7 @@ let g:python_recommended_style=0
 "
 " Also:  about 'ag' - if you specify 'nogroup' (implies *both* nobreak &
 "         noheading) ...   and THEN also specify 'noheading'...    you get BREAKS
-let s:ag_cmd = 'ag\ --depth\ 50\ --hidden\ --search-binary\ --ignore\ tags\ --vimgrep\ $*'
+let s:ag_cmd = 'ag\ --depth\ 50\ --hidden\ --ignore\ tags\ --vimgrep\ $*'
 let s:gg_cmd = 'ggrep\ -PIn\ $*'
 "" On my windows there is a Cygwin version of GNU grep renamed "cgrep"
 " Currently the only option differences:    -H and -r  (maybe can be removed)
@@ -1166,20 +1389,25 @@ nnoremap <leader>grdf :set grepprg&<cr>
 
 nnoremap <leader>grnv :set grepprg=<c-r>=substitute(substitute(&grepprg, '--vimgrep ', '', ''), ' ', '\\ ', 'g')<cr><cr>
 nnoremap <leader>grch :set grepprg=<c-r>=substitute(&grepprg, ' ', '\\ ', 'g')<cr>
+nnoremap <expr> <leader>gr<space> ':lgrep! '
 
 " NOTE:  these INTENTIONALLY end with a space!
-nnoremap <leader>gw  <nop>
-nnoremap <leader>gwc :Redir !=&grepprg->split(' ')[:-2]->join(' ') "" 
-nnoremap <leader>gwl :lgrep! "" 
-nnoremap <leader>ga  <nop>
-nnoremap <leader>gac :Redir !=&grepprg->split(' ')[:-2]->join(' ') "" 
-nnoremap <leader>gal :lgrep! "" 
-nnoremap <leader>gl  <nop>
-nnoremap <leader>glc :Redir !=&grepprg->split(' ')[:-2]->join(' ') "" 
-nnoremap <leader>gll :lgrep! "" 
-vnoremap <leader>gw  <nop>
-vnoremap <leader>gwc :<c-u>Redir !=&grepprg->split(' ')[:-2]->join(' ') "=Rescape(VisualSelection())" 
-vnoremap <leader>gwl :<c-u>lgrep! "=Rescape(VisualSelection())" 
+"        now protected by using '<expr>' style mappings
+nnoremap        <leader>gw  <nop>
+nnoremap <expr> <leader>gwc ':Redir !=&grepprg->split('' '')[:-2]->join('' '') "" '
+nnoremap <expr> <leader>gwl ':lgrep! "' . SpecialEscape(expand('<cword>')) . '" '
+nnoremap        <leader>ga  <nop>
+nnoremap <expr> <leader>gac ':Redir !=&grepprg->split('' '')[:-2]->join('' '') "" '
+nnoremap <expr> <leader>gal ':lgrep! "' . SpecialEscape(expand('<cWORD>')) . '" '
+nnoremap        <leader>gl  <nop>
+nnoremap <expr> <leader>glc ':Redir !' . &grepprg->split(' ')[:-2]->join(' ') . ' "' . getline(".") . '" '
+nnoremap <expr> <leader>gll ':lgrep! "' . SpecialEscape(getline(".")) . '" '
+vnoremap        <leader>gw  <nop>
+vnoremap <expr> <leader>gwc ':<c-u>Redir !=&grepprg->split('' '')[:-2]->join('' '') "=Rescape(VisualSelection())" '
+vnoremap <expr> <leader>gwl ':<c-u>lgrep! "=Rescape(VisualSelection())" '
+
+" \cf == C-lean F-ile listing   (the output of llist or clist -- so things like gF and CTRL-W_F work)
+nnoremap <leader>cf :%s/\v^%( *\d+ )?(.{-}):(\d+):/\1 \2:/<cr>
 
 
 ""
@@ -1373,8 +1601,11 @@ nnoremap <leader>dl :echo join(ListDiffs(), "\n")<cr>
 "            nmap <leader>do <Plug>VimdiffGet
 "            nmap <leader>do :execute "normal \<Plug>VimdiffGet"<cr>
 "
-nnoremap <silent> <Plug>VimdiffGet :diffget<cr>]czz:silent! call repeat#set("\<Plug>VimdiffGet", v:count)<cr>
-nnoremap <silent> <Plug>VimdiffPut :diffput<cr>]czz:silent! call repeat#set("\<Plug>VimdiffPut", v:count)<cr>
+function! DiffOp(op) range
+    exe 'normal' (v:count == 0 ? a:op : v:count . a:op)
+endfunction
+nnoremap <silent> <Plug>VimdiffGet :<c-u>call DiffOp('do')<cr>]czz:silent! call repeat#set("\<Plug>VimdiffGet", v:count)<cr>
+nnoremap <silent> <Plug>VimdiffPut :<c-u>call DiffOp('dp')<cr>]czz:silent! call repeat#set("\<Plug>VimdiffPut", v:count)<cr>
 ""
 "" below i just call the new '<Plug>'-defined mapping - but unfortunately I cannot provide a {count}.
 "" while trying, I learned this does the same thing:
@@ -1402,8 +1633,12 @@ nmap <leader>dp <Plug>VimdiffPut
 
 " This is here to manually re-run the commands that I have in my p4vimdiff.sh script
 nnoremap <leader>ds :set diffopt=filler<cr>:wincmd =<cr>:normal gg]c<cr>:redraw!<cr>
-nnoremap <leader>di :set diffopt+=iwhite<cr>
-nnoremap <leader>dw :set diffopt-=iwhite<cr>
+nnoremap <leader>dw  <nop>
+nnoremap <leader>dwi :set diffopt+=iwhite<cr>
+nnoremap <leader>dww :set diffopt-=iwhite<cr>
+nnoremap <leader>dc  <nop>
+nnoremap <leader>dci :set diffopt+=icase<cr>
+nnoremap <leader>dcc :set diffopt-=icase<cr>
 function! SetDiffContext() range
     let opts = filter(split(&diffopt, ','), 'v:val !~ "^context"')
     if v:count != 0
@@ -1411,10 +1646,13 @@ function! SetDiffContext() range
     endif
     let &diffopt=join(l:opts, ',')
 endfunction
-nnoremap <leader>dc :<c-u>call SetDiffContext()<cr>
+nnoremap <leader>dx :<c-u>call SetDiffContext()<cr>
 " This also switch tabs when diff mode is not ON
-nnoremap <expr> <c-pageup>   &diff ? '[czz' : ':tabprev<cr>'
-nnoremap <expr> <c-pagedown> &diff ? ']czz' : ':tabnext<cr>'
+function! PageKeysForDiffs()
+    return bufname('%') =~# 'fugitive:\\' || &diff
+endfunction
+nnoremap <expr> <c-pageup>   PageKeysForDiffs() ? ':normal [czz<cr>' : ':tabprev<cr>'
+nnoremap <expr> <c-pagedown> PageKeysForDiffs() ? ':normal ]czz<cr>' : ':tabnext<cr>'
 " "}}}
 
 " Transposing text "{{{
@@ -1430,29 +1668,34 @@ nnoremap <expr> <c-pagedown> &diff ? ']czz' : ':tabnext<cr>'
 " NOTE:  `PopSearch()` however, came from a different repository from Luc Hermite.
 "        here:  https://github.com/LucHermitte/lh-vim-lib/blob/master/plugin/lhvl.vim
 command! PopSearch :call histdel('search', -1)| let @/=histget('search',-1)
-" Swap the current word with the next, without changing cursor position
-nnoremap <silent> gw "_yiw:silent s/\(\%#\w\+\)\(\W\+\)\(\w\+\)/\3\2\1/<cr>:PopSearch<cr><c-o>
-" "left" would respect the old behaviour, but let's use "follow" instead!
-"nnoremap <silent> gw :call <sid>SwapWithNext('follow', 'w')<cr>
 
-nnoremap <silent> gW "_yiw:silent s/\(\w\+\)\(\W\+\)\(\%#\w\+\)/\3\2\1/<cr>:PopSearch<cr><c-o>
-"nnoremap <silent> gW :call <sid>SwapWithPrev('follow', 'w')<cr>
+" This mapping is in the "spirit" of Unimpaired, using '[' to mean previous
+" (though there is no ']' equivalent)
+nnoremap <leader>[/ :PopSearch<cr>
 
-" Swap the current word with the previous, keeping cursor on current word:
-" (This feels like "pushing" the word to the left.)
-nnoremap <silent> gl "_yiw?\w\+\_W\+\%#<CR>:PopSearch<cr>:s/\(\%#\w\+\)\(\_W\+\)\(\w\+\)/\3\2\1/<CR>:PopSearch<cr><c-o><c-l>
-"nnoremap <silent> gl :call <sid>SwapWithPrev('left', 'w')<cr>
+"" # " Swap the current word with the next, without changing cursor position
+"" # nnoremap <silent> gw "_yiw:silent s/\(\%#\w\+\)\(\W\+\)\(\w\+\)/\3\2\1/<cr>:PopSearch<cr><c-o>
+"" # " "left" would respect the old behaviour, but let's use "follow" instead!
+"" # "nnoremap <silent> gw :call <sid>SwapWithNext('follow', 'w')<cr>
 
-" Swap the current word with the next, keeping cursor on current word: (This
-" feels like "pushing" the word to the right.) (See note.)
-nnoremap <silent> gr "_yiw:s/\(\%#\w\+\)\(\_W\+\)\(\w\+\)/\3\2\1/<CR>:PopSearch<cr><c-o>/\w\+\_W\+<CR>:PopSearch<cr>
-"nnoremap <silent> gr :call <sid>SwapWithNext('right', 'w')<cr>
+"" # nnoremap <silent> gW "_yiw:silent s/\(\w\+\)\(\W\+\)\(\%#\w\+\)/\3\2\1/<cr>:PopSearch<cr><c-o>
+"" # "nnoremap <silent> gW :call <sid>SwapWithPrev('follow', 'w')<cr>
 
-" the same, but with keywords
-nnoremap <silent> gs "_yiw:silent s/\(\%#\k\+\)\(.\{-}\)\(\k\+\)/\3\2\1/<cr>:PopSearch<cr><c-o>
-nmap     <silent> gS "_yiw?\k?<cr>gs
-"nnoremap <silent> gs :call <sid>SwapWithNext('follow', 'k')<cr>
-"nnoremap <silent> gS :call <sid>SwapWithPrev('follow', 'k')<cr>
+"" # " Swap the current word with the previous, keeping cursor on current word:
+"" # " (This feels like "pushing" the word to the left.)
+"" # nnoremap <silent> gl "_yiw?\w\+\_W\+\%#<CR>:PopSearch<cr>:s/\(\%#\w\+\)\(\_W\+\)\(\w\+\)/\3\2\1/<CR>:PopSearch<cr><c-o><c-l>
+"" # "nnoremap <silent> gl :call <sid>SwapWithPrev('left', 'w')<cr>
+
+"" # " Swap the current word with the next, keeping cursor on current word: (This
+"" # " feels like "pushing" the word to the right.) (See note.)
+"" # nnoremap <silent> gr "_yiw:s/\(\%#\w\+\)\(\_W\+\)\(\w\+\)/\3\2\1/<CR>:PopSearch<cr><c-o>/\w\+\_W\+<CR>:PopSearch<cr>
+"" # "nnoremap <silent> gr :call <sid>SwapWithNext('right', 'w')<cr>
+
+"" # " the same, but with keywords
+"" # nnoremap <silent> gs "_yiw:silent s/\(\%#\k\+\)\(.\{-}\)\(\k\+\)/\3\2\1/<cr>:PopSearch<cr><c-o>
+"" # nmap     <silent> gS "_yiw?\k?<cr>gs
+"" # "nnoremap <silent> gs :call <sid>SwapWithNext('follow', 'k')<cr>
+"" # "nnoremap <silent> gS :call <sid>SwapWithPrev('follow', 'k')<cr>
 " "}}}
 
 
@@ -1784,6 +2027,25 @@ endfunction
 "}}}
 
 
+" Settings for editing JavaScript files "{{{
+
+""
+"" Simple re-format for minified Javascript
+"" (from: https://coderwall.com/p/lxajqq/vim-function-to-unminify-javascript)
+""
+command! UnMinify call UnMinify()
+function! UnMinify()
+    %s/{\ze[^\r\n]/{\r/g
+    %s/){/) {/g
+    %s/};\?\ze[^\r\n]/\0\r/g
+    %s/;\ze[^\r\n]/;\r/g
+    %s/[^\s]\zs[=&|]\+\ze[^\s]/ \0 /g
+    normal ggVG=
+endfunction
+
+"}}}
+
+
 " Undotree mappings and settings "{{{
 nnoremap <leader>ut :UndotreeToggle<cr>
 let g:undotree_SetFocusWhenToggle = 1 " default 0
@@ -1823,21 +2085,22 @@ let g:bufExplorerShowNoName=1        " Show "No Name" buffers.
 " Mappings & settings for fugitive "{{{
 nnoremap <leader>i <nop>
 "  NOTE: the trailing space on some of these, leaving a "ready" command line
-nnoremap <leader>i<space> :G 
+nnoremap <expr> <leader>i<space> ':<c-u>' . ( v:count == 1 ? 'vert ' : '' ) . 'G '
 nnoremap <expr> <leader>ii (v:count == '0' ? ':<c-u>G<cr>' : (v:count == '1' ? ':<c-u>vert G<cr>' : ':<c-u>0G<cr>'))
 "nnoremap <expr> <leader>it ':<c-u>echo ' . v:count . '<cr>'
 
-nnoremap <leader>id  <nop>
-nnoremap <leader>idd :Gdiffsplit<cr>
-nnoremap <leader>idv :Gvdiffsplit<cr>
-nnoremap <leader>idh :Ghdiffsplit<cr>
+nnoremap        <leader>id        <nop>
+nnoremap        <leader>idd       :Gdiffsplit<cr>
+nnoremap        <leader>idv       :Gvdiffsplit<cr>
+nnoremap        <leader>idh       :Ghdiffsplit<cr>
+nnoremap <expr> <leader>id<space> ':Gdiffsplit '
 
 ""NOTE:  this is *OFTEN* not defined when I think it should be, so I'm adding my own mapping for it
 nnoremap <leader>dq :<c-u>call fugitive#DiffClose()<cr>
 
 nnoremap <leader>ig <nop>
-nnoremap <leader>igl :Glgrep! 
-nnoremap <leader>igc :Ggrep! 
+nnoremap <expr> <leader>igl ':Glgrep! '
+nnoremap <expr> <leader>igc ':Ggrep! '
 
 nnoremap <leader>ib  <nop>
 nnoremap <leader>ibl :G blame<cr>
@@ -1847,17 +2110,47 @@ nnoremap <leader>if :G fetch<cr>
 nnoremap <leader>iu :G push<cr>
 nnoremap <leader>ip :G pull --rebase<cr>
 
-nnoremap <leader>ic         <nop>
-nnoremap <leader>icz        <nop>
-nnoremap <leader>icz<space> :G stash 
-nnoremap <leader>iczl       :G stash list<cr>
-nnoremap <leader>iczu       :G stash push -m current<cr>
-nnoremap <leader>iczp       :G stash pop<cr>
-nnoremap <leader>iczw       :G stash show 
-nnoremap <leader>icc        <nop>
-nnoremap <leader>icc<space> :G checkout 
-nnoremap <leader>icm        <nop>
-nnoremap <leader>icm<space> :G merge 
+nnoremap        <leader>ic         <nop>
+nnoremap        <leader>icz        <nop>
+nnoremap <expr> <leader>icz<space> ':G stash '
+nnoremap        <leader>iczl       :G stash list<cr>
+nnoremap        <leader>iczu       :G stash push -m current<cr>
+nnoremap        <leader>iczp       :G stash pop<cr>
+nnoremap <expr> <leader>iczw       ':G stash show '
+nnoremap        <leader>icc        <nop>
+nnoremap <expr> <leader>icc<space> ':G checkout '
+nnoremap        <leader>icm        <nop>
+nnoremap <expr> <leader>icm<space> ':G merge '
+
+"" #
+"" # Not yet working
+"" #
+"" # function! GitDo(cmd) abort
+"" #     if v:count == '0'
+"" #         "" # Normal mode, just do what the plugin would do
+"" #         let pfx = ''
+"" #     elseif v:count == '1'
+"" #         " # Requesting vertical mode
+"" #         let pfx = 'vert '
+"" #     else
+"" #         "" # Any higher number requests "in same window" mode, prefix with "0"
+"" #         let pfx = '0'
+"" #     endif
+"" #     exe ':<c-u>' . l:pfx . a:cmd
+"" # endfunction
+"" # nnoremap <leader>il <nop>
+"" # nnoremap <leader>ilo :call GitDo('G hlog')<cr>
+"" # nnoremap <leader>ila :call GitDo('G hlag')<cr>
+"" # " These next two mappings will populate the "local" and "quickfix" lists respectively
+"" # " NOTE: this involves an 'efm' within the Fugitive plugin that does NOT work with '--graph' or my '--pretty' formats
+"" # "       (i.e.  if I add --graph, then the quickfix window does not find the commits to jump to)
+"" # nnoremap <leader>ill :call GitDo('Gllog! --date=human --decorate -- ')<cr>
+"" # nnoremap <leader>ilc :call GitDo('Gclog! --date=human --decorate -- ')<cr>
+
+"" # nnoremap <leader>ilg <nop>
+"" # nnoremap <leader>ilgl :call GitDo('Gllog! --date=human --decorate --all --grep ')<cr>
+"" # nnoremap <leader>ilgc :call GitDo('Gclog! --date=human --decorate --all --grep ')<cr>
+"" #
 
 nnoremap <leader>il <nop>
 nnoremap <expr> <leader>ilo (v:count == '0' ? ':<c-u>G hlog<cr>' : (v:count == '1' ? ':<c-u>vert G hlog<cr>' : ':<c-u>0G hlog<cr>'))
@@ -1868,9 +2161,9 @@ nnoremap <expr> <leader>ila (v:count == '0' ? ':<c-u>G hlag<cr>' : (v:count == '
 nnoremap <leader>ill :Gllog! --date=human --decorate --
 nnoremap <leader>ilc :Gclog! --date=human --decorate --
 
-nnoremap <leader>ilg <nop>
-nnoremap <leader>ilgl :Gllog! --date=human --decorate --all --grep 
-nnoremap <leader>ilgc :Gclog! --date=human --decorate --all --grep 
+nnoremap        <leader>ilg  <nop>
+nnoremap <expr> <leader>ilgl ':Gllog! --date=human --decorate --all --grep '
+nnoremap <expr> <leader>ilgc ':Gclog! --date=human --decorate --all --grep '
 
 nnoremap <leader>iw :Gwrite<cr>
 
@@ -1893,6 +2186,20 @@ nnoremap <silent> <Plug>ResolvePickRight dnddknddknzz:silent! call repeat#set("\
 "" below i just call the new '<Plug>'-defined mapping - but unfortunately I cannot provide a {count}.
 nmap <leader>rm, <Plug>ResolvePickLeft
 nmap <leader>rm. <Plug>ResolvePickRight
+
+
+"
+" Adding some similar maps for P4-based merges which are different in the
+" differences layout (P4 does not use unified diffs markers)
+"
+" TODO:  put this key sequence into a function that can automatically detect when the leading extra "dn" needs to be there
+"        (which is the only difference b/w these mappings and the above)
+"
+nnoremap <silent> <Plug>P4ResolvePickLeft  dnddkndnddknzz:silent! call repeat#set("\<Plug>P4ResolvePickLeft", v:count)<cr>
+nnoremap <silent> <Plug>P4ResolvePickRight dndnddknddknzz:silent! call repeat#set("\<Plug>P4ResolvePickRight", v:count)<cr>
+"" below i just call the new '<Plug>'-defined mapping - but unfortunately I cannot provide a {count}.
+nmap <leader>rp, <Plug>P4ResolvePickLeft
+nmap <leader>rp. <Plug>P4ResolvePickRight
 
 "
 "       Debugging problems with fugitive
@@ -1944,6 +2251,14 @@ nnoremap <leader>fdrl   :FocusDispatch <c-r>b <c-r><c-l><cr>
 "" Next are mappings (& helper function) specifically for MSBuild
 ""
 function! SetMSBuildDispatch(cmd)
+    ""
+    "" NOTE:  this adjusts the JAVA_HOME environment variable within VIM
+    ""        generally when launching MSBuild, this is what I want.
+    ""        this will only become trouble if I find myself interleaving my MSBuild launching
+    ""        with some other Java work for which I want a different JAVA_HOME
+    ""
+    call SetJavaHomeToToolsArea()
+
     ""
     "" MSBuild options: /m /nodeReuse:False
     ""                  /t:Rebuild
@@ -2159,6 +2474,8 @@ set foldopen=block,hor,tag    " what movements open folds
 set foldopen+=percent,mark
 set foldopen+=quickfix
 
+nnoremap <leader>fm? :set foldmethod?<cr>
+nnoremap <leader>fm= :set foldmethod=
 nnoremap <leader>fmm :set foldmethod=marker<cr>
 nnoremap <leader>fmu :set foldmethod=manual<cr>
 nnoremap <leader>fms :set foldmethod=syntax<cr>
@@ -2166,6 +2483,7 @@ nnoremap <leader>fme :set foldmethod=expr<cr>
 nnoremap <leader>fmd :set foldmethod=diff<cr>
 nnoremap <leader>fmi :set foldmethod=indent<cr>
 nnoremap <expr> <leader>fc ":<c-u>set foldcolumn=" . v:count . "<cr>"
+nnoremap <leader>fl? :set foldlevel?<cr>
 "}}}
 
 
@@ -2220,12 +2538,21 @@ let g:NERDTreeFindWithResolve=0
 set tags=./tags;~
 nnoremap <leader>gt :tj <c-r>=expand("<cword>")<cr><cr>
 
+"
+" These CTRL-P_CTRL_X mappings are for every mode
+"
+" NOTE: I am using the special <cmd> to avoid changing to command mode
+"       This keeps any visual selection active, so CtrlP can use it
+"
+noremap <c-p>      <nop>
+noremap <c-p><c-p> <cmd>CtrlP<cr>
+noremap <c-p><c-d> <cmd>CtrlPCurWD<cr>
+noremap <c-p><c-t> <cmd>CtrlPTag<cr>
+noremap <c-p><c-f> <cmd>CtrlPBufTag<cr>
+noremap <c-p><c-m> <cmd>CtrlPMRUFiles<cr>
+noremap <c-p><c-b> <cmd>CtrlPBuffer<cr>
 
-"nnoremap <leader>cp :CtrlPTag<cr>
-nnoremap <leader>cp :CtrlPCurWD<cr>
-nnoremap <leader>cf :CtrlPBufTag<cr>
-"nnoremap <leader>cm :CtrlPMRUFiles<cr>
-"nnoremap <leader>cb :CtrlPBuffer<cr>
+
 " I got this idea from here:  https://thoughtbot.com/blog/faster-grepping-in-vim
 if executable('ag')
 	" Currently I do not manage to have 'ag' in all my various environments
@@ -2486,24 +2813,56 @@ nnoremap <leader>re :Reverse<CR>
 xnoremap <leader>re :Reverse<CR>
 
 ""
-""Easy expansion of the active file directory	(see ":help <expr>")
+"" Easy expansion of the active file directory
 ""
-"" NOTE:  this may not be working :(
-cnoremap <expr> %p  getcmdtype() == ':' ? expand('%:p') : '%p'
-cnoremap <expr> %d  getcmdtype() == ':' ? substitute(expand('%:p'), '[\\/][^\\/]*$', '', '') : '%d'
-cnoremap <expr> %%  getcmdtype() == ':' ? expand('%:h').'/' : '%%'
-cnoremap <expr> %f  getcmdtype() == ':' ? expand('%:t') : '%f'
-cnoremap <expr> %t  getcmdtype() == ':' ? expand('%:t:r') : '%t'
+function! Expand(flags)
+    if a:flags == 'd'
+        let retval = expand('%:p')->substitute('[\\/][^\\/]*$', '', '')
+    elseif a:flags == 'l'
+        let retval = expand('%')->resolve()
+    elseif a:flags == '.'
+        let retval = expand('%')->fnamemodify(':.')
+    elseif a:flags == '~'
+        let retval = expand('~')
+    elseif a:flags == 'c'
+        let retval = getcwd()
+    elseif a:flags == '%'
+        let retval = expand('%:h') . '/'
+    else
+        let retval = expand('%:' . a:flags)
+    endif
+    let retval = substitute(l:retval, '\vfugitive:\\{3}', '', '')
+    return l:retval
+endfunction
+
+"" NOTE:  this may not be working :(   (see ":help <expr>")
+cnoremap <expr> %p  getcmdtype() =~ '[:=]' ? Expand('p')   : '%p'
+cnoremap <expr> %d  getcmdtype() =~ '[:=]' ? Expand('d')   : '%d'
+cnoremap <expr> %%  getcmdtype() =~ '[:=]' ? Expand('%')   : '%%'
+cnoremap <expr> %f  getcmdtype() =~ '[:=]' ? Expand('t')   : '%f'
+cnoremap <expr> %t  getcmdtype() =~ '[:=]' ? Expand('t:r') : '%t'
+cnoremap <expr> %r  getcmdtype() =~ '[:=]' ? Expand('r')   : '%r'
+cnoremap <expr> %h  getcmdtype() =~ '[:=]' ? Expand('h')   : '%h'
+cnoremap <expr> %e  getcmdtype() =~ '[:=]' ? Expand('e')   : '%e'
+cnoremap <expr> %l  getcmdtype() =~ '[:=]' ? Expand('l')   : '%l'
+cnoremap <expr> %.  getcmdtype() =~ '[:=]' ? Expand('.')   : '%.'
+cnoremap <expr> %c  getcmdtype() =~ '[:=]' ? Expand('c')   : '%c'
+cnoremap <expr> %~  getcmdtype() =~ '[:=]' ? Expand('~')   : '%~'
+cnoremap <expr> %z  getcmdtype()
 nnoremap <leader>gp :let @+='<c-r>=expand('%:p')<cr>'<cr>
 nnoremap <leader>g4 :let @+='<c-r>=substitute(system('p4 where ' . shellescape(expand('%:p'))), '\v^(//depot/.{-}) //.*', '\1', '')<cr>'<cr>
+
 
 cnoremap <expr> <c-o>a  getcwd().'_build-logs\msbuild-diagnostic.log'
 cnoremap <expr> <c-o>e  getcwd().'_build-logs\msbuild-detailed.log'
 cnoremap <expr> <c-o>n  getcwd().'_build-logs\msbuild-normal.log'
 cnoremap <expr> <c-o>m  getcwd().'_build-logs\msbuild-minimal.log'
 
-function OutputLog(expr)
-    let l:log = glob('.\Output\Logs\en-us\**\' . a:expr)
+function! OutputLog(expr)
+    let l:log = glob('.\Output\Logs\en-us**\' . a:expr)
+    if l:log == ''
+        let l:log = glob('.\Windows**\' . a:expr)
+    endif
     if l:log == ''
         throw 'Unable to find output build log for [' . a:expr .']'
     endif
@@ -2514,15 +2873,28 @@ cnoremap <expr> <c-o>o  OutputLog('*OldServer*.txt')
 cnoremap <expr> <c-o>b  OutputLog('*Bootstrap*.txt')
 cnoremap <expr> <c-o>w  OutputLog('*NewServer.txt')
 cnoremap <expr> <c-o>c  OutputLog('*Cpp*.txt')
+cnoremap <expr> <c-o>8  OutputLog('*-msbuild-x86-Release.log')
+cnoremap <expr> <c-o>6  OutputLog('*-msbuild-x86_64-Release.log')
+
+""
+"" Handy mapping that I should have created LOOOOng ago.
+""    (though really, all of my Ex-mode '<c-o>...' mappings are new)
+""
+cnoremap <expr> <c-o>v  VisualSelection()
 
 
 "" mapping to set the current directory from a specific buffer's file path
 ""  w/o a count: uses the current buffer's path
 "" with a count: uses the path of that buffer
 "nnoremap <expr> <leader>cd ":<c-u>cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
-nnoremap <expr> <leader>xbcd ":<c-u>bufdo cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
-nnoremap <expr> <leader>xtcd ":<c-u>tabdo cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
-nnoremap <expr> <leader>xwcd ":<c-u>windo cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
+"nnoremap <expr> <leader>xbcd ":<c-u>bufdo cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
+"nnoremap <expr> <leader>xtcd ":<c-u>tabdo cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
+"nnoremap <expr> <leader>xwcd ":<c-u>windo cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
+
+"" NOTE:  the other \p... mappings are about P4
+nnoremap <leader>p   <nop>
+nnoremap <leader>pw  <nop>
+nnoremap <leader>pwd :verbose pwd<cr>
 
 ""
 "" Save a file that requires root permissions (see ":help :w_c" and ":help c_%")
@@ -2588,6 +2960,10 @@ if has('win32')
             let full = trim(system('whoami'))
             " This strips the domain, and capitalizes it
             let newval = substitute(l:full, '\v^.{-}\\(.+)$', '\u\1', '')
+            " In the special circumstance where the username is just capitalized, convert to lower
+            if l:newval =~# '\v[A-Z][^A-Z]+$'
+                let newval = l:newval->tolower()
+            endif
         else
             " For the rest -- we read the registry for the new value(s)
             let sysval = ExpandEnvVars(GetRegValue(s:syskey, l:vname))
@@ -2709,6 +3085,7 @@ endif
 set t_Co=256
 
 let g:airline#extensions#tabline#tab_nr_type=1
+let g:airline#extensions#branch#displayed_head_limit=20
 " This setting shows buffers in the top bar when there is just one tab
 "let g:airline#extensions#tabline#enabled=1
 "}}}
@@ -2736,7 +3113,8 @@ nnoremap <leader>ftu :e ++ff=unix<cr>
 nnoremap <leader>fto :e ++ff=dos<cr>
 nnoremap <leader>ftm :%s/\v(<C-V><cr><bar>\^M)$//<bar>PopSearch<cr>
 nnoremap <leader>ftd :filetype detect<cr>
-nnoremap <leader>ft<space> :set filetype=
+nnoremap <leader>ft? :set filetype?<cr>
+nnoremap <leader>ft= :set filetype=
 
 nnoremap <leader>ftt :set ft=text<cr>
 nnoremap <leader>fth :set ft=help<cr>
@@ -2755,7 +3133,7 @@ if executable('vim-clang-format.py')
     "dir /b /s /a-d "C:\Program Files (x86)\Microsoft Visual Studio\clang*.exe"
     let g:clang_format_path = 'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\Llvm\bin\clang-format.exe'
     let g:clang_format_style = 'file'
-    let g:clang_format_fallback_style = 'none'
+    let g:clang_format_fallback_style = 'llvm'
     noremap <leader><leader>k :pyf <c-r>=trim(system('where vim-clang-format.py'))<cr><cr>
     inoremap <c-k> <c-o>:pyf <c-r>=trim(system('where vim-clang-format.py'))<cr><cr>
 endif
@@ -2862,19 +3240,22 @@ function! s:CompareQuickfixEntries(i1, i2)
 	endif
 endfunction
 function! s:SortUniqQFList()
-"	let sortedList = sort(getqflist(), 's:CompareQuickfixEntries')
-"	let uniqedList = []
-"	let last = ''
-"	for item in sortedList
-"		let this = bufname(item.bufnr) . "\t" . item.lnum
-"		if this !=# last
-"			call add(uniqedList, item)
-"			let last = this
-"		endif
-"	endfor
-"	call setqflist(uniqedList)
+	let sortedList = sort(getqflist(), 's:CompareQuickfixEntries')
+	let uniqedList = []
+	let last = ''
+	for item in sortedList
+		let this = bufname(item.bufnr) . "\t" . item.lnum
+		if this !=# last
+			call add(uniqedList, item)
+			let last = this
+		endif
+	endfor
+	call setqflist(uniqedList)
 endfunction
-autocmd! QuickfixCmdPost * call s:SortUniqQFList()
+augroup QuickFixSortGroup
+    autocmd!
+    "autocmd! QuickfixCmdPost * call s:SortUniqQFList()
+augroup end
 "}}}
 
 
@@ -3018,24 +3399,31 @@ if has('win32')
     nnoremap <silent> <leader>ofup :!start <c-r>=substitute(system('echo %USERPROFILE%'), '\v[\s\n\r]+$', '', '')<cr><cr>
 endif
 
-nnoremap <silent> <leader>og  <nop>
-nnoremap <silent> <leader>ogm :set guioptions+=m<cr>
-nnoremap <silent> <leader>ogs :set guioptions+=rL<cr>
-
+nnoremap <silent> <leader>o <nop>
 nnoremap <silent> <leader>oq :copen<cr>
 nnoremap <silent> <leader>ol :lopen<cr>
 nnoremap <silent> <leader>on :NERDTree<cr>
 nnoremap <silent> <leader>ot :TagbarOpen<cr>
 
+nnoremap <silent> <leader>og  <nop>
+nnoremap <silent> <leader>ogm :set guioptions+=m<cr>
+nnoremap <silent> <leader>ogs :set guioptions+=rL<cr>
+nnoremap <silent> <leader>oga :set guioptions+=e<cr>
+
 nnoremap <silent> <leader>z <nop>
 nnoremap <silent> <leader>zq :cclose<cr>
 nnoremap <silent> <leader>zl :lclose<cr>
-nnoremap <silent> <leader>zm :set guioptions-=m<cr>
 nnoremap <silent> <leader>zn :NERDTreeClose<cr>
-nnoremap <silent> <leader>zs :set guioptions-=rL<cr>
 nnoremap <silent> <leader>zt :TagbarClose<cr>
+
 nnoremap <silent> <leader>za :cclose<bar>lclose<bar>NERDTreeClose<bar>TagbarClose<cr>
 nnoremap <silent> <leader>zz :hide<cr>
+
+nnoremap <silent> <leader>zg  <nop>
+nnoremap <silent> <leader>zgm :set guioptions-=m<cr>
+nnoremap <silent> <leader>zgs :set guioptions-=rL<cr>
+nnoremap <silent> <leader>zga :set guioptions-=e<cr>
+
 "}}}
 
 " Settings for vim-swap -- so the mappings do not clash with my own "{{{
@@ -3069,16 +3457,19 @@ nnoremap <leader>xt <nop>
 nnoremap <leader>xw <nop>
 
 " NOTE:  these have a TRAILING SPACE in the right-hand-side too (so the :... is ready to go)
-nnoremap <leader>xa<space> :argdo 
-nnoremap <leader>xb<space> :bufdo 
-nnoremap <leader>xt<space> :tabdo 
-nnoremap <leader>xw<space> :windo 
+nnoremap <expr> <leader>xa<space> ':argdo '
+nnoremap <expr> <leader>xb<space> ':bufdo '
+nnoremap <expr> <leader>xt<space> ':tabdo '
+nnoremap <expr> <leader>xw<space> ':windo '
 
 "}}}
 
 
 " Window mappings & settings (including resizing with shit/ctrl arrows) "{{{
 set noequalalways
+
+" Hygiene for all the \w... mappings that follow
+nnoremap <leader>w <nop>
 
 " Settings for vim-windowswap
 let g:windowswap_map_keys=0
@@ -3154,10 +3545,22 @@ function! SetGuiSize(lines, columns)
 	"	endif
 	endif
 endfunction
-nnoremap <leader>xx :call SetGuiSize(1000, 1000)<cr>
+nnoremap <leader>wx :call SetGuiSize(1000, 1000)<cr>
 " This is the size that corresponds with my laptop monitor size (think of 'n' for 'normal')
-nnoremap <leader>xn :call SetGuiSize(93, 293)<cr>
-nnoremap <leader>xs :call SetGuiSize(40, 134)<cr>
+nnoremap <leader>wn :call SetGuiSize(93, 293)<cr>
+nnoremap <leader>wm :call SetGuiSize(40, 134)<cr>
+nnoremap <leader>wt :call SetGuiSize(100, 134)<cr>
+nnoremap <leader>wq :call SetGuiSize(85, 273)<cr>
+nnoremap <leader>w? :set lines?<bar>set columns?<cr>
+
+"nnoremap <leader>wz :call popup_clear(1)<cr>
+function! ClosePopups()
+    for popid in popup_list()
+        echo 'Closing: ' . l:popid
+        call popup_close(l:popid)
+    endfor
+endfunction
+nnoremap <leader>wz :call ClosePopups()<cr>
 
 
 ""
@@ -3288,12 +3691,19 @@ nnoremap <c-kminus> zc
 "" These mappings are helpful for perforce
 ""
 nnoremap <leader>pe :!p4 edit "<c-r>=expand("%:p")<cr>"<cr>
-nnoremap <leader>pd :!p4 diff "<c-r>=expand("%:p")<cr>"<cr>
+nnoremap <leader>pd :b#<cr>:!p4 delete "<c-r>=expand("#:p")<cr>"<cr>
 nnoremap <leader>pa :!p4 add "<c-r>=expand("%:p")<cr>"<cr>
 nnoremap <leader>pr :!p4 revert "<c-r>=expand("%:p")<cr>"<cr>
-nnoremap <leader>pb :Redir !p4 annotate -I -c -a -u <c-r>=shellescape(expand("%:p"))<cr><cr>
+nnoremap <expr> <leader>pb ':<c-u>1 Redir !p4 annotate -I -c ' . ( v:count==1 ? '-a ' : '' ) . '-u -T <c-r>=shellescape(expand("%:p"))<cr><cr>'
 
-nnoremap <leader>pv :!start /min cmd /c "set P4DIFF=C:\Users\Administrator\bin\simple-vimdiff.bat&& p4 diff ^"<c-r>=expand("%:p")<cr>^""<cr>
+nnoremap <leader>pf :!p4 diff "<c-r>=expand("%:p")<cr>"<cr>
+nnoremap <leader>pv :!start /min cmd /c "set P4DIFF=<c-r>=expand("~")<cr>\bin\simple-vimdiff.bat&& p4 diff ^"<c-r>=expand("%:p")<cr>^""<cr>
+
+
+function! BackupCL(cl, name)
+    call system('cl-save ' . a:cl . ' "' . a:name . '"')
+    call system('cl-undo "' . a:name . '"')
+endfunction
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -3343,7 +3753,9 @@ nnoremap <leader>pv :!start /min cmd /c "set P4DIFF=C:\Users\Administrator\bin\s
 ""
 
 nnoremap <leader>m    <nop>
-nnoremap <leader>mm   :set errorformat?<cr>
+nnoremap <leader>m?   :set errorformat?<cr>
+nnoremap <leader>m&   :set errorformat&<cr>
+nnoremap <leader>m=   :set errorformat=
 nnoremap <leader>mc   <nop>
 nnoremap <leader>mcl  :set errorformat=<cr>
 nnoremap <leader>ms   <nop>
