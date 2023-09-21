@@ -35,8 +35,10 @@ set modelines=0
 set viminfo='999,<500,s100,h,rA:,rB:,f0
 
 nnoremap <leader>v    <nop>
+nnoremap <expr> <leader>vb   ':vert sb '
 nnoremap <leader>ve   :tabedit $MYVIMRC<cr>
 nnoremap <leader>vr   :so $MYVIMRC<cr>
+nnoremap <leader>vt   :vert term<cr>
 nnoremap <leader>vi   <nop>
 nnoremap <leader>vif  <nop>
 nnoremap <leader>vifn :set viminfofile=NONE<cr>
@@ -298,6 +300,10 @@ endif
 "  autocmd FileType text setlocal textwidth=78
 "augroup END
 
+nnoremap <leader>tw? :set textwidth?<cr>
+nnoremap <leader>tw& :set textwidth&<cr>
+nnoremap <leader>tw<space> :set textwidth=
+nnoremap <expr> <leader>tww ":<c-u>set textwidth=" . v:count . "<cr>"
 " Add optional packages.
 "
 " NOTE:  this should be superceeded by the "chrisbra/matchit" plugin managed
@@ -395,27 +401,42 @@ nnoremap <leader>rr :redraw!<cr>
 ""       groupings & zero-width:    '(', ')', '@'
 ""       word boundaries:           '<', '>'
 ""
-function! Rescape(val)
-    return escape(a:val, '\|&^$%.*+?={[\/()@~<>"''')
+function! VimRxEscape(val)
+    return escape(a:val, '()[{?*+|^$.&~%=\/@<>')
 endfunction
 
-function! SpecialEscape(val)
-    return escape(a:val, "#%!")
+function! PerlRxEscape(val)
+    "" #
+    "" # From Python 3.10 re.escape() source:
+    "" #      _special_chars_map = {i: '\\' + chr(i) for i in b'()[]{}?*+-|^$\\.&~# \t\n\r\v\f'}
+    "" #
+    return escape(a:val, '()[{?*+|^$.&~#')
+endfunction
+
+function! VimCmdEscape(val)
+    let line = a:val
+    if ! has('win32')
+        let line = substitute(l:line, '\v\%(\w+)\%', '${\1}', 'g')
+    endif
+    return escape(l:line, "#%!")
 endfunction
 
 function! CygEscape(val)
-    let rv = substitute(a:val, "'", "'\\\\''", 'g')
+    let rv = a:val
+    " For Cygwin we need to follow Linux-like cmd-line quoting:
+    " - each ' becomes '\'' (to preserve as part of the parameter)
+    let rv = substitute(l:rv, "'", "'\\\\''", 'g')
     let rv = substitute(l:rv, '"', "'\"'", 'g')
-    return SpecialEscape(l:rv)
+    return VimCmdEscape(l:rv)
 endfunction
 
 vnoremap <silent> * :<C-U> let old_reg=getreg('"')<Bar>let old_regtype=getregtype('"')<CR>
                    \gvy/\v<C-R>=&ic?'\c':'\C'<CR>
-                   \<C-R><C-R>=substitute(Rescape(@"), '\s\+', '\\s+', 'g')<CR><CR>
+                   \<C-R><C-R>=substitute(VimRxEscape(@"), '\s\+', '\\s+', 'g')<CR><CR>
                    \gVzv:call setreg('"', old_reg, old_regtype)<CR>
 vnoremap <silent> # :<C-U> let old_reg=getreg('"')<Bar>let old_regtype=getregtype('"')<CR>
                    \gvy?\v<C-R>=&ic?'\c':'\C'<CR>
-                   \<C-R><C-R>=substitute(Rescape(@"), '\s\+', '\\s+', 'g')<CR><CR>
+                   \<C-R><C-R>=substitute(VimRxEscape(@"), '\s\+', '\\s+', 'g')<CR><CR>
                    \gVzv:call setreg('"', old_reg, old_regtype)<CR>
 
 " NOTE:  this will affect the behavior of the "unnamed" register and which
@@ -453,10 +474,21 @@ endif
 "" Fonts
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " Settings related to Fonts "{{{
+
+" This bit "adds on" to what the FontSize plugin provides
+" (but is stand-alone and does not need it at all,
+"  so here instead of the fontsize options section)
+nnoremap <leader><leader>? :set guifont?<cr>
+
 " This bit was inspired by the answer here:  https://stackoverflow.com/a/3316521/5844631
-if ! exists("s:font_set")
-    let s:font_set = 1
-    if has('gui_running')
+nnoremap <leader>rf :echom 'No font mappings available'<cr>
+
+if has('gui_running')
+    let s:first_run = 0
+    if ! exists("s:font_set")
+        let s:font_set = 1
+        let s:first_run = 1
+
         let s:guifont=''
         if has('gui_win32')
             let s:guifont='Lucida_Console:h8:cANSI:qDRAFT'
@@ -466,22 +498,32 @@ if ! exists("s:font_set")
             let s:guifont='Consolas:h11:cANSI'
             "let s:guifont='Monospace:10'
         endif
-        ""
-        "" NOTE:  this is an attemped workaround for something that is VERY
-        ""        annoying.  my current VIM's `getfontname()` method returns
-        ""        NOTHING at first!  Then if I `:set guifont=` using the
-        ""        mapping below, it starts returning the right value?!?!?!?
-        ""
-        ""        So that is why I create a mapping for \rf -- and I must
-        ""        use it before attempting to 'resize' using vim-fontsize
-        ""
-        ""        Additionally -- even `:set`ting the value here, does not help
-        ""        I still must use the mapping after VIM finishes loading :(
-        ""
-        if s:guifont != ""
-            execute 'set guifont=' . s:guifont
-            execute 'nnoremap <leader>rf :set guifont=' . s:guifont . '<cr>'
-            execute "normal \<Plug>FontsizeDefault"
+    endif
+
+    ""
+    "" NOTE:  this is an attemped workaround for something that is VERY
+    ""        annoying.  my current VIM's `getfontname()` method returns
+    ""        NOTHING at first!  Then if I `:set guifont=` using the
+    ""        mapping below, it starts returning the right value?!?!?!?
+    ""
+    ""        So that is why I create a mapping for \rf -- and I must
+    ""        use it before attempting to 'resize' using vim-fontsize
+    ""
+    ""        Additionally -- even `:set`ting the value here, does not help
+    ""        I still must use the mapping after VIM finishes loading :(
+    ""
+    function! MakeGuiFont() range
+        if v:count == 0
+            return s:guifont
+        endif
+        return substitute(s:guifont, '\v:h\d+', ':h' . v:count, '')
+    endfunction
+
+    if s:guifont != ""
+        nnoremap <expr> <leader>rf ':<c-u>set guifont=' . MakeGuiFont() . '<cr>'
+        if s:first_run == 1
+            let &guifont=s:guifont
+            normal \<Plug>FontsizeDefault
         endif
     endif
 endif
@@ -542,6 +584,7 @@ endif
 " Anyhow, here is the URL for reference;  https://github.com/gmarik/dotfiles/blob/master/.vim/vimrc
 "" NOTE:  gmarik uses F10 for this, but I have not disabled F10 in gnome
 set pastetoggle=<F11>	" easy toggle of paste mode
+nnoremap <expr> <leader>pm ':set ' . (&paste == 0 ? '' : 'no') . 'paste<cr>'
 "inoremap c-v :set paste!<cr>
 
 ""
@@ -625,6 +668,43 @@ nnoremap <leader>jj :jumps<cr>
 
 
 " Artifactory section "{{{
+"" #
+"" # So this section reads data from various 'dot' files to get credentials,
+"" # then sets those values into env. vars for use in subsequent commands.
+"" #
+"" # I think we were suggested to use API Keys for our authentication
+"" # But now we are suggested to use ID Tokens
+"" #
+"" # I am a bit unsure as to the specific differences, since I was *at first*
+"" # under the impression that the ID Token contained both the ID of the user
+"" # and the level of privilege allowed once logged in.
+"" #
+"" # However, it seems that EVEN WITH the use of the ID Token, we *STILL* have
+"" # to specify our Okta ID -- so I'm stumped.
+"" #
+"" # I have logged into Artifactory and created BOTH an API Key, and an
+"" # Identity Token -- and I also use them both just because I can.
+"" #
+"" # It may be that everywhere I'm using one, I could replace with the other...
+"" # I don't care for now.
+"" #
+nnoremap <leader>sa  <nop>
+
+function! SetArtifactoryToken()
+    for line in readfile(expand('~\.netrc'))
+        let tokens = l:line->split(' ')
+        if len(l:tokens) && l:tokens[0] == 'login'
+            let $ARTUSR=l:tokens[1]
+            echo 'Setting %ARTUSR% to: ' . l:tokens[1]
+        endif
+        if len(l:tokens) && l:tokens[0] == 'password'
+            let $ARTTOK=l:tokens[1]
+            echo 'Setting %ARTTOK% to: ' . l:tokens[1][0:10] . '...'
+        endif
+    endfor
+endfunction
+nnoremap <leader>sat :call SetArtifactoryToken()<cr>
+
 function! SetApiKey()
     for line in readfile(expand('~\.gradle\gradle.properties'))
         let tokens = l:line->split('=')
@@ -636,13 +716,13 @@ function! SetApiKey()
         endif
         if len(l:tokens) && l:tokens[0] == 'artifactoryApiKey'
             let $ORG_GRADLE_PROJECT_artifactoryApiKey=l:tokens[1]
-            echo 'Setting %ORG_GRADLE_PROJECT_artifactoryApiKey% to: ' . l:tokens[1]
+            echo 'Setting %ORG_GRADLE_PROJECT_artifactoryApiKey% to: ' . l:tokens[1][0:10] . '...'
             let $APIKEY=l:tokens[1]
-            echo 'Setting %APIKEY% to: ' . l:tokens[1]
+            echo 'Setting %APIKEY% to: ' . l:tokens[1][0:10] . '...'
         endif
     endfor
 endfunction
-nnoremap <leader>ak :call SetApiKey()<cr>
+nnoremap <leader>sak :call SetApiKey()<cr>
 "}}}
 
 
@@ -668,12 +748,21 @@ function! SetJavaHomeToToolsArea()
     "" # glob() arg2:  {nosuf}, if TRUE ignore 'suffixes' and 'wildignore' options
     "" # glob() arg3:  {list}, if TRUE return a list
     "" # The only reason I have the 2nd is to get to the 3rd
-    let matches = glob(fnamemodify(l:search_dir, ':p') . 'o*\**\javac.exe', 0, 1)
+    let matches = glob(fnamemodify(l:search_dir, ':p') . '**\javac.exe', 0, 1)
     if !len(matches)
         echom "WARNING:  Search dir [".l:search_dir."] exists, but javac.exe still not found"
         return
     endif
-    let $JAVA_HOME = fnamemodify(fnamemodify(l:matches[0], ':h'), ':h')
+    let javas = {}
+    for match in l:matches
+        let ver = split(trim(system(l:match . ' -version')))[1]
+        let javas[l:ver] = l:match
+    endfor
+
+    "" # TODO:  should this always just be the "highest" vesion?
+    let highest = sort(keys(l:javas))[-1]
+
+    let $JAVA_HOME = fnamemodify(fnamemodify(l:javas[l:highest], ':h'), ':h')
     echom 'Set JAVA_HOME to:  ' . $JAVA_HOME
 endfunction
 
@@ -694,6 +783,8 @@ nnoremap <expr> <leader>jr ':w<cr>:!cd "'.expand('%:p:h').'" && java '.expand('%
 "" # JDK 11 and newer can run single Java files with a single launch:
 "" #
 nnoremap <expr> <leader>ja ':w<cr>:!cd "'.expand('%:p:h').'" && java '.expand('%:t').' '
+
+nnoremap <expr> <leader>ji ':call CocAction(''organizeImport'')<cr>'
 
 
 
@@ -1092,20 +1183,49 @@ function! LineAsWatchCmd() abort
     endif
     return l:cmd
 endfunction
+function! OutputCaptureHeading(data)
+    if type(a:data) == type('')
+        "" # NOTE: for string data, `writefile()` automatically replaces
+        "" #       newlines with NULL so we split early just in case.
+        "" #       (though this helper is only called from a couple places...)
+        let writedata = a:data->split('\\n')
+    else
+        let writedata = a:data
+    endif
+
+    "" # NOTE:  `-1` means Not Found
+    let fsize = getfsize('out.txt')
+
+    "" # Size used to decide if file is NEW -- or if spacer lines and appending should be used
+    if l:fsize == -1 || l:fsize == 0
+        call writefile(l:writedata, 'out.txt', 's')
+        return
+    endif
+
+    call writefile(['',''], 'out.txt', 'as')
+    call writefile(l:writedata, 'out.txt', 'as')
+endfunction
 function! LineAsShellCmd(capture) abort
+    return TextAsShellCmd(a:capture, getline('.'))
+endfunction
+function! VisualAsShellCmd(capture) abort
+    return TextAsShellCmd(a:capture, VisualSelection())
+endfunction
+function! TextAsShellCmd(capture, text) abort
     " TODO:  this OS detection is duplicated just below, remove that
     "        duplication
     if has('win32')
-        let line = '(' . SpecialEscape(getline('.')) . ')'
+        let line = '(' . VimCmdEscape(a:text) . ')'
     else
-        let line = SpecialEscape(getline('.'))
+        let line = VimCmdEscape(a:text)
     endif
     if a:capture
+        call OutputCaptureHeading(l:line)
         let line = l:line . ' 2>&1 | tee -ai out.txt'
     endif
     return l:line
 endfunction
-function! InnerParagraphAsShellCmd(capture) abort
+function! GetInnerParagraph() abort
     ""
     "" The below block is a home-made version of "inner paragraph"
     "" this avoids using `normal yip` -- providing 2 benefits:
@@ -1117,7 +1237,11 @@ function! InnerParagraphAsShellCmd(capture) abort
     let l:first = l:empty ? l:empty + 1 : 1
     let empty = search('^\s*$', 'nW')
     let l:last = l:empty ? l:empty - 1 : line('$')
-    let lines = getline(l:first, l:last)
+    return [l:first, l:last]
+endfunction
+function! InnerParagraphAsShellCmd(capture) abort
+    let inner = GetInnerParagraph()
+    let lines = getline(l:inner[0], l:inner[1])
 
     " NOTE:  Here, each line will be surrounded by "()" and joined by "&"
     "        to combine multiple commands onto a single command line.
@@ -1127,12 +1251,13 @@ function! InnerParagraphAsShellCmd(capture) abort
     "        quotes so we use escape() to do what shellescape(..., 1) would do
     "        (i.e. escape the 'special' items)
     if has('win32')
-        let lines = map(l:lines, '"(" . SpecialEscape(v:val) . ")"')
+        let lines = map(l:lines, '"(" . VimCmdEscape(v:val) . ")"')
     else
-        let lines = map(l:lines, 'SpecialEscape(v:val)')
+        let lines = map(l:lines, 'VimCmdEscape(v:val)')
     endif
 
     if a:capture
+        call OutputCaptureHeading(l:lines)
         let lines = map(l:lines, 'v:val . " 2>&1 | tee -ai out.txt"')
     endif
     return join(l:lines, ' & ')
@@ -1143,6 +1268,13 @@ endfunction
 nnoremap <leader>ep  <nop>
 nnoremap <leader>epz :<c-u>echo '<c-r>=substitute(InnerParagraphAsShellCmd(v:count), "'", "''", "g")<cr>'<cr>
 
+function! ExecuteInnerParagraph() abort
+    let inner = GetInnerParagraph()
+    let lines = getline(l:inner[0], l:inner[1])
+    for line in l:lines
+        execute(l:line)
+    endfor
+endfunction
 
 ""
 "" Now the MAPPINGS  (w/ comments of mnemonic)
@@ -1161,8 +1293,24 @@ nnoremap <leader>ec :<c-r>=getline('.')<cr><cr>
 "" ODDball ECHO mappings..
 "" I don't like this, but for now, don't know where to put them.
 ""
-nnoremap <leader>ed :norm ]op<c-r>=system('cdate --date @<c-r><c-w>')->trim()<cr><cr>
-vnoremap <leader>ed :<c-u>norm ]op<c-r>=system('cdate --date @'.VisualSelection())->trim()<cr><cr>
+function! EpochToDate(sec)
+    if len(a:sec) == 10
+        let sec = a:sec
+        let ms = ''
+    elseif len(a:sec) == 13
+        let sec = a:sec[:9]
+        let ms = a:sec[10:]
+    endif
+    if has('win32')
+        let rv = system('cdate --date @' . l:sec)
+    else
+        let rv = system('date -j -f "%s" ' . l:sec)
+    endif
+    return trim(l:rv) . (l:ms ? ' (ms: '.l:ms.')' : '')
+endfunction
+
+nnoremap <leader>ed :norm ]op<c-r>=EpochToDate(<c-r><c-w>)<cr><cr>
+vnoremap <leader>ed :<c-u>norm ]op<c-r>=EpochToDate(VisualSelection())<cr><cr>
 
 nnoremap <leader>shrug :echo '¯\_(ツ)_/¯'<cr>
 inoremap <expr> <c-s> '¯\_(ツ)_/¯'
@@ -1188,33 +1336,32 @@ inoremap <expr> <c-s> '¯\_(ツ)_/¯'
 ""
 "" eg       : [E]xecute [G]et    -- in foreground, paste output just below
 nnoremap <leader>eg :r !<c-r>=LineAsShellCmd(0)<cr><cr>
+nnoremap <leader>es :r !echo <c-r>=VimCmdEscape(getline('.'))<cr><cr>
 
 "" er.    : [E]xecute [R]un           -- in foreground (no pasting)
 "" el.    : [E]xecute [L]aunch        -- in background (no pasting)
 "" e.f    : [E]xecute ... [F]ree      -- no redirection
 "" e.c    : [E]xecute ... [C]apture   -- redirection & tee  (with: "2>&1 | tee -ai out.txt")
 "" NEW:
-"" elr    : [E]xecute [L]ine [R]un    -- w/o count: "free", with count: "capture"
-"" ell    : [E]xecute [L]ine [L]aunch -- w/o count: "free", with count: "capture"
-nnoremap <leader>er <nop>
-nnoremap <leader>erf :<c-u>!<c-r>=LineAsShellCmd(0)<cr><cr>
-nnoremap <leader>erc :<c-u>!<c-r>=LineAsShellCmd(1)<cr><cr>
+"" elr    : [E]xecute [L]ine [R]un      -- w/o count: "free", with count: "capture"
+"" ell    : [E]xecute [L]ine [L]aunch   -- w/o count: "free", with count: "capture"
 
 nnoremap <leader>el <nop>
-nnoremap <leader>elr :<c-u>!<c-r>=LineAsShellCmd(v:count)<cr><cr>
+vnoremap <leader>ev <nop>
 
+nnoremap <leader>elr :<c-u>!<c-r>=LineAsShellCmd(v:count)<cr><cr>
+vnoremap <leader>evr :<c-u>!<c-r>=VisualAsShellCmd(v:count)<cr><cr>
 if has('win32')
-	nnoremap <leader>elf :<c-u>!start cmd /v:on /c "<c-r>=LineAsShellCmd(0)<cr> & pause"<cr>
-	nnoremap <leader>elc :<c-u>!start cmd /v:on /c "<c-r>=LineAsShellCmd(1)<cr> & pause"<cr>
 	nnoremap <leader>ell :<c-u>!start cmd /v:on /c "<c-r>=LineAsShellCmd(v:count)<cr> & pause"<cr>
+	vnoremap <leader>evl :<c-u>!start cmd /v:on /c "<c-r>=VisualAsShellCmd(v:count)<cr> & pause"<cr>
 else
-	nnoremap <leader>elf :<c-u>!<c-r>=LineAsShellCmd(0)<cr> &<cr>
-	nnoremap <leader>elc :<c-u>!<c-r>=LineAsShellCmd(1)<cr> &<cr>
 	nnoremap <leader>ell :<c-u>!<c-r>=LineAsShellCmd(v:count)<cr> &<cr>
+	vnoremap <leader>evl :<c-u>!<c-r>=VisualAsShellCmd(v:count)<cr> &<cr>
 endif
 
 if has ('win32')
     nnoremap <leader>wal :<c-u><c-r>=LineAsWatchCmd()<cr><cr><c-w>p
+    nnoremap <leader>wvl :<c-u>vert <c-r>=LineAsWatchCmd()<cr><cr><c-w>p
 endif
 
 ""
@@ -1222,25 +1369,18 @@ endif
 ""
 "" e.p.   : [E]xecute [R][L] [P]aragraph [F][C]
 "" NEW:
-"" epr    : [E]xecute [P]aragraph [R]un    -- w/o count: "free", w/ count: "capture"
-"" epl    : [E]xecute [P]aragraph [L]aunch -- w/o count: "free", w/ count: "capture"
-
-nnoremap <leader>erp <nop>
-nnoremap <leader>erpf :<c-u>!<c-r>=InnerParagraphAsShellCmd(0)<cr><cr>
-nnoremap <leader>erpc :<c-u>!<c-r>=InnerParagraphAsShellCmd(1)<cr><cr>
+"" epr    : [E]xecute [P]aragraph [R]un      -- w/o count: "free", w/ count: "capture"
+"" epl    : [E]xecute [P]aragraph [L]aunch   -- w/o count: "free", w/ count: "capture"
+"" epc    : [E]xecute [P]aragraph [C]ommands -- count not used (runs each line as VIM command)
 
 nnoremap <leader>epr  :<c-u>!<c-r>=InnerParagraphAsShellCmd(v:count)<cr><cr>
 
-nnoremap <leader>elp <nop>
 if has('win32')
-	nnoremap <leader>elpf :<c-u>!start cmd /v:on /c "<c-r>=InnerParagraphAsShellCmd(0)<cr> & pause"<cr>
-	nnoremap <leader>elpc :<c-u>!start cmd /v:on /c "<c-r>=InnerParagraphAsShellCmd(1)<cr> & pause"<cr>
 	nnoremap <leader>epl  :<c-u>!start cmd /v:on /c "<c-r>=InnerParagraphAsShellCmd(v:count)<cr> & pause"<cr>
 else
-	nnoremap <leader>elpf :<c-u>!<c-r>=InnerParagraphAsShellCmd(0)<cr> &<cr>
-	nnoremap <leader>elpc :<c-u>!<c-r>=InnerParagraphAsShellCmd(1)<cr> &<cr>
 	nnoremap <leader>epl  :<c-u>!<c-r>=InnerParagraphAsShellCmd(v:count)<cr> &<cr>
 endif
+nnoremap <leader>epc :call ExecuteInnerParagraph()<cr>
 "}}}
 
 
@@ -1350,7 +1490,7 @@ let g:python_recommended_style=0
 "
 " Also:  about 'ag' - if you specify 'nogroup' (implies *both* nobreak &
 "         noheading) ...   and THEN also specify 'noheading'...    you get BREAKS
-let s:ag_cmd = 'ag\ --depth\ 50\ --hidden\ --ignore\ tags\ --vimgrep\ $*'
+let s:ag_cmd = 'ag\ --depth\ 50\ --hidden\ --ignore\ tags\ --vimgrep\ --silent\ $*'
 let s:gg_cmd = 'ggrep\ -PIn\ $*'
 "" On my windows there is a Cygwin version of GNU grep renamed "cgrep"
 " Currently the only option differences:    -H and -r  (maybe can be removed)
@@ -1387,27 +1527,46 @@ endif
 execute 'nnoremap <leader>grgr :set grepprg=' . s:gr_cmd . '<cr>'
 nnoremap <leader>grdf :set grepprg&<cr>
 
-nnoremap <leader>grnv :set grepprg=<c-r>=substitute(substitute(&grepprg, '--vimgrep ', '', ''), ' ', '\\ ', 'g')<cr><cr>
-nnoremap <leader>grch :set grepprg=<c-r>=substitute(&grepprg, ' ', '\\ ', 'g')<cr>
+nnoremap <leader>grnv :set grepprg=<c-r>=escape(substitute(&grepprg, '--vimgrep ', '', ''), ' "\()\|')<cr><cr>
+nnoremap <leader>grnb :set grepprg=<c-r>=escape(substitute(&grepprg, '--search-binary ', '', ''), ' "\()\|')<cr><cr>
+nnoremap <leader>grab :set grepprg=<c-r>=escape(substitute(&grepprg, '\$\*$', '--search-binary $*', ''), ' "\()\|')<cr><cr>
+nnoremap <leader>grns :set grepprg=<c-r>=escape(substitute(&grepprg, '--silent ', '', ''), ' "\()\|')<cr><cr>
+nnoremap <leader>grch :set grepprg=<c-r>=escape(&grepprg, ' "\()\|')<cr>
+" NOTE: above, the '|' char needs to be escaped, while '\' does not,
+"       so the first '\' means itself and is not affecting the '(' right after it
+
+
 nnoremap <expr> <leader>gr<space> ':lgrep! '
+nnoremap <leader>gr? :set grepprg?<cr>
 
 " NOTE:  these INTENTIONALLY end with a space!
 "        now protected by using '<expr>' style mappings
+function! GrepEscape(val)
+    "" # I found that if the current selection or WORD contains quotes,
+    "" # they need to be escaped also.  YET, I am not sure that this
+    "" # cleaning belongs in either of the two helpers already used here.
+    "" # So, I'm doing the double-quote escaping here in GrepEscape()
+    return VimCmdEscape(escape(PerlRxEscape(a:val), '"'))
+endfunction
+function! GrepPrgForCmd()
+    return join(split(&grepprg, ' ')[:-2], ' ')
+endfunction
 nnoremap        <leader>gw  <nop>
-nnoremap <expr> <leader>gwc ':Redir !=&grepprg->split('' '')[:-2]->join('' '') "" '
-nnoremap <expr> <leader>gwl ':lgrep! "' . SpecialEscape(expand('<cword>')) . '" '
+nnoremap <expr> <leader>gwc ':Redir !' . GrepPrgForCmd() . ' "' . GrepEscape(expand('<cword>')) . '" '
+nnoremap <expr> <leader>gwl ':lgrep! "' . GrepEscape(expand('<cword>')) . '" '
 nnoremap        <leader>ga  <nop>
-nnoremap <expr> <leader>gac ':Redir !=&grepprg->split('' '')[:-2]->join('' '') "" '
-nnoremap <expr> <leader>gal ':lgrep! "' . SpecialEscape(expand('<cWORD>')) . '" '
+nnoremap <expr> <leader>gac ':Redir !' . GrepPrgForCmd() . ' "' . GrepEscape(expand('<cWORD>')) . '" '
+nnoremap <expr> <leader>gal ':lgrep! "' . GrepEscape(expand('<cWORD>')) . '" '
 nnoremap        <leader>gl  <nop>
-nnoremap <expr> <leader>glc ':Redir !' . &grepprg->split(' ')[:-2]->join(' ') . ' "' . getline(".") . '" '
-nnoremap <expr> <leader>gll ':lgrep! "' . SpecialEscape(getline(".")) . '" '
+nnoremap <expr> <leader>glc ':Redir !' . GrepPrgForCmd() . ' "' . GrepEscape(getline(".")) . '" '
+nnoremap <expr> <leader>gll ':lgrep! "' . GrepEscape(getline(".")) . '" '
 vnoremap        <leader>gw  <nop>
-vnoremap <expr> <leader>gwc ':<c-u>Redir !=&grepprg->split('' '')[:-2]->join('' '') "=Rescape(VisualSelection())" '
-vnoremap <expr> <leader>gwl ':<c-u>lgrep! "=Rescape(VisualSelection())" '
+vnoremap <expr> <leader>gwc ':<c-u>Redir !' . GrepPrgForCmd() . ' "=GrepEscape(VisualSelection())" '
+vnoremap <expr> <leader>gwl ':<c-u>lgrep! "=GrepEscape(VisualSelection())" '
 
 " \cf == C-lean F-ile listing   (the output of llist or clist -- so things like gF and CTRL-W_F work)
 nnoremap <leader>cf :%s/\v^%( *\d+ )?(.{-}):(\d+):/\1 \2:/<cr>
+nnoremap <leader>ch :%s/\v^ *\d+:? //<cr>
 
 
 ""
@@ -1547,7 +1706,11 @@ function! SaveSession(name)
     endif
     exe 'mksession! .vimsess' . l:fname
     exe 'wviminfo .viminfo' . l:fname
-    exe 'set viminfofile=' . fnameescape(getcwd() . '\.viminfo' . l:fname)
+    "" #
+    "" # TODO:  see if the '/' works just fine on Windows -- it should
+    "" #        (my original '\' just broke on my MacOS)
+    "" #
+    exe 'set viminfofile=' . fnameescape(getcwd() . '/.viminfo' . l:fname)
 endfunction
 command! -nargs=? SaveSession call SaveSession(<q-args>)
 CommandAbbrev saveses SaveSession
@@ -1560,7 +1723,10 @@ function! LoadSession(name)
     endif
     exe 'rviminfo .viminfo' . l:fname
     exe 'silent! source .vimsess' . l:fname
-    exe 'set viminfofile=' . fnameescape(getcwd() . '\.viminfo' . l:fname)
+    "" #
+    "" # TODO:  see if the '/' works just fine on Windows -- it should
+    "" #
+    exe 'set viminfofile=' . fnameescape(getcwd() . '/.viminfo' . l:fname)
 endfunction
 command! -nargs=? LoadSession call LoadSession(<q-args>)
 CommandAbbrev loadses LoadSession
@@ -1889,7 +2055,7 @@ Plugin 'sonph/onehalf', { 'rtp': 'vim' }
 "" Found this when looking for better c++ highlighting
 Plugin 'octol/vim-cpp-enhanced-highlight'
 "" Found this when looking up help for "nroff" for the '[[' and ']]' commands
-"Plugin 'arp242/jumpy.vim'
+Plugin 'nebbish/jumpy.vim', {'revision': 'neb-dev'}
 "" Found this when trying to fix ONE highlighting
 Plugin 'coldfix/hexHighlight'
 Plugin 'guns/xterm-color-table.vim'
@@ -1904,6 +2070,7 @@ Plugin 'mbbill/undotree'
 "" I'm calling "smart alignment", where tabs are used for the indent, but spaces are
 "" used to align wrapped lines
 "Plugin 'Thyrum/vim-stabs'   NOTE:   Disbaled b/c of the 'o' and 'O' mappings
+
 Plugin 'udalov/kotlin-vim'
 
 
@@ -1940,6 +2107,18 @@ let g:unimpaired_recenter_after_jump=1
 nnoremap [t :s#\v\\u([0-9a-f]{4})#\=nr2char(str2nr(submatch(1),16))#g<cr>:nohl<cr>
 nnoremap ]t :s#.#\=printf("\\u%04x", char2nr(submatch(0)))#g<cr>:nohl<cr>
 
+"" # When on windows:
+"" #   NOTE:  the below Python only works if the Python DLL can be located.
+"" #    AND:  vim automatically looks for 3.11
+"" #    BUT:  my current work env needs <= 3.9.13, and I have commands to downgrade
+"" #     SO:  I need to tell VIM about the 3.9 version if I downgraded here.
+"" #
+if has('win32')
+    if filereadable('C:\Python39\python39.dll')
+        set pythonthreedll=C:\Python39\python39.dll
+    endif
+endif
+
 "
 " unimpaired also does not support base64 encoding/decoding
 " In the meantime, here are some home made "motion-based mappings" for getting
@@ -1948,15 +2127,51 @@ nnoremap ]t :s#.#\=printf("\\u%04x", char2nr(submatch(0)))#g<cr>:nohl<cr>
 "
 " (inspired by: " https://stackoverflow.com/questions/7845671/how-to-execute-base64-decode-on-selected-text-in-vim)
 "
-function! s:PyBase64Decode(str) abort
-    return system('python -m base64 -d', a:str)
+python3 << EOP
+#
+# TODO:  refactor this section to have common "arg" conversion helpers
+#        and return value "cleaning" helpers (such as stripping the appended newline)
+#
+import binascii
+def uudecode(encoded_ascii_value):
+    if encoded_ascii_value is bytes:
+        encoded_ascii_value = encoded_ascii_value.decode('utf-8')
+    return binascii.a2b_uu(encoded_ascii_value)
+def uuencode(original_value):
+    if type(original_value) is str:
+        original_value = original_value.encode('utf-8')
+    return binascii.b2a_uu(original_value)
+def base64decode(encoded_ascii_value):
+    if encoded_ascii_value is bytes:
+        encoded_ascii_value = encoded_ascii_value.decode('utf-8')
+    return binascii.a2b_base64(encoded_ascii_value)
+def base64encode(original_value):
+    if type(original_value) is str:
+        original_value = original_value.encode('utf-8')
+    return binascii.b2a_base64(original_value)
+EOP
+function! s:PyUuDecode(val) abort
+    return py3eval("uudecode('" .. a:val .. "')")
 endfunction
-function! s:Base64Decode(str) abort
-    return system('base64 -d', a:str)
+function! s:PyUuEncode(val) abort
+    " NOTE:  not sure if the last character is always an extra appended newline
+    "        but all of my testing it was, and stripping it here is easier than
+    "        dealing with it during the VIM paste operation
+    return py3eval("uuencode('" .. a:val .. "')[:-1]")
 endfunction
 
+function! s:PyBase64Decode(str) abort
+    return py3eval("base64decode('" .. a:str .. "')")
+endfunction
 function! s:PyBase64Encode(str) abort
-    return system('python -m base64 -e', a:str)
+    " NOTE:  not sure if the last character is always an extra appended newline
+    "        but all of my testing it was, and stripping it here is easier than
+    "        dealing with it during the VIM paste operation
+    return py3eval("base64encode('" .. a:str .. "')[:-1]")
+endfunction
+
+function! s:Base64Decode(str) abort
+    return system('base64 -d', a:str)
 endfunction
 function! s:Base64Encode(str) abort
     " '-w 0' turns off wrapping of the output
@@ -1964,8 +2179,40 @@ function! s:Base64Encode(str) abort
     return system('base64 -w 0', a:str)
 endfunction
 
-function! TransformMotionSetup(algorithm) abort
+"" # https://api.html-tidy.org/tidy/tidylib_api_5.4.0/tidy_quickref.html
+function! s:TidyOpts()
+    if ! exists('g:.TidyColumn')
+        let tidycol = &columns
+    else
+        let tidycol = g:TidyColumn
+    endif
+
+    let opts = '-q -i -w ' . l:tidycol . ' --break-before-br yes'
+    " NOTE: this script-scoped variable is set to the value of `v:count` by `TransformMotionSetup` below
+    if s:vcount == 1
+        let opts = l:opts . ' --indent-attributes yes --wrap-attributes yes'
+    endif
+    echom "Opts: " . l:opts
+
+    return l:opts
+endfunction
+
+function! s:TidyXml(str) abort
+    return system('tidy -xml ' . s:TidyOpts(), a:str)
+endfunction
+function! s:TidyHtml(str) abort
+    return system('tidy ' . s:TidyOpts(), a:str)
+endfunction
+
+function! s:TidyJson(str) abort
+    " TODO:  optionally incorporate my new `jsontool` option:  "--no-sort" somehow
+    return system('jsontool', a:str)
+endfunction
+
+function! TransformMotionSetup(algorithm, dbgecho = 0) abort
+    let s:vcount = v:count
     let s:transform_algorithm = a:algorithm
+    let s:transform_dbgecho = a:dbgecho
     let &opfunc = 'TransformMotion'
     return 'g@'
 endfunction
@@ -1984,12 +2231,16 @@ function! TransformMotion(type) abort
     else
         silent exe "normal! `[v`]y"
     endif
-    echom 'Pretransform:  "' . @@ . '"'
+    if s:transform_dbgecho
+        echom 'Pretransform:  "' . @@ . '"'
+    endif
     let @@ = {s:transform_algorithm}(@@)
-    echom 'Postransform:  "' . @@ . '"'
+    if s:transform_dbgecho
+        echom 'Postransform:  "' . @@ . '"'
+    endif
     " NOTE:  there are some ISSUES regarding newlines.
-    "        sometimes the python transformation adds a final newline
-    "        when this happens, the 'paste' operation adds a PRECEDING newline
+    "        if the python transformation adds a final newline, then the
+    "        'paste' operation becomes LINEWISEE, and adds a PRECEDING newline
     norm! gvp
     call setreg('@', reg_save)
     let &selection = sel_save
@@ -1997,18 +2248,41 @@ function! TransformMotion(type) abort
 endfunction
 
 " NOTE:  these expression mappings cannot use "s:" prefixed functions :(
-nnoremap <expr> <leader>]p TransformMotionSetup('s:PyBase64Decode')
-xnoremap <expr> <leader>]p TransformMotionSetup('s:PyBase64Decode')
-nnoremap <expr> <leader>]pp TransformMotionSetup('s:PyBase64Decode') . '_'
-nnoremap <expr> <leader>[p TransformMotionSetup('s:PyBase64Encode')
-xnoremap <expr> <leader>[p TransformMotionSetup('s:PyBase64Encode')
-nnoremap <expr> <leader>[pp TransformMotionSetup('s:PyBase64Encode') . '_'
+nnoremap <expr> <leader>] <nop>
+nnoremap <expr> <leader>[ <nop>
+
+nnoremap <expr> <leader>]u TransformMotionSetup('s:PyUuDecode')
+xnoremap <expr> <leader>]u TransformMotionSetup('s:PyUuDecode')
+nnoremap <expr> <leader>]uu TransformMotionSetup('s:PyUuDecode') . '_'
+nnoremap <expr> <leader>[u TransformMotionSetup('s:PyUuEncode')
+xnoremap <expr> <leader>[u TransformMotionSetup('s:PyUuEncode')
+nnoremap <expr> <leader>[uu TransformMotionSetup('s:PyUuEncode') . '_'
+
+nnoremap <expr> <leader>]p TransformMotionSetup('s:PyBase64Decode', 1)
+xnoremap <expr> <leader>]p TransformMotionSetup('s:PyBase64Decode', 1)
+nnoremap <expr> <leader>]pp TransformMotionSetup('s:PyBase64Decode', 1) . '_'
+nnoremap <expr> <leader>[p TransformMotionSetup('s:PyBase64Encode', 1)
+xnoremap <expr> <leader>[p TransformMotionSetup('s:PyBase64Encode', 1)
+nnoremap <expr> <leader>[pp TransformMotionSetup('s:PyBase64Encode', 1) . '_'
+
 nnoremap <expr> <leader>]b TransformMotionSetup('s:Base64Decode')
 xnoremap <expr> <leader>]b TransformMotionSetup('s:Base64Decode')
 nnoremap <expr> <leader>]bb TransformMotionSetup('s:Base64Decode') . '_'
 nnoremap <expr> <leader>[b TransformMotionSetup('s:Base64Encode')
 xnoremap <expr> <leader>[b TransformMotionSetup('s:Base64Encode')
 nnoremap <expr> <leader>[bb TransformMotionSetup('s:Base64Encode') . '_'
+
+nnoremap <expr> <leader>tx TransformMotionSetup('s:TidyXml')
+xnoremap <expr> <leader>tx TransformMotionSetup('s:TidyXml')
+nnoremap <expr> <leader>txx TransformMotionSetup('s:TidyXml') . '_'
+
+nnoremap <expr> <leader>th TransformMotionSetup('s:TidyHtml')
+xnoremap <expr> <leader>th TransformMotionSetup('s:TidyHtml')
+nnoremap <expr> <leader>thh TransformMotionSetup('s:TidyHtml') . '_'
+
+nnoremap <expr> <leader>tj TransformMotionSetup('s:TidyJson')
+xnoremap <expr> <leader>tj TransformMotionSetup('s:TidyJson')
+nnoremap <expr> <leader>tjj TransformMotionSetup('s:TidyJson') . '_'
 
 
 " Adding a new function exploring interactions b/w Vim & Python.   Not used yet.
@@ -2094,6 +2368,7 @@ nnoremap        <leader>idd       :Gdiffsplit<cr>
 nnoremap        <leader>idv       :Gvdiffsplit<cr>
 nnoremap        <leader>idh       :Ghdiffsplit<cr>
 nnoremap <expr> <leader>id<space> ':Gdiffsplit '
+nnoremap <expr> <leader>idp       ':<c-u>G diff origin/master...origin/pull/' . v:count . '<cr>'
 
 ""NOTE:  this is *OFTEN* not defined when I think it should be, so I'm adding my own mapping for it
 nnoremap <leader>dq :<c-u>call fugitive#DiffClose()<cr>
@@ -2108,13 +2383,15 @@ nnoremap <leader>ibr :G branch --list -a<cr>
 
 nnoremap <leader>if :G fetch<cr>
 nnoremap <leader>iu :G push<cr>
-nnoremap <leader>ip :G pull --rebase<cr>
+nnoremap <expr> <leader>ip ':<c-u>G pull ' . (v:count == '0' ? '--ff-only' : (v:count == '1' ? '--rebase' : '')) . '<cr>'
 
 nnoremap        <leader>ic         <nop>
 nnoremap        <leader>icz        <nop>
 nnoremap <expr> <leader>icz<space> ':G stash '
+nnoremap        <leader>icza       :G stash apply<cr>
 nnoremap        <leader>iczl       :G stash list<cr>
 nnoremap        <leader>iczu       :G stash push -m current<cr>
+nnoremap        <leader>iczg       :G stash push --staged -m current_staged<cr>
 nnoremap        <leader>iczp       :G stash pop<cr>
 nnoremap <expr> <leader>iczw       ':G stash show '
 nnoremap        <leader>icc        <nop>
@@ -2322,7 +2599,7 @@ nnoremap <leader>fdq19dn :FocusDispatch dn2019bt publish <c-r><c-l><cr>
 ""
 "" Next are mappings (& helper function) specifically for Gradle
 ""
-function! SetGradleDispatch(...) range
+function! SetGradleDispatch(...) abort range
     ""
     "" NOTE:  this adjusts the JAVA_HOME environment variable within VIM
     ""        generally when launching gradle, this is what I want.
@@ -2333,7 +2610,25 @@ function! SetGradleDispatch(...) range
         call SetJavaHomeToToolsArea()
     endif
 
-    let mainargs = [
+    "" #
+    "" # Set up the right "wrapper" to invoke
+    "" #
+    let projdir = matchstr(getline('.'), '\v--project-dir \zs\S+\ze')
+    if len(l:projdir) > 0
+        "" # Try from text on current line
+        let gradleTool = l:projdir . '\gradlew'
+    endif
+    if !exists("l:gradleTool")
+        "" # Try a wrapper in the current folder
+        let gradleTool = '.\gradlew'
+    endif
+    if !filereadable(l:gradleTool)
+        "" # Just fall back onto the System wide install
+        echom "WARNING:  cannot find a gradle wrapper to set up, defaulting to 'gradle' on path"
+        let gradleTool = 'gradle'
+    endif
+
+    let mainargs = [l:gradleTool,
                 \ '--stacktrace',
                 \ ]
     if exists("g:gradle_dispatch_args")
@@ -2350,6 +2645,7 @@ nnoremap <leader>fdgd   :<c-u>call SetGradleDispatch()<cr>
 " Mapping to copy the current :FocusDispatch value to the clipboard register
 nnoremap <leader>fdc    <nop>
 nnoremap <silent> <leader>fdcp :let @+='<c-r>=substitute(dispatch#focus()[0], ':Dispatch ', '', '')<cr>'<cr>
+nnoremap <expr> <leader>fdch ':FocusDispatch ' . substitute(dispatch#focus()[0], ':Dispatch ', '', '')
 "}}}
 
 
@@ -2386,7 +2682,7 @@ nnoremap <leader>yl :YcmToggleLogs<cr>
 nnoremap <leader>yr :YcmRestartServer<cr>
 nmap <leader>yt <plug>(YCMHover)
 
-set completeopt=popup,menuone
+"set completeopt=popup,menuone
 ""
 "" These are the defaults copied from the help, here to be reminders of what is possible
 ""
@@ -2544,13 +2840,14 @@ nnoremap <leader>gt :tj <c-r>=expand("<cword>")<cr><cr>
 " NOTE: I am using the special <cmd> to avoid changing to command mode
 "       This keeps any visual selection active, so CtrlP can use it
 "
-noremap <c-p>      <nop>
-noremap <c-p><c-p> <cmd>CtrlP<cr>
-noremap <c-p><c-d> <cmd>CtrlPCurWD<cr>
-noremap <c-p><c-t> <cmd>CtrlPTag<cr>
-noremap <c-p><c-f> <cmd>CtrlPBufTag<cr>
-noremap <c-p><c-m> <cmd>CtrlPMRUFiles<cr>
-noremap <c-p><c-b> <cmd>CtrlPBuffer<cr>
+noremap        <c-p>      <nop>
+noremap <expr> <c-p><c-c> '<cmd>CtrlP ' . Expand('~') . '\.conan\data<cr>'
+noremap        <c-p><c-p> <cmd>CtrlP<cr>
+noremap        <c-p><c-d> <cmd>CtrlPCurWD<cr>
+noremap        <c-p><c-t> <cmd>CtrlPTag<cr>
+noremap        <c-p><c-f> <cmd>CtrlPBufTag<cr>
+noremap        <c-p><c-m> <cmd>CtrlPMRUFiles<cr>
+noremap        <c-p><c-b> <cmd>CtrlPBuffer<cr>
 
 
 " I got this idea from here:  https://thoughtbot.com/blog/faster-grepping-in-vim
@@ -2606,6 +2903,19 @@ let g:tagbar_sort=0
 "nnoremap ][ /\v^(\s*)@<=\}\|\}(\s*$)@=<cr>b99]}
 "nnoremap ]] j0[[%/\v^(\s*)@<=\{\|\{(\s*$)@=<cr>
 "nnoremap [] k$][%?\v^(\s*)@<=\}\|\}(\s*$)@=<cr>
+"}}}
+
+
+" My own "jump" related settings "{{{
+"" #
+"" # I am often interested in jumping to the START of the next paragraph,
+"" # which requires the following motion sequence:  '}', '}', '{'
+"" # (end of current, end of next, back to start of next)
+"" #
+"" # With the below, that will be just 'g}'
+"" #
+nnoremap g{ :call search('\v(\S[ \t]*\n)@<=^\s*$', 'bW')<cr>
+nnoremap g} :call search('\v^\s*$(\n.{-}\S)@=', 'W')<cr>
 "}}}
 
 
@@ -2705,16 +3015,7 @@ let g:cpp_experimental_simple_template_highlight = 1
 nnoremap <leader>ll :hi clear CursorLine<cr>:hi! link CursorLine CursorColumn<cr>
 
 nnoremap <leader>l   <Nop>
-"nnoremap <leader>lb  <Nop>
-""
-"" NOTE:  turning these off, so I force myself to learn the ones
-""        provided by the "Unimpaired" plugin:
-""           Light   Dark   Toggle
-""           [ob     ]ob    yob        Background (light, dark, toggle)
-""
-"nnoremap <leader>lbt :set background=light<cr>
-"nnoremap <leader>lbk :set background=dark<cr>
-"nnoremap <leader>lbu :colorscheme blue<cr>
+nnoremap <leader>l?  :colorscheme<bar>set background?<cr>
 nnoremap <leader>la  <Nop>
 nnoremap <leader>lb :colorscheme blue<cr>
 nnoremap <leader>lc  <Nop>
@@ -2772,10 +3073,27 @@ nnoremap <leader>lz  <Nop>
 nnoremap <leader>lzb :colorscheme zenburn<cr>
 nnoremap <leader>lzn :colorscheme zellner<cr>
 
-"colorscheme solarized8_high
-"if has('macunix')
-"	set background=light
-"endif
+" NOTE:  activating "one" *before* "papercolor" sets the colors of the file
+"        heading bar (which is otherwise ignored by papercolor)
+if ! exists("s:colorscheme_default_has_been_set")
+    let s:colorscheme_default_has_been_set = 1
+    " NOTE:  I really use Papercolor almost everywhere   ... BUT ...
+    "        that one does NOT properly handle the window status line
+    "        SO I always find myself setting 'One' and then 'Papercolor'
+    "        to get the status lines right.
+    if has('macunix')
+        "colorscheme solarized8_high
+        colorscheme papercolor
+        set background=light
+    else
+        " Doing both one-right-after-the-other does NOT work here in VIMRC :(
+        " (so I have commentd out the switch to papercolor)
+            " colorscheme one
+            " redrawstatus!
+        colorscheme papercolor
+        set background=light
+    endif
+endif
 "}}}
 
 
@@ -2820,10 +3138,19 @@ function! Expand(flags)
         let retval = expand('%:p')->substitute('[\\/][^\\/]*$', '', '')
     elseif a:flags == 'l'
         let retval = expand('%')->resolve()
+    elseif a:flags == 'g'
+        let gitdir = trim(system('cd ' . Expand('d') . ' && git rev-parse --show-toplevel'))
+        if len(l:gitdir) == 0
+            return ''
+        endif
+        let retval = Expand('p')[len(l:gitdir) + 1:]
     elseif a:flags == '.'
         let retval = expand('%')->fnamemodify(':.')
     elseif a:flags == '~'
         let retval = expand('~')
+    elseif a:flags == '4'
+        let out = system('p4 where ' . shellescape(expand('%:p')))
+        let retval = substitute(l:out, '\v^(//depot/.{-}) //.*', '\1', '')
     elseif a:flags == 'c'
         let retval = getcwd()
     elseif a:flags == '%'
@@ -2845,12 +3172,31 @@ cnoremap <expr> %r  getcmdtype() =~ '[:=]' ? Expand('r')   : '%r'
 cnoremap <expr> %h  getcmdtype() =~ '[:=]' ? Expand('h')   : '%h'
 cnoremap <expr> %e  getcmdtype() =~ '[:=]' ? Expand('e')   : '%e'
 cnoremap <expr> %l  getcmdtype() =~ '[:=]' ? Expand('l')   : '%l'
+cnoremap <expr> %g  getcmdtype() =~ '[:=]' ? Expand('g')   : '%g'
 cnoremap <expr> %.  getcmdtype() =~ '[:=]' ? Expand('.')   : '%.'
 cnoremap <expr> %c  getcmdtype() =~ '[:=]' ? Expand('c')   : '%c'
 cnoremap <expr> %~  getcmdtype() =~ '[:=]' ? Expand('~')   : '%~'
+cnoremap <expr> %4  getcmdtype() =~ '[:=]' ? Expand('4')   : '%4'
 cnoremap <expr> %z  getcmdtype()
-nnoremap <leader>gp :let @+='<c-r>=expand('%:p')<cr>'<cr>
-nnoremap <leader>g4 :let @+='<c-r>=substitute(system('p4 where ' . shellescape(expand('%:p'))), '\v^(//depot/.{-}) //.*', '\1', '')<cr>'<cr>
+
+cnoremap <expr> <c-d>  <nop>
+cnoremap <expr> <c-d>. getcwd()
+cnoremap <expr> <c-d>~ expand('~')
+cnoremap <expr> <c-d>c expand('~') . '/.conan/data'
+
+nnoremap <leader>gf  <nop>
+nnoremap <leader>gfp :let @+='<c-r>=Expand('p')<cr>'<cr>
+nnoremap <leader>gfd :let @+='<c-r>=Expand('d')<cr>'<cr>
+nnoremap <leader>gf% :let @+='<c-r>=Expand('%')<cr>'<cr>
+nnoremap <leader>gff :let @+='<c-r>=Expand('t')<cr>'<cr>
+nnoremap <leader>gft :let @+='<c-r>=Expand('t:r')<cr>'<cr>
+nnoremap <leader>gfr :let @+='<c-r>=Expand('r')<cr>'<cr>
+nnoremap <leader>gfh :let @+='<c-r>=Expand('h')<cr>'<cr>
+nnoremap <leader>gfe :let @+='<c-r>=Expand('e')<cr>'<cr>
+nnoremap <leader>gfl :let @+='<c-r>=Expand('l')<cr>'<cr>
+nnoremap <leader>gfg :let @+='<c-r>=Expand('g')<cr>'<cr>
+nnoremap <leader>gf. :let @+='<c-r>=Expand('.')<cr>'<cr>
+nnoremap <leader>gf4 :let @+='<c-r>=Expand('4')<cr>'<cr>
 
 
 cnoremap <expr> <c-o>a  getcwd().'_build-logs\msbuild-diagnostic.log'
@@ -3287,10 +3633,11 @@ vnoremap <leader>fk ?\%<C-R>=virtcol(".")<CR>v\S<CR>
 "" nnoremap <silent> ]T :tablast<CR>
 " These three are still useful
 nnoremap <leader>aa :tabs<cr>
-nnoremap <leader>ae :tabedit
-nnoremap <leader>ab :tab sb
+nnoremap <expr> <leader>ae ':tabedit '
+nnoremap <expr> <leader>ab ':tab sb '
 nnoremap <leader>an :tabnew<cr>
 nnoremap <leader>ac :tabclose<cr>
+nnoremap <leader>at :tab term<cr>
 " For *moving* a tab, lets use ',' and '.'
 nnoremap <leader>a, :tabm -1<cr>
 nnoremap <leader>a. :tabm +1<cr>
@@ -3759,6 +4106,8 @@ nnoremap <leader>m=   :set errorformat=
 nnoremap <leader>mc   <nop>
 nnoremap <leader>mcl  :set errorformat=<cr>
 nnoremap <leader>ms   <nop>
+nnoremap <leader>msc  :set errorformat=%f(%l)\ %#:\ %m,%f(%l\\\,%c)\ %#:\ %m,\ %#File\ "%f"\\\,\ line\ %l\\\,\ %m<cr>
+nnoremap <leader>mst  :set errorformat=%f:%l:\ %m,%f:%l:%c:\ %m<cr>
 nnoremap <leader>msg  <nop>
 nnoremap <leader>msgr :set errorformat=%f\ %#%[\\|(:]\ %#%l%m<cr>
 nnoremap <leader>msm  <nop>
@@ -3873,16 +4222,16 @@ nmap <leader>mgolc :copen<cr>\msdf:cget <c-o>c<cr>\mcl
 ""          (and spikes CPU when hanging)
 ""
 "set runtimepath-=~\.vim\bundle\Vundle.vim
-"set runtimepath-=~\.vim\bundle\YouCompleteMe
-"set runtimepath-=~\.vim\bundle\matchit
+set runtimepath-=~\.vim\bundle\YouCompleteMe
+set runtimepath-=~\.vim\bundle\matchit
 "set runtimepath-=~\.vim\bundle\vim-unimpaired
 "set runtimepath-=~\.vim\bundle\vim-eunuch
-"set runtimepath-=~\.vim\bundle\SimpylFold
+set runtimepath-=~\.vim\bundle\SimpylFold
 "set runtimepath-=~\.vim\bundle\ctrlp.vim
 "set runtimepath-=~\.vim\bundle\tagbar
 "set runtimepath-=~\.vim\bundle\nerdtree
 "set runtimepath-=~\.vim\bundle\nerdcommenter
-"set runtimepath-=~\.vim\bundle\vim-autotag
+set runtimepath-=~\.vim\bundle\vim-autotag
 "set runtimepath-=~\.vim\bundle\nerdtree-useful-plugins
 "set runtimepath-=~\.vim\bundle\bufexplorer
 "set runtimepath-=~\.vim\bundle\argtextobj.vim
@@ -3891,9 +4240,9 @@ nmap <leader>mgolc :copen<cr>\msdf:cget <c-o>c<cr>\mcl
 "set runtimepath-=~\.vim\bundle\vim-fugitive
 "set runtimepath-=~\.vim\bundle\vim-scriptease
 "set runtimepath-=~\.vim\bundle\vim-dispatch
-"set runtimepath-=~\.vim\bundle\splice.vim
-"set runtimepath-=~\.vim\bundle\vim-mergetool
-"set runtimepath-=~\.vim\bundle\quick-scope
+set runtimepath-=~\.vim\bundle\splice.vim
+set runtimepath-=~\.vim\bundle\vim-mergetool
+set runtimepath-=~\.vim\bundle\quick-scope
 "set runtimepath-=~\.vim\bundle\vim-repeat
 "set runtimepath-=~\.vim\bundle\vim-surround
 "set runtimepath-=~\.vim\bundle\vim-solarized8
@@ -3911,12 +4260,65 @@ nmap <leader>mgolc :copen<cr>\msdf:cget <c-o>c<cr>\mcl
 "set runtimepath-=~\.vim\bundle\papercolor-theme
 "set runtimepath-=~\.vim\bundle\vim-colors-solarized
 "set runtimepath-=~\.vim\bundle\onehalf
-"set runtimepath-=~\.vim\bundle\vim-cpp-enhanced-highlight
+"set runtimepath-=~\.vim\bundle\onehalf\vim
+set runtimepath-=~\.vim\bundle\vim-cpp-enhanced-highlight
 "set runtimepath-=~\.vim\bundle\jumpy.vim
-"set runtimepath-=~\.vim\bundle\hexHighlight
-"set runtimepath-=~\.vim\bundle\xterm-color-table.vim
+set runtimepath-=~\.vim\bundle\hexHighlight
+set runtimepath-=~\.vim\bundle\xterm-color-table.vim
 "set runtimepath-=~\.vim\bundle\undotree
 set runtimepath-=~\.vim\bundle\vim-stabs
+"set runtimepath-=~\.vim\bundle\kotlin-vim
+"set runtimepath-=~\.vim\bundle\coc.nvim
 
 
+
+
+"set runtimepath-=~\.vim\bundle\Vundle.vim/after
+set runtimepath-=~\.vim\bundle\YouCompleteMe/after
+set runtimepath-=~\.vim\bundle\matchit/after
+"set runtimepath-=~\.vim\bundle\vim-unimpaired/after
+"set runtimepath-=~\.vim\bundle\vim-eunuch/after
+set runtimepath-=~\.vim\bundle\SimpylFold/after
+"set runtimepath-=~\.vim\bundle\ctrlp.vim/after
+"set runtimepath-=~\.vim\bundle\tagbar/after
+"set runtimepath-=~\.vim\bundle\nerdtree/after
+"set runtimepath-=~\.vim\bundle\nerdcommenter/after
+set runtimepath-=~\.vim\bundle\vim-autotag/after
+"set runtimepath-=~\.vim\bundle\nerdtree-useful-plugins/after
+"set runtimepath-=~\.vim\bundle\bufexplorer/after
+"set runtimepath-=~\.vim\bundle\argtextobj.vim/after
+"set runtimepath-=~\.vim\bundle\vim-indent-object/after
+"set runtimepath-=~\.vim\bundle\vim-airline/after
+"set runtimepath-=~\.vim\bundle\vim-fugitive/after
+"set runtimepath-=~\.vim\bundle\vim-scriptease/after
+"set runtimepath-=~\.vim\bundle\vim-dispatch/after
+set runtimepath-=~\.vim\bundle\splice.vim/after
+set runtimepath-=~\.vim\bundle\vim-mergetool/after
+set runtimepath-=~\.vim\bundle\quick-scope/after
+"set runtimepath-=~\.vim\bundle\vim-repeat/after
+"set runtimepath-=~\.vim\bundle\vim-surround/after
+"set runtimepath-=~\.vim\bundle\vim-solarized8/after
+"set runtimepath-=~\.vim\bundle\vim-dirdiff/after
+"set runtimepath-=~\.vim\bundle\vim-swap/after
+"set runtimepath-=~\.vim\bundle\vim-windowswap/after
+"set runtimepath-=~\.vim\bundle\vim-easy-align/after
+"set runtimepath-=~\.vim\bundle\vim-argumentative/after
+"set runtimepath-=~\.vim\bundle\vim-fontsize/after
+"set runtimepath-=~\.vim\bundle\gruvbox/after
+"set runtimepath-=~\.vim\bundle\nord-vim/after
+"set runtimepath-=~\.vim\bundle\onedark.vim/after
+"set runtimepath-=~\.vim\bundle\iceberg.vim/after
+"set runtimepath-=~\.vim\bundle\vim-one/after
+"set runtimepath-=~\.vim\bundle\papercolor-theme/after
+"set runtimepath-=~\.vim\bundle\vim-colors-solarized/after
+"set runtimepath-=~\.vim\bundle\onehalf/after
+"set runtimepath-=~\.vim\bundle\onehalf\vim/after
+set runtimepath-=~\.vim\bundle\vim-cpp-enhanced-highlight/after
+"set runtimepath-=~\.vim\bundle\jumpy.vim/after
+set runtimepath-=~\.vim\bundle\hexHighlight/after
+set runtimepath-=~\.vim\bundle\xterm-color-table.vim/after
+"set runtimepath-=~\.vim\bundle\undotree/after
+set runtimepath-=~\.vim\bundle\vim-stabs/after
+"set runtimepath-=~\.vim\bundle\kotlin-vim/after
+"set runtimepath-=~\.vim\bundle\coc.nvim/after
 
