@@ -107,8 +107,8 @@ augroup end
 set backspace=indent,eol,start
 
 set history=5000	" keep 200 lines of command line history
-set ruler		" show the cursor position all the time
-set showcmd		" display incomplete commands
+set ruler			" show the cursor position all the time
+set showcmd			" display incomplete commands
 set wildmenu		" display completion matches in a status line
 
 set timeout         " activates BOTH time outs:  ':mappings' and 'key codes'
@@ -117,7 +117,9 @@ set ttimeoutlen=50  " 'key code' time out length (for <ESC> and <ALT> which are 
 set timeoutlen=2000 " ':mappings' time out length (one more sec than default of 1000)
 
 " Show @@@ in the last line if it is truncated.
-set display=truncate
+if version >= 800
+	set display=truncate
+endif
 
 " Show a few lines of context around the cursor.  Note that this makes the
 " text scroll if you mouse-click near the start or end of the window.
@@ -129,7 +131,11 @@ if has('reltime')
 endif
 
 " Set this up for all options (default is just "bin,octal,hex")
-set nrformats=alpha,bin,octal,hex
+if version < 800
+	set nrformats=alpha,octal,hex
+else
+	set nrformats=alpha,bin,octal,hex
+endif
 
 
 " Default guioptions:  egmrLtT
@@ -223,7 +229,7 @@ endif
 " Revert with: ":delcommand DiffOrig".
 if !exists(":DiffOrig")
   command DiffOrig vert new | set bt=nofile | r ++edit # | 0d_ | diffthis
-		  \ | wincmd p | diffthis
+          \ | wincmd p | diffthis
 endif
 
 if has('langmap') && exists('+langremap')
@@ -413,10 +419,21 @@ function! PerlRxEscape(val)
     return escape(a:val, '()[{?*+|^$.&~#')
 endfunction
 
+function! ToLinuxVARIfExists(match)
+    let env = environ()
+    let name = a:match[1:-2]
+    if exists('l:env[l:name]')
+        return '${' . l:name . '}'
+    endif
+    return a:match
+endfunction
+
 function! VimCmdEscape(val)
     let line = a:val
     if ! has('win32')
-        let line = substitute(l:line, '\v\%(\w+)\%', '${\1}', 'g')
+        "" # NOTE:  why didn't this work?
+        " let line = substitute(l:line, '\v\%(\w+)\%', ToLinuxVARIfExists, 'g')
+        let line = substitute(l:line, '\v(\%\w+\%)', '\=ToLinuxVARIfExists(submatch(1))', 'g')
     endif
     return escape(l:line, "#%!")
 endfunction
@@ -452,7 +469,9 @@ vnoremap <silent> # :<C-U> let old_reg=getreg('"')<Bar>let old_regtype=getregtyp
 "" see:  https://stackoverflow.com/a/16224292/5844631
 ""
 "set noendofline
-set nofixendofline
+if version >= 800
+	set nofixendofline
+endif
 " "}}}
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -461,9 +480,19 @@ set nofixendofline
 " Mappings & settings related to :! and :shell "{{{
 "" NOTE:  see the docs for "Bash Startup Files" - bash looks for this env
 ""        whenever a shell is launched NON-interactively (which vim does ;)
+nnoremap <leader>shcf? :set shellcmdflag?<cr>
+nnoremap <leader>shcf& :set shellcmdflag&<cr>
+
 if has('macunix')
 	let $BASH_ENV = "~/.bashrc_for_vim"
 	set pyxversion=2
+    " i: 'interactive' to get all the aliases
+    "set shellcmdflag=-ic
+    " NOTE:  I *wanted* to enable interactive shells all the time on MacOS, but...
+    "        for some reason VIM launched in my iTerm was crashing!?!  I do not know why :(
+    "        I do know, it was THIS LINE -- setting the 'shellcmdflag' option.
+    "        So for now -- I will create a mapping to add interactive :D
+    nnoremap <leader>shcfi :set shellcmdflag=-ic<cr>
 elseif ! has('win32')
 	let $BASH_ENV = "~/.bashrc_for_vim"
 	set shellcmdflag=-l\ -c
@@ -691,7 +720,7 @@ nnoremap <leader>jj :jumps<cr>
 nnoremap <leader>sa  <nop>
 
 function! SetArtifactoryToken()
-    for line in readfile(expand('~\.netrc'))
+    for line in readfile(expand('~/.netrc'))
         let tokens = l:line->split(' ')
         if len(l:tokens) && l:tokens[0] == 'login'
             let $ARTUSR=l:tokens[1]
@@ -706,7 +735,7 @@ endfunction
 nnoremap <leader>sat :call SetArtifactoryToken()<cr>
 
 function! SetApiKey()
-    for line in readfile(expand('~\.gradle\gradle.properties'))
+    for line in readfile(expand('~/.gradle/gradle.properties'))
         let tokens = l:line->split('=')
         if len(l:tokens) && l:tokens[0] == 'artifactoryUser'
             let $ORG_GRADLE_PROJECT_artifactoryUser=l:tokens[1]
@@ -738,7 +767,7 @@ function! SetJavaHomeToToolsArea()
     "
     let search_dir = getcwd() . '_tools'
     if !isdirectory(l:search_dir)
-        let search_dir = '.\SDK\tools'
+        let search_dir = './SDK/tools'
     endif
     if !isdirectory(l:search_dir)
         echom "WARNING:  Leaving the JAVA_HOME env var alone, cannot find tools area"
@@ -748,7 +777,7 @@ function! SetJavaHomeToToolsArea()
     "" # glob() arg2:  {nosuf}, if TRUE ignore 'suffixes' and 'wildignore' options
     "" # glob() arg3:  {list}, if TRUE return a list
     "" # The only reason I have the 2nd is to get to the 3rd
-    let matches = glob(fnamemodify(l:search_dir, ':p') . '**\javac.exe', 0, 1)
+    let matches = glob(fnamemodify(l:search_dir, ':p') . '**/javac.exe', 0, 1)
     if !len(matches)
         echom "WARNING:  Search dir [".l:search_dir."] exists, but javac.exe still not found"
         return
@@ -846,13 +875,13 @@ function! DbgTest()
     endif
     let idx = l:cnt
     while l:idx > 0
-		"" # one of:					*hist-names*
-		"" # 	"cmd"	 or ":"	  command line history
-		"" # 	"search" or "/"   search pattern history
-		"" # 	"expr"	 or "="   typed expression history
-		"" # 	"input"  or "@"	  input line history
-		"" # 	"debug"  or ">"   debug command history
-		"" # 	empty		  the current or last used history
+		"" # one of:                    *hist-names*
+		"" #    "cmd"    or ":"   command line history
+		"" #    "search" or "/"   search pattern history
+		"" #    "expr"   or "="   typed expression history
+		"" #    "input"  or "@"   input line history
+		"" #    "debug"  or ">"   debug command history
+		"" #    empty         the current or last used history
         echo histget(":", "-" . l:idx)
         let idx = l:idx - 1
     endwhile
@@ -1216,11 +1245,13 @@ function! TextAsShellCmd(capture, text) abort
     "        duplication
     if has('win32')
         let line = '(' . VimCmdEscape(a:text) . ')'
+        let heading = l:line
     else
         let line = VimCmdEscape(a:text)
+        let heading = '(' . l:line . ')'
     endif
     if a:capture
-        call OutputCaptureHeading(l:line)
+        call OutputCaptureHeading(l:heading)
         let line = l:line . ' 2>&1 | tee -ai out.txt'
     endif
     return l:line
@@ -1252,15 +1283,22 @@ function! InnerParagraphAsShellCmd(capture) abort
     "        (i.e. escape the 'special' items)
     if has('win32')
         let lines = map(l:lines, '"(" . VimCmdEscape(v:val) . ")"')
+        let heading = l:lines
     else
         let lines = map(l:lines, 'VimCmdEscape(v:val)')
+        let heading = map(l:lines, '"(" . v:val . ")"')
     endif
 
     if a:capture
-        call OutputCaptureHeading(l:lines)
+        call OutputCaptureHeading(l:heading)
         let lines = map(l:lines, 'v:val . " 2>&1 | tee -ai out.txt"')
     endif
-    return join(l:lines, ' & ')
+    if has('win32')
+        let linesep = ' & '
+    else
+        let linesep = ' ; '
+    endif
+    return join(l:lines, l:linesep)
 endfunction
 " NOTE:  because this helpful debugging macro is using single-quotes to surround the whole expression,
 "        AND b/c it is executing a VIM command, :echo, the rules for escaping contained "'" is to double them up
@@ -1323,7 +1361,7 @@ inoremap <expr> <c-s> '¯\_(ツ)_/¯'
 "" Also, at that time, I used this macro to 'condense' the timestamps so
 "" I could merge two VIMINFO files, intending for one to 'appear' older.
 ""
-""     let @q='yiw?\v%<.l\d{10}ciw010b'
+""     let @q="yiw?\\v%<.l\\d{10}\nciw010b"
 ""
 "" It moves to and sets the entry above it to 10 seconds later in time
 "" The technique to save so I don't forget:  %<.
@@ -1378,7 +1416,8 @@ nnoremap <leader>epr  :<c-u>!<c-r>=InnerParagraphAsShellCmd(v:count)<cr><cr>
 if has('win32')
 	nnoremap <leader>epl  :<c-u>!start cmd /v:on /c "<c-r>=InnerParagraphAsShellCmd(v:count)<cr> & pause"<cr>
 else
-	nnoremap <leader>epl  :<c-u>!<c-r>=InnerParagraphAsShellCmd(v:count)<cr> &<cr>
+    " For *nix surround it all with "()" for the "&" to apply (i.e. background all of it)
+	nnoremap <leader>epl  :<c-u>!(<c-r>=InnerParagraphAsShellCmd(v:count)<cr>) &<cr>
 endif
 nnoremap <leader>epc :call ExecuteInnerParagraph()<cr>
 "}}}
@@ -1495,7 +1534,7 @@ let s:gg_cmd = 'ggrep\ -PIn\ $*'
 "" On my windows there is a Cygwin version of GNU grep renamed "cgrep"
 " Currently the only option differences:    -H and -r  (maybe can be removed)
 let s:cg_cmd = 'cgrep\ -PIHnr\ $*'
-let s:gr_cmd = 'grep\ -PIn\ $*'
+let s:gr_cmd = 'grep\ -PIHn\ $*'
 
 if executable('ag')
 	execute 'set grepprg=' . s:ag_cmd
@@ -1561,8 +1600,8 @@ nnoremap        <leader>gl  <nop>
 nnoremap <expr> <leader>glc ':Redir !' . GrepPrgForCmd() . ' "' . GrepEscape(getline(".")) . '" '
 nnoremap <expr> <leader>gll ':lgrep! "' . GrepEscape(getline(".")) . '" '
 vnoremap        <leader>gw  <nop>
-vnoremap <expr> <leader>gwc ':<c-u>Redir !' . GrepPrgForCmd() . ' "=GrepEscape(VisualSelection())" '
-vnoremap <expr> <leader>gwl ':<c-u>lgrep! "=GrepEscape(VisualSelection())" '
+vnoremap <expr> <leader>gwc ':<c-u>Redir !' . GrepPrgForCmd() . ' "<c-r>=GrepEscape(VisualSelection())<cr>" '
+vnoremap <expr> <leader>gwl ':<c-u>lgrep! "<c-r>=GrepEscape(VisualSelection())<cr>" '
 
 " \cf == C-lean F-ile listing   (the output of llist or clist -- so things like gF and CTRL-W_F work)
 nnoremap <leader>cf :%s/\v^%( *\d+ )?(.{-}):(\d+):/\1 \2:/<cr>
@@ -1971,7 +2010,7 @@ Plugin 'nebbish/nerdtree-useful-plugins', {'revision': 'neb-dev'}
 "" Stumbled upon this while exploring peoples write-up comparison of CtrlP and CommandT
 Plugin 'jlanzarotta/bufexplorer'
 "" Here are some 'object types' that work with the noun/verb command structure :D
-""	Found here:  https://blog.carbonfive.com/vim-text-objects-the-definitive-guide/
+"" Found here:  https://blog.carbonfive.com/vim-text-objects-the-definitive-guide/
 ""      argument (a)       good for all languages
 Plugin 'vim-scripts/argtextobj.vim'
 ""      indent level (i)   good for languages like Python (which rely on indent level)
@@ -2127,29 +2166,29 @@ endif
 "
 " (inspired by: " https://stackoverflow.com/questions/7845671/how-to-execute-base64-decode-on-selected-text-in-vim)
 "
-python3 << EOP
-#
-# TODO:  refactor this section to have common "arg" conversion helpers
-#        and return value "cleaning" helpers (such as stripping the appended newline)
-#
-import binascii
-def uudecode(encoded_ascii_value):
-    if encoded_ascii_value is bytes:
-        encoded_ascii_value = encoded_ascii_value.decode('utf-8')
-    return binascii.a2b_uu(encoded_ascii_value)
-def uuencode(original_value):
-    if type(original_value) is str:
-        original_value = original_value.encode('utf-8')
-    return binascii.b2a_uu(original_value)
-def base64decode(encoded_ascii_value):
-    if encoded_ascii_value is bytes:
-        encoded_ascii_value = encoded_ascii_value.decode('utf-8')
-    return binascii.a2b_base64(encoded_ascii_value)
-def base64encode(original_value):
-    if type(original_value) is str:
-        original_value = original_value.encode('utf-8')
-    return binascii.b2a_base64(original_value)
-EOP
+python3
+\ #
+\ # TODO:  refactor this section to have common "arg" conversion helpers
+\ #        and return value "cleaning" helpers (such as stripping the appended newline)
+\ #
+\ import binascii
+\ def uudecode(encoded_ascii_value):
+\     if encoded_ascii_value is bytes:
+\         encoded_ascii_value = encoded_ascii_value.decode('utf-8')
+\     return binascii.a2b_uu(encoded_ascii_value)
+\ def uuencode(original_value):
+\     if type(original_value) is str:
+\         original_value = original_value.encode('utf-8')
+\     return binascii.b2a_uu(original_value)
+\ def base64decode(encoded_ascii_value):
+\     if encoded_ascii_value is bytes:
+\         encoded_ascii_value = encoded_ascii_value.decode('utf-8')
+\     return binascii.a2b_base64(encoded_ascii_value)
+\ def base64encode(original_value):
+\     if type(original_value) is str:
+\         original_value = original_value.encode('utf-8')
+\     return binascii.b2a_base64(original_value)
+
 function! s:PyUuDecode(val) abort
     return py3eval("uudecode('" .. a:val .. "')")
 endfunction
@@ -2209,10 +2248,19 @@ function! s:TidyJson(str) abort
     return system('jsontool', a:str)
 endfunction
 
-function! TransformMotionSetup(algorithm, dbgecho = 0) abort
+"" Ugly hack, so the script works PRE-8.0
+""  (would prefer the new function arg default values)
+function! TransformMotionSetupD(algorithm) abort
     let s:vcount = v:count
     let s:transform_algorithm = a:algorithm
-    let s:transform_dbgecho = a:dbgecho
+    let s:transform_dbgecho = 1
+    let &opfunc = 'TransformMotion'
+    return 'g@'
+endfunction
+function! TransformMotionSetup(algorithm) abort
+    let s:vcount = v:count
+    let s:transform_algorithm = a:algorithm
+    let s:transform_dbgecho = 0
     let &opfunc = 'TransformMotion'
     return 'g@'
 endfunction
@@ -2258,12 +2306,12 @@ nnoremap <expr> <leader>[u TransformMotionSetup('s:PyUuEncode')
 xnoremap <expr> <leader>[u TransformMotionSetup('s:PyUuEncode')
 nnoremap <expr> <leader>[uu TransformMotionSetup('s:PyUuEncode') . '_'
 
-nnoremap <expr> <leader>]p TransformMotionSetup('s:PyBase64Decode', 1)
-xnoremap <expr> <leader>]p TransformMotionSetup('s:PyBase64Decode', 1)
-nnoremap <expr> <leader>]pp TransformMotionSetup('s:PyBase64Decode', 1) . '_'
-nnoremap <expr> <leader>[p TransformMotionSetup('s:PyBase64Encode', 1)
-xnoremap <expr> <leader>[p TransformMotionSetup('s:PyBase64Encode', 1)
-nnoremap <expr> <leader>[pp TransformMotionSetup('s:PyBase64Encode', 1) . '_'
+nnoremap <expr> <leader>]p TransformMotionSetupD('s:PyBase64Decode')
+xnoremap <expr> <leader>]p TransformMotionSetupD('s:PyBase64Decode')
+nnoremap <expr> <leader>]pp TransformMotionSetupD('s:PyBase64Decode') . '_'
+nnoremap <expr> <leader>[p TransformMotionSetupD('s:PyBase64Encode')
+xnoremap <expr> <leader>[p TransformMotionSetupD('s:PyBase64Encode')
+nnoremap <expr> <leader>[pp TransformMotionSetupD('s:PyBase64Encode') . '_'
 
 nnoremap <expr> <leader>]b TransformMotionSetup('s:Base64Decode')
 xnoremap <expr> <leader>]b TransformMotionSetup('s:Base64Decode')
@@ -2332,11 +2380,11 @@ let g:undotree_SetFocusWhenToggle = 1 " default 0
 ""			" create the directory and any parent directories
 ""			" if the location does not exist.
 ""			if !isdirectory(target_path)
-""				call mkdir(target_path,	"p", 0700)
+""				call mkdir(target_path, "p", 0700)
 ""			endif
 ""
-""			let	&undodir=target_path
-""			set	undofile
+""			let &undodir=target_path
+""			set undofile
 ""		endif
 ""
 "}}}
@@ -3005,7 +3053,7 @@ let g:cpp_experimental_simple_template_highlight = 1
 "	au!
 "	""
 "	"" NOTE:  The '!' is requried because the CursorLine item has default values
-"	""        (for more info, see:	https://stackoverflow.com/a/31146436/5844631)
+"	""        (for more info, see:  https://stackoverflow.com/a/31146436/5844631)
 "	""
 "	au ColorScheme * hi clear CursorLine | hi! link CursorLine CursorColumn
 "augroup END
@@ -3084,7 +3132,10 @@ if ! exists("s:colorscheme_default_has_been_set")
     if has('macunix')
         "colorscheme solarized8_high
         colorscheme papercolor
-        set background=light
+        set background=dark
+    elseif has('linux')
+        colorscheme solarized8
+        set background=dark
     else
         " Doing both one-right-after-the-other does NOT work here in VIMRC :(
         " (so I have commentd out the switch to papercolor)
@@ -3107,8 +3158,8 @@ set wildmode=longest,list	" what <tab> displays (or does) default was 'full'
 "set vb t_vb=				" turn off the beeps AND the flashes
 ""
 "" Mappings to traverse buffer list
-""	Not sure if '<silent>' is helpful here, I do not quite understand it.
-""	However, see ":help map-silent" for more help on what it does.
+""  Not sure if '<silent>' is helpful here, I do not quite understand it.
+""  However, see ":help map-silent" for more help on what it does.
 ""
 "" See ":help [" for what the bracket characters normally do
 ""
@@ -3152,9 +3203,9 @@ function! Expand(flags)
         let out = system('p4 where ' . shellescape(expand('%:p')))
         let retval = substitute(l:out, '\v^(//depot/.{-}) //.*', '\1', '')
     elseif a:flags == 'c'
-        let retval = getcwd()
+        let retval = expand('~') . '/.conan/data'
     elseif a:flags == '%'
-        let retval = expand('%:h') . '/'
+        let retval = getcwd()
     else
         let retval = expand('%:' . a:flags)
     endif
@@ -3179,10 +3230,11 @@ cnoremap <expr> %~  getcmdtype() =~ '[:=]' ? Expand('~')   : '%~'
 cnoremap <expr> %4  getcmdtype() =~ '[:=]' ? Expand('4')   : '%4'
 cnoremap <expr> %z  getcmdtype()
 
-cnoremap <expr> <c-d>  <nop>
-cnoremap <expr> <c-d>. getcwd()
-cnoremap <expr> <c-d>~ expand('~')
-cnoremap <expr> <c-d>c expand('~') . '/.conan/data'
+inoremap <expr> <c-d>  <nop>
+inoremap <expr> <c-d>. Expand('.')
+inoremap <expr> <c-d>% Expand('%')
+inoremap <expr> <c-d>~ Expand('~')
+inoremap <expr> <c-d>c Expand('c')
 
 nnoremap <leader>gf  <nop>
 nnoremap <leader>gfp :let @+='<c-r>=Expand('p')<cr>'<cr>
@@ -3502,7 +3554,7 @@ endif
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " HOW to use 'ALT' key mappings "{{{
 "" Setting up mappings using the alt key is tricky.  The short story is to use
-""			sed -n l
+""          sed -n l
 "" to print out the key codes of the key combinations you type.  Then use those
 "" values directly in setting up the mapping - remembering that '^[' == <esc>
 ""
@@ -3535,14 +3587,14 @@ endif
 ""
 "" These are helpful while processing the "quickfix" window
 ""
-""	NOTE:	I had trouble with these mappings always always always beeping
-""			This was fixed by removing the trailing comment from the line that defined the mapping
-""			The following URL explains a couple of reasons why a mapping may beep, and the solutions...
-""				http://vim.wikia.com/wiki/Mapping_keys_in_Vim_-_Tutorial_%28Part_2%29
+""  NOTE:   I had trouble with these mappings always always always beeping
+""          This was fixed by removing the trailing comment from the line that defined the mapping
+""          The following URL explains a couple of reasons why a mapping may beep, and the solutions...
+""              http://vim.wikia.com/wiki/Mapping_keys_in_Vim_-_Tutorial_%28Part_2%29
 ""
 ""
-"" F4		moves to next error in the quickfix window
-"" Shift+F4	moves to previous (again used 'sed -n l' to get codes)
+"" F4       moves to next error in the quickfix window
+"" Shift+F4 moves to previous (again used 'sed -n l' to get codes)
 ""
 
 ""
@@ -4059,14 +4111,14 @@ endfunction
 "" match '[cc]' text at the start of the build output lines.
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 " errorformat section "{{{
-""	The Vim expression:	\%( *[cc] \)\?
-""		\%(...\)	: a grouping
-""		\?		: zero or one of the preceding
+""    The Vim expression:   \%( *[cc] \)\?
+""        \%(...\)  : a grouping
+""        \?        : zero or one of the preceding
 ""
-""	Same, in errorformt:	%\\%%(\ %#[cc]\ %\\)%\\?
+""    Same, in errorformt:  %\\%%(\ %#[cc]\ %\\)%\\?
 ""
-""	Additionally, this is a zero-width match for '/home':
-""							%\\%%(/home%\\)%\\@=
+""    Additionally, this is a zero-width match for '/home':
+""                          %\\%%(/home%\\)%\\@=
 ""
 "    Missing these: [exec] File: /home/engineer/depot/components/stargate/work_branches/trunk/dev/src/platform/modules/sef/sef_wrapper.cpp Line Number: 278 Line: 		DoTraceFatal(msg.c_str());
 "    (from CCX pre processor)

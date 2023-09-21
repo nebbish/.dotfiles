@@ -68,6 +68,21 @@ function juniq() {
 
 
 ## ############################################################################
+## Python section (to mimic "enough" of the Windows `py` utility)
+## ############################################################################
+function py() {
+    ver=$1
+    if [ $ver = -3 ]; then
+        python3 ${@:2}
+    elif [ $ver = -2 ]; then
+        python ${@:2}
+    else
+        echo "Unrecognizable or unknown version spec provided: ${ver}"
+    fi
+}
+
+
+## ############################################################################
 ## OS - specific values
 ## ############################################################################
 

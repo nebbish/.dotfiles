@@ -84,7 +84,7 @@ function cifs_mount() {
 		return
 	fi
 	mkdir $lcldir
-	sudo mount.cifs $remdir $lcldir -vvv -o uid=engineer,suid,username=$3,sec=ntlm
+	sudo mount.cifs $remdir $lcldir -vvv -o uid=$(whoami),suid,username=$user
 	if [ $? != 0 ]; then
 		rmdir $lcldir
 	fi

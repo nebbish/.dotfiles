@@ -9,9 +9,9 @@ fi
 
 # Setup ~/bin and ~/.local/bin to the $PATH value (the 2nd location hosts decrypted private files)
 if [ -n "$BASH_VERSION" ]; then
-	PATH=$HOME/bin:$HOME/.local/bin:$PATH;
+	PATH=$HOME/bin:$HOME/.local/bin:$HOME/binpy:$PATH;
 	export PATH;
 elif [ -n "$ZSH_VERSION" ]; then
-	export PATH=~/bin:~/.local/bin:$PATH
+	export PATH=~/bin:~/.local/bin:~/binpy:$PATH
 fi
 
