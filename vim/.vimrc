@@ -684,7 +684,11 @@ nnoremap <a+right> <c-i>
 ""       So now I have a mapping to set it to '1' only when my scrolling sucks
 ""
 ""
-set regexpengine=0
+if has('macunix')
+    set regexpengine=1
+else
+    set regexpengine=0
+endif
 nnoremap <leader>rx <nop>
 nnoremap <leader>rx? :set regexpengine?<cr>
 nnoremap <leader>rx= :set regexpengine=
@@ -1400,6 +1404,9 @@ endif
 if has ('win32')
     nnoremap <leader>wal :<c-u><c-r>=LineAsWatchCmd()<cr><cr><c-w>p
     nnoremap <leader>wvl :<c-u>vert <c-r>=LineAsWatchCmd()<cr><cr><c-w>p
+
+    nnoremap <leader>waq <c-w>j<c-w><c-c>:bd<cr>
+    nnoremap <leader>wvq <c-w>l<c-w><c-c>:bd<cr>
 endif
 
 ""
@@ -1858,6 +1865,12 @@ function! PageKeysForDiffs()
 endfunction
 nnoremap <expr> <c-pageup>   PageKeysForDiffs() ? ':normal [czz<cr>' : ':tabprev<cr>'
 nnoremap <expr> <c-pagedown> PageKeysForDiffs() ? ':normal ]czz<cr>' : ':tabnext<cr>'
+
+" These mappings are for "normalizing" text so LOGS may compare easier
+nnoremap        <leader>dn  <nop>
+nnoremap <expr> <leader>dni ':<c-u>% s/\v^\[.{-}\] /[TIME] /<cr>:PopSearch<cr><c-o>'
+nnoremap <expr> <leader>dnp ':<c-u>% s/\v(] )@<=<c-r><c-w>( :)@=/PID' . v:count . '/<cr>:PopSearch<cr><c-o>'
+nnoremap <expr> <leader>dnt ':<c-u>% s/\v(: )@<=<c-r><c-w>( :)@=/TID' . v:count . '/<cr>:PopSearch<cr><c-o>'
 " "}}}
 
 " Transposing text "{{{
@@ -2073,6 +2086,7 @@ Plugin 'wesQ3/vim-windowswap'
 "" I'm going with the vim-easy-align, because I like the inerface:
 "" https://github.com/junegunn/vim-easy-align#tldr---one-minute-guide
 Plugin 'junegunn/vim-easy-align'
+Plugin 'godlygeek/tabular.git'
 "" Found this looking for a way to transpose arond a comma, here:
 ""     https://stackoverflow.com/a/14741301/5844631
 Plugin 'PeterRincker/vim-argumentative'
@@ -2109,8 +2123,15 @@ Plugin 'mbbill/undotree'
 "" I'm calling "smart alignment", where tabs are used for the indent, but spaces are
 "" used to align wrapped lines
 "Plugin 'Thyrum/vim-stabs'   NOTE:   Disbaled b/c of the 'o' and 'O' mappings
-
+"" Kotlin syntax
 Plugin 'udalov/kotlin-vim'
+"" Found these, trying to help use VIM for pure writing
+Plugin 'junegunn/seoul256.vim'
+Plugin 'junegunn/goyo.vim'
+Plugin 'junegunn/limelight.vim'
+"" This is "like" Boost for Vim -- what will be in the next version
+"" (currently 2 years newer than what is on my MacOS, with changes I want)
+Plugin 'tpope/vim-markdown'
 
 
 call vundle#end()			"" required
@@ -2121,6 +2142,46 @@ if s:bootstrap
 end
 
 filetype plugin indent on	"" required (the 'indent' clause is fine absent or present)
+"}}}
+
+
+" Markdown-related mappings and settings "{{{
+"" # "
+"" # " These settings are from the built-in functionality
+"" # " (either from the installed VIM, or tpope/vim-markdown)
+"" # "
+
+" If you want to enable fenced code block syntax highlighting in your markdown
+" documents you can enable it in your `.vimrc` like so:
+"let g:markdown_fenced_languages = ['html', 'python', 'bash=sh']
+
+" To disable markdown syntax concealing add the following to your vimrc:
+"let g:markdown_syntax_conceal = 0
+nnoremap <silent> <leader>om  <nop>
+nnoremap <silent> <leader>oms :let g:markdown_syntax_conceal = 0<cr>
+nnoremap <silent> <leader>zm  <nop>
+nnoremap <silent> <leader>zms :let g:markdown_syntax_conceal = 1<cr>
+
+" Syntax highlight is synchronized in 50 lines. It may cause collapsed
+" highlighting at large fenced code block.
+" In the case, please set larger value in your vimrc:
+"let g:markdown_minlines = 100
+nnoremap        <leader><leader>ml? :echo g:markdown_minlines<cr>
+nnoremap <expr> <leader><leader>mll ':let g:markdown_minlines = ' . v:count . '<cr>'
+
+"" # "
+"" # " find /Applications/MacVim.app/Contents/Resources/vim -iname '*markdown*'
+"" # "
+"" # " /Applications/MacVim.app/Contents/Resources/vim/runtime/ftplugin/markdown.vim
+"" # " /Applications/MacVim.app/Contents/Resources/vim/runtime/syntax/markdown.vim
+"" # "
+"" # " /Applications/MacVim.app/Contents/Resources/vim/runtime
+"" # " /Applications/MacVim.app/Contents/Resources/vim/vimfiles
+"" # " /Applications/MacVim.app/Contents/Resources/vim/vimfiles/after
+"" # " /Users/jasonsinger/.vim
+"" # " /Users/jasonsinger/.vim/after
+"" # "
+
 "}}}
 
 
@@ -2219,9 +2280,13 @@ function! s:Base64Encode(str) abort
 endfunction
 
 "" # https://api.html-tidy.org/tidy/tidylib_api_5.4.0/tidy_quickref.html
+nnoremap <expr> <leader>tc  <nop>
+nnoremap <expr> <leader>tc? ':echo "Tidy Column: "' . (exists('g:TidyColumn') ? g:TidyColumn . '" (var)"' : winwidth(0) . '" (win)"') . '<cr>'
+nnoremap <expr> <leader>tc& ':unlet g:TidyColumn<cr>'
+nnoremap <expr> <leader>tcc ':<c-u>let g:TidyColumn = ' . v:count . '<cr>'
 function! s:TidyOpts()
-    if ! exists('g:.TidyColumn')
-        let tidycol = &columns
+    if ! exists('g:TidyColumn')
+        let tidycol = winwidth(0)
     else
         let tidycol = g:TidyColumn
     endif
@@ -2429,19 +2494,21 @@ nnoremap <leader>ib  <nop>
 nnoremap <leader>ibl :G blame<cr>
 nnoremap <leader>ibr :G branch --list -a<cr>
 
-nnoremap <leader>if :G fetch<cr>
-nnoremap <leader>iu :G push<cr>
-nnoremap <expr> <leader>ip ':<c-u>G pull ' . (v:count == '0' ? '--ff-only' : (v:count == '1' ? '--rebase' : '')) . '<cr>'
+nnoremap <expr> <leader>if ':<c-u>G fetch ' . (v:count == '0' ? '' : (v:count == '1' ? '--all --prune' : '')) . '<cr>'
+nnoremap <expr> <leader>iu ':<c-u>G push '  . (v:count == '0' ? '' : (v:count == '1' ? '--force' : (v:count == '2' ? '-u origin' : ''))) . '<cr>'
+nnoremap <expr> <leader>ip ':<c-u>G pull '  . (v:count == '0' ? '--ff-only' : (v:count == '1' ? '--rebase' : '')) . '<cr>'
 
 nnoremap        <leader>ic         <nop>
+nnoremap        <leader>ica        :G commit --amend<cr>
 nnoremap        <leader>icz        <nop>
 nnoremap <expr> <leader>icz<space> ':G stash '
-nnoremap        <leader>icza       :G stash apply<cr>
 nnoremap        <leader>iczl       :G stash list<cr>
 nnoremap        <leader>iczu       :G stash push -m current<cr>
 nnoremap        <leader>iczg       :G stash push --staged -m current_staged<cr>
-nnoremap        <leader>iczp       :G stash pop<cr>
-nnoremap <expr> <leader>iczw       ':G stash show '
+nnoremap <expr> <leader>icza       ':<c-u>G stash apply stash@{' . v:count . '}<cr>'
+nnoremap <expr> <leader>iczp       ':<c-u>G stash pop stash@{' . v:count . '}<cr>'
+nnoremap <expr> <leader>iczd       ':<c-u>G stash drop stash@{' . v:count . '}<cr>'
+nnoremap <expr> <leader>iczw       ':<c-u>vert G stash show -p stash@{' . v:count . '}<cr>'
 nnoremap        <leader>icc        <nop>
 nnoremap <expr> <leader>icc<space> ':G checkout '
 nnoremap        <leader>icm        <nop>
@@ -2697,7 +2764,7 @@ nnoremap <expr> <leader>fdch ':FocusDispatch ' . substitute(dispatch#focus()[0],
 "}}}
 
 
-" vim-easy-align:  options & settings "{{{
+" Alignment/Tabular options & settings "{{{
 " NOTE:  the 'nore' version of the mapping commands (nnoremap,...)
 "        DO NOT work when calling a '<Plug>' mapping.
 "
@@ -2706,6 +2773,32 @@ nnoremap <expr> <leader>fdch ':FocusDispatch ' . substitute(dispatch#focus()[0],
 "
 nmap <leader><leader>l <Plug>(EasyAlign)
 xmap <leader><leader>l <Plug>(EasyAlign)
+
+
+nnoremap        <leader><leader>t        <nop>
+nnoremap <expr> <leader><leader>tt       ':Tabular /'
+nnoremap <expr> <leader><leader>t<space> ':Tabular / <cr>'
+nnoremap <expr> <leader><leader>t=       ':Tabular /=<cr>'
+nnoremap <expr> <leader><leader>t:       ':Tabular /:<cr>'
+nnoremap <expr> <leader><leader>t,       ':Tabular /,<cr>'
+
+"" # "
+"" # " From:  https://gist.github.com/tpope/287147
+"" # "
+" A function that can be used to "auto align" as-you-type:
+function! s:align()
+  let p = '^\s*|\s.*\s|\s*$'
+  if exists(':Tabularize') && getline('.') =~# '^\s*|' && (getline(line('.')-1) =~# p || getline(line('.')+1) =~# p)
+    let column = strlen(substitute(getline('.')[0:col('.')],'[^|]','','g'))
+    let position = strlen(matchstr(getline('.')[0:col('.')],'.*|\s*\zs.*'))
+    Tabularize/|/l1
+    normal! 0
+    call search(repeat('[^|]*|',column).'\s\{-\}'.repeat('.',position),'ce',line('.'))
+  endif
+endfunction
+
+" Then a mapping to call that function
+inoremap <silent> <Bar>   <Bar><Esc>:call <SID>align()<CR>a
 "}}}
 
 
@@ -2864,7 +2957,9 @@ function! NERDTreeYankCurrentNode()
 	let n = g:NERDTreeFileNode.GetSelected()
 	if n != {}
 		call setreg('"', n.path.str())
-		call setreg('+', n.path.str())
+		if has('clipboard')
+			call setreg('+', n.path.str())
+		endif
 	endif
 endfunction
 
@@ -3104,6 +3199,9 @@ nnoremap <leader>lpp :colorscheme peachpuff<cr>
 nnoremap <leader>lq  <Nop>
 nnoremap <leader>lr :colorscheme ron<cr>
 nnoremap <leader>ls  <Nop>
+nnoremap <leader>lse  <Nop>
+nnoremap <leader>lsel :colorscheme seoul256-light<cr>
+nnoremap <leader>lsed :colorscheme seoul256<cr>
 nnoremap <leader>lsn :colorscheme shine<cr>
 nnoremap <leader>lst :colorscheme slate<cr>
 nnoremap <leader>lso :colorscheme solarized<cr>
@@ -3237,18 +3335,18 @@ inoremap <expr> <c-d>~ Expand('~')
 inoremap <expr> <c-d>c Expand('c')
 
 nnoremap <leader>gf  <nop>
-nnoremap <leader>gfp :let @+='<c-r>=Expand('p')<cr>'<cr>
-nnoremap <leader>gfd :let @+='<c-r>=Expand('d')<cr>'<cr>
-nnoremap <leader>gf% :let @+='<c-r>=Expand('%')<cr>'<cr>
-nnoremap <leader>gff :let @+='<c-r>=Expand('t')<cr>'<cr>
-nnoremap <leader>gft :let @+='<c-r>=Expand('t:r')<cr>'<cr>
-nnoremap <leader>gfr :let @+='<c-r>=Expand('r')<cr>'<cr>
-nnoremap <leader>gfh :let @+='<c-r>=Expand('h')<cr>'<cr>
-nnoremap <leader>gfe :let @+='<c-r>=Expand('e')<cr>'<cr>
-nnoremap <leader>gfl :let @+='<c-r>=Expand('l')<cr>'<cr>
-nnoremap <leader>gfg :let @+='<c-r>=Expand('g')<cr>'<cr>
-nnoremap <leader>gf. :let @+='<c-r>=Expand('.')<cr>'<cr>
-nnoremap <leader>gf4 :let @+='<c-r>=Expand('4')<cr>'<cr>
+nnoremap <leader>gfp :let @"='<c-r>=Expand('p')<cr>'<bar>let @+=@"<cr>
+nnoremap <leader>gfd :let @"='<c-r>=Expand('d')<cr>'<bar>let @+=@"<cr>
+nnoremap <leader>gf% :let @"='<c-r>=Expand('%')<cr>'<bar>let @+=@"<cr>
+nnoremap <leader>gff :let @"='<c-r>=Expand('t')<cr>'<bar>let @+=@"<cr>
+nnoremap <leader>gft :let @"='<c-r>=Expand('t:r')<cr>'<bar>let @+=@"<cr>
+nnoremap <leader>gfr :let @"='<c-r>=Expand('r')<cr>'<bar>let @+=@"<cr>
+nnoremap <leader>gfh :let @"='<c-r>=Expand('h')<cr>'<bar>let @+=@"<cr>
+nnoremap <leader>gfe :let @"='<c-r>=Expand('e')<cr>'<bar>let @+=@"<cr>
+nnoremap <leader>gfl :let @"='<c-r>=Expand('l')<cr>'<bar>let @+=@"<cr>
+nnoremap <leader>gfg :let @"='<c-r>=Expand('g')<cr>'<bar>let @+=@"<cr>
+nnoremap <leader>gf. :let @"='<c-r>=Expand('.')<cr>'<bar>let @+=@"<cr>
+nnoremap <leader>gf4 :let @"='<c-r>=Expand('4')<cr>'<bar>let @+=@"<cr>
 
 
 cnoremap <expr> <c-o>a  getcwd().'_build-logs\msbuild-diagnostic.log'
@@ -3507,9 +3605,22 @@ nnoremap <leader>tr :%s/[ \t]\+$//<bar>PopSearch<cr>
 ""
 "" For easy file type conversion and cleanup of the extra ^M characters that appear when converting Dos->Unix
 ""
+function! TrimCarriageReturns()
+    let save_cursor = getcurpos()
+    try
+        execute '%s/\v(\r|\^M)+$//'
+        execute '%s/\v\r(\n)@!/\r/g'
+    catch /\vE486:/
+        echo "No carraige returns found :)"
+    finally
+        PopSearch
+        call setpos('.', save_cursor)
+    endtry
+endfunction
+
 nnoremap <leader>ftu :e ++ff=unix<cr>
 nnoremap <leader>fto :e ++ff=dos<cr>
-nnoremap <leader>ftm :%s/\v(<C-V><cr><bar>\^M)$//<bar>PopSearch<cr>
+nnoremap <leader>ftm :call TrimCarriageReturns()<cr>
 nnoremap <leader>ftd :filetype detect<cr>
 nnoremap <leader>ft? :set filetype?<cr>
 nnoremap <leader>ft= :set filetype=
@@ -3674,6 +3785,8 @@ nnoremap <leader>fj /\%<C-R>=virtcol(".")<CR>v\S<CR>
 vnoremap <leader>fj /\%<C-R>=virtcol(".")<CR>v\S<CR>
 nnoremap <leader>fk ?\%<C-R>=virtcol(".")<CR>v\S<CR>
 vnoremap <leader>fk ?\%<C-R>=virtcol(".")<CR>v\S<CR>
+
+vnoremap <expr> <leader>fs ':<c-u>% g/\v' . VimRxEscape(VisualSelection()) . '/d<cr>:PopSearch<cr><c-o>'
 "}}}
 
 
@@ -3949,7 +4062,7 @@ nnoremap <leader>wx :call SetGuiSize(1000, 1000)<cr>
 nnoremap <leader>wn :call SetGuiSize(93, 293)<cr>
 nnoremap <leader>wm :call SetGuiSize(40, 134)<cr>
 nnoremap <leader>wt :call SetGuiSize(100, 134)<cr>
-nnoremap <leader>wq :call SetGuiSize(85, 273)<cr>
+nnoremap <leader>wq :call SetGuiSize(80, 272)<cr>
 nnoremap <leader>w? :set lines?<bar>set columns?<cr>
 
 "nnoremap <leader>wz :call popup_clear(1)<cr>
