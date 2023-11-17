@@ -839,11 +839,12 @@ augroup END
 "  NOTE:  'ccab' cannot be used within this file -- just the command line directly :/
 "
 function! ShouldReplaceCommand()
+    " NOTE:  not using v:true & v:false below b/c trying to remain compatible with VIM 7.4
     if getcmdtype() != ":"
-        return v:false
+        return 0
     endif
     if getcmdpos() == 1
-        return v:true
+        return 1
     endif
     return -1 == match(getcmdline(), "[^.$%'`<>,0-9 ]")
 endfunction
@@ -1004,13 +1005,13 @@ nnoremap <leader>wu <cmd>call MakeUnscratch()<cr>
 ""
 "" This helper is a modified copy of: https://gist.github.com/romainl/eae0a260ab9c135390c30cd370c20cd7
 ""
-function! Redir(cmd, rng, start, end)
-	"for win in range(1, winnr('$'))
-	"	if getwinvar(win, 'redir_scratch_window')
-	"		execute win . 'windo close'
-	"	endif
-	"endfor
-	if a:cmd =~ '^!'
+function! Redir(cmd, count, start, end)
+    "for win in range(1, winnr('$'))
+    "	if getwinvar(win, 'redir_scratch_window')
+    "		execute win . 'windo close'
+    "	endif
+    "endfor
+    if a:cmd =~ '^!'
         let cmd = a:cmd
         " NOTE:  this only handles the simpliest case:  just a single '%'
         if l:cmd =~ ' %\($\|\s\)'
@@ -1018,27 +1019,30 @@ function! Redir(cmd, rng, start, end)
         endif
         let cmd = matchstr(l:cmd, '^!\zs.*')
         let output = systemlist(l:cmd)
-		"if a:rng == 0
-		"	let output = systemlist(cmd)
-		"else
-		"	let joined_lines = join(getline(a:start, a:end), '\n')
-		"	let cleaned_lines = substitute(shellescape(joined_lines), "'\\\\''", "\\\\'", 'g')
-		"	"let output = systemlist(cmd . " <<< $" . cleaned_lines)
-		"	let output = split(cleaned_lines, "\n")
-		"endif
-	else
-        let output = execute(a:cmd)->split("\n")
-	endif
-    if a:rng == a:start && a:rng == a:end && a:rng == 1
+        "if a:count == 0
+        "	let output = systemlist(cmd)
+        "else
+        "	let joined_lines = join(getline(a:start, a:end), '\n')
+        "	let cleaned_lines = substitute(shellescape(joined_lines), "'\\\\''", "\\\\'", 'g')
+        "	"let output = systemlist(cmd . " <<< $" . cleaned_lines)
+        "	let output = split(cleaned_lines, "\n")
+        "endif
+    else
+        redir => cmd_output
+        execute a:cmd
+        redir END
+        let output = split(l:cmd_output, "\n")
+    endif
+    if a:count == a:start && a:count == a:end && a:count == 1
         vnew
     else
         new
     endif
-	let w:redir_scratch_window = 1
-	setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile
-	call setline(1, output)
+    let w:redir_scratch_window = 1
+    setlocal buftype=nofile bufhidden=wipe nobuflisted noswapfile
+    call setline(1, output)
 endfunction
-command! -nargs=1 -complete=command -range Redir silent call Redir(<q-args>, <range>, <line1>, <line2>)
+command! -nargs=1 -complete=command -range Redir silent call Redir(<q-args>, <count>, <line1>, <line2>)
 CommandAbbrev cap Redir
 
 "}}}
@@ -1167,7 +1171,10 @@ endfunction
 
 function! SaveMarks(fname)
     let markspath = GetMarksFile(a:fname)
-    let cmdout = execute("marks")->split("\n")
+    redir => cmd_output
+    execute "marks"
+    redir END
+    let cmdout = split(l:cmd_output, "\n")
     let marks = []
     for line in l:cmdout
         let fields = l:line->split()
@@ -1314,7 +1321,7 @@ function! ExecuteInnerParagraph() abort
     let inner = GetInnerParagraph()
     let lines = getline(l:inner[0], l:inner[1])
     for line in l:lines
-        execute(l:line)
+        execute l:line
     endfor
 endfunction
 
@@ -3231,16 +3238,16 @@ if ! exists("s:colorscheme_default_has_been_set")
         "colorscheme solarized8_high
         colorscheme papercolor
         set background=dark
-    elseif has('linux')
-        colorscheme solarized8
-        set background=dark
-    else
+    elseif has('win32')
         " Doing both one-right-after-the-other does NOT work here in VIMRC :(
         " (so I have commentd out the switch to papercolor)
             " colorscheme one
             " redrawstatus!
         colorscheme papercolor
         set background=light
+    else
+        colorscheme solarized8
+        set background=dark
     endif
 endif
 "}}}

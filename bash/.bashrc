@@ -9,7 +9,7 @@ fi
 
 
 if [ "${OSTYPE:0:5}" = "linux" ]; then
-    if [ -x $(which lsb_release) ]; then
+    if [ -x "$(which lsb_release 2>/dev/null)" ]; then
         osnick=$(lsb_release -si | tr '[:upper:]' '[:lower:]')
     elif [ -f /etc/os-release ]; then
         . /etc/os-release

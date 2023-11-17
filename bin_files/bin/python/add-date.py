@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 import os, sys, platform, stat, datetime, argparse, shutil
 
 def creation_date(path_to_file):
