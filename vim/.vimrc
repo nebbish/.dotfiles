@@ -697,6 +697,15 @@ nnoremap <expr> <leader>rxx ':<c-u>set regexpengine=' . v:count . '<cr>:set rege
 "" Here's something to speed up the opening of the jump list
 nnoremap <leader>j  <nop>
 nnoremap <leader>jj :jumps<cr>
+
+"" Finally setting up a spell file that captures my custom words
+set spellfile=~/.vim/spell/en.utf-8.add
+nnoremap <leader>sl <nop>
+nnoremap <leader>sl? :set spelllang?<cr>
+nnoremap <leader>sl= :set spelllang=
+nnoremap <leader>sf <nop>
+nnoremap <leader>sf? :set spellfile?<cr>
+nnoremap <leader>sfe :sp <c-r>=&spellfile<cr><cr>
 "}}}
 
 
@@ -2011,6 +2020,8 @@ Plugin 'chrisbra/matchit'
 Plugin 'nebbish/vim-unimpaired', {'revision': 'neb-dev'}
 "" After discovering the above, I just poked around the other stuff by Tim Pope, and liked this too:
 Plugin 'tpope/vim-eunuch'
+"" Much later I found this:
+Plugin 'tpope/vim-abolish'
 "" Found this one at: https://github.com/tmhedberg/SimpylFold
 "" It is about proper folding of PY code
 Plugin 'tmhedberg/SimpylFold'
@@ -2138,7 +2149,14 @@ Plugin 'junegunn/goyo.vim'
 Plugin 'junegunn/limelight.vim'
 "" This is "like" Boost for Vim -- what will be in the next version
 "" (currently 2 years newer than what is on my MacOS, with changes I want)
-Plugin 'tpope/vim-markdown'
+"Plugin 'tpope/vim-markdown'
+Plugin 'preservim/vim-markdown'
+Plugin 'mzlogin/vim-markdown-toc'
+Plugin 'preservim/vim-colors-pencil'
+
+"Plugin 'iamcco/markdown-preview.nvim'
+
+"Plugin 'neoclide/coc.nvim', {'revision': 'release'}
 
 
 call vundle#end()			"" required
@@ -2152,11 +2170,48 @@ filetype plugin indent on	"" required (the 'indent' clause is fine absent or pre
 "}}}
 
 
+" Goyo/Limelight mappings and settings "{{{
+nnoremap <leader><leader>g  <nop>
+nnoremap <leader><leader>ga :Goyo<cr>
+nnoremap <leader><leader>go :Goyo!<cr>
+
+"" # " For limelight, my current pneumonic is:  "spotlight"
+nnoremap <leader><leader>s  <nop>
+nnoremap <leader><leader>sa :Limelight<cr>
+nnoremap <leader><leader>so :Limelight!<cr>
+"}}}
+
+
 " Markdown-related mappings and settings "{{{
 "" # "
 "" # " These settings are from the built-in functionality
 "" # " (either from the installed VIM, or tpope/vim-markdown)
+"" # " (--OR-- the more functional preservim/vim-markdown)
 "" # "
+
+" Preservim Markdown automatic key mappings, disabled via a global:
+"    call <sid>MapNotHasmapto(']]', 'Markdown_MoveToNextHeader')
+"    call <sid>MapNotHasmapto('[[', 'Markdown_MoveToPreviousHeader')
+"    call <sid>MapNotHasmapto('][', 'Markdown_MoveToNextSiblingHeader')
+"    call <sid>MapNotHasmapto('[]', 'Markdown_MoveToPreviousSiblingHeader')
+"    call <sid>MapNotHasmapto(']u', 'Markdown_MoveToParentHeader')
+"    call <sid>MapNotHasmapto(']h', 'Markdown_MoveToCurHeader')
+"    call <sid>MapNotHasmapto('gx', 'Markdown_OpenUrlUnderCursor')
+"    call <sid>MapNotHasmapto('ge', 'Markdown_EditUrlUnderCursor')
+"let g:vim_markdown_no_default_key_mappings=1
+"let g:vim_markdown_borderless_table=1
+
+
+nnoremap <leader><leader>mp  <nop>
+nnoremap <leader><leader>mpa :MarkdownPreview<cr>
+nnoremap <leader><leader>mpo :MarkdownPreviewStop<cr>
+
+"" NOTE:  this stylesheet did not solve my problems, which were from my bad syntax.
+""        I'm not sure yet IF this is helpful to me.
+" From markdown PREVIEW plugin, this makes it look like Github style
+" (copied from: https://github.com/sindresorhus/github-markdown-css)
+"let g:mkdp_markdown_css = '~/.vim/vimfiles/github-markdown.css'
+
 
 " If you want to enable fenced code block syntax highlighting in your markdown
 " documents you can enable it in your `.vimrc` like so:
@@ -2176,6 +2231,34 @@ nnoremap <silent> <leader>zms :let g:markdown_syntax_conceal = 1<cr>
 nnoremap        <leader><leader>ml? :echo g:markdown_minlines<cr>
 nnoremap <expr> <leader><leader>mll ':let g:markdown_minlines = ' . v:count . '<cr>'
 
+nnoremap <leader><leader>mf  <nop>
+nnoremap <leader><leader>mf? :echo g:vim_markdown_folding_disabled<cr>
+nnoremap <leader><leader>mfe :unlet g:vim_markdown_folding_disabled<cr>
+nnoremap <leader><leader>mfd :let g:vim_markdown_folding_disabled = 1<cr>
+
+function! IndentionMotionSetup(direction) abort
+    let s:indention_direction = a:direction
+    let &opfunc = 'IndentionMotion'
+    return 'g@'
+endfunction
+
+function! IndentionMotion(type) abort
+    let save_cursor = getcurpos()
+    if s:indention_direction == '>'
+        '[,'] HeaderIncrease
+    else
+        '[,'] HeaderDecrease
+    endif
+    call setpos('.', save_cursor)
+endfunction
+
+nnoremap <expr> <leader>>h IndentionMotionSetup('>')
+xnoremap <expr> <leader>>h IndentionMotionSetup('>')
+nnoremap <expr> <leader>>hh IndentionMotionSetup('>') . '_'
+nnoremap <expr> <leader><h IndentionMotionSetup('<')
+xnoremap <expr> <leader><h IndentionMotionSetup('<')
+nnoremap <expr> <leader><hh IndentionMotionSetup('<') . '_'
+
 "" # "
 "" # " find /Applications/MacVim.app/Contents/Resources/vim -iname '*markdown*'
 "" # "
@@ -2189,6 +2272,15 @@ nnoremap <expr> <leader><leader>mll ':let g:markdown_minlines = ' . v:count . '<
 "" # " /Users/jasonsinger/.vim/after
 "" # "
 
+nnoremap        <leader>hl  <nop>
+nnoremap        <leader>hl? :set conceallevel?<cr>
+nnoremap        <leader>hl& :set conceallevel&<cr>
+nnoremap <expr> <leader>hll ':<c-u>set conceallevel=' . v:count . '<cr>'
+
+nnoremap <leader>hc        <nop>
+nnoremap <leader>hc?       :set concealcursor?<cr>
+nnoremap <leader>hc&       :set concealcursor&<cr>
+nnoremap <leader>hc<space> :set concealcursor=
 "}}}
 
 
@@ -2292,10 +2384,15 @@ nnoremap <expr> <leader>tc? ':echo "Tidy Column: "' . (exists('g:TidyColumn') ? 
 nnoremap <expr> <leader>tc& ':unlet g:TidyColumn<cr>'
 nnoremap <expr> <leader>tcc ':<c-u>let g:TidyColumn = ' . v:count . '<cr>'
 function! s:TidyOpts()
-    if ! exists('g:TidyColumn')
-        let tidycol = winwidth(0)
+    if s:vcount == 0
+        if ! exists('g:TidyColumn')
+            let tidycol = winwidth(0)
+        else
+            let tidycol = g:TidyColumn
+    elseif s:vcount == 1
+        let tidycol = '0'
     else
-        let tidycol = g:TidyColumn
+        let tidycol = v:count
     endif
 
     let opts = '-q -i -w ' . l:tidycol . ' --break-before-br yes'
@@ -2371,38 +2468,46 @@ endfunction
 nnoremap <expr> <leader>] <nop>
 nnoremap <expr> <leader>[ <nop>
 
-nnoremap <expr> <leader>]u TransformMotionSetup('s:PyUuDecode')
-xnoremap <expr> <leader>]u TransformMotionSetup('s:PyUuDecode')
-nnoremap <expr> <leader>]uu TransformMotionSetup('s:PyUuDecode') . '_'
-nnoremap <expr> <leader>[u TransformMotionSetup('s:PyUuEncode')
-xnoremap <expr> <leader>[u TransformMotionSetup('s:PyUuEncode')
-nnoremap <expr> <leader>[uu TransformMotionSetup('s:PyUuEncode') . '_'
+"" #
+"" # NOTE:  the use of the BLACK HOLE register as a macro in the below
+"" #        mappings serves the purpose of:  EXhausting the COUNT value
+"" #
+"" #        this enables transformations to "use" v:count to control
+"" #        transformation behavior WITHOUT affecting which lines of
+"" #        the buffer get transformed.
+"" #
+nnoremap <expr> <leader>]u "@_" . TransformMotionSetup('s:PyUuDecode')
+xnoremap <expr> <leader>]u "@_" . TransformMotionSetup('s:PyUuDecode')
+nnoremap <expr> <leader>]uu "@_" . TransformMotionSetup('s:PyUuDecode') . '_'
+nnoremap <expr> <leader>[u "@_" . TransformMotionSetup('s:PyUuEncode')
+xnoremap <expr> <leader>[u "@_" . TransformMotionSetup('s:PyUuEncode')
+nnoremap <expr> <leader>[uu "@_" . TransformMotionSetup('s:PyUuEncode') . '_'
 
-nnoremap <expr> <leader>]p TransformMotionSetupD('s:PyBase64Decode')
-xnoremap <expr> <leader>]p TransformMotionSetupD('s:PyBase64Decode')
-nnoremap <expr> <leader>]pp TransformMotionSetupD('s:PyBase64Decode') . '_'
-nnoremap <expr> <leader>[p TransformMotionSetupD('s:PyBase64Encode')
-xnoremap <expr> <leader>[p TransformMotionSetupD('s:PyBase64Encode')
-nnoremap <expr> <leader>[pp TransformMotionSetupD('s:PyBase64Encode') . '_'
+nnoremap <expr> <leader>]p "@_" . TransformMotionSetupD('s:PyBase64Decode')
+xnoremap <expr> <leader>]p "@_" . TransformMotionSetupD('s:PyBase64Decode')
+nnoremap <expr> <leader>]pp "@_" . TransformMotionSetupD('s:PyBase64Decode') . '_'
+nnoremap <expr> <leader>[p "@_" . TransformMotionSetupD('s:PyBase64Encode')
+xnoremap <expr> <leader>[p "@_" . TransformMotionSetupD('s:PyBase64Encode')
+nnoremap <expr> <leader>[pp "@_" . TransformMotionSetupD('s:PyBase64Encode') . '_'
 
-nnoremap <expr> <leader>]b TransformMotionSetup('s:Base64Decode')
-xnoremap <expr> <leader>]b TransformMotionSetup('s:Base64Decode')
-nnoremap <expr> <leader>]bb TransformMotionSetup('s:Base64Decode') . '_'
-nnoremap <expr> <leader>[b TransformMotionSetup('s:Base64Encode')
-xnoremap <expr> <leader>[b TransformMotionSetup('s:Base64Encode')
-nnoremap <expr> <leader>[bb TransformMotionSetup('s:Base64Encode') . '_'
+nnoremap <expr> <leader>]b "@_" . TransformMotionSetup('s:Base64Decode')
+xnoremap <expr> <leader>]b "@_" . TransformMotionSetup('s:Base64Decode')
+nnoremap <expr> <leader>]bb "@_" . TransformMotionSetup('s:Base64Decode') . '_'
+nnoremap <expr> <leader>[b "@_" . TransformMotionSetup('s:Base64Encode')
+xnoremap <expr> <leader>[b "@_" . TransformMotionSetup('s:Base64Encode')
+nnoremap <expr> <leader>[bb "@_" . TransformMotionSetup('s:Base64Encode') . '_'
 
-nnoremap <expr> <leader>tx TransformMotionSetup('s:TidyXml')
-xnoremap <expr> <leader>tx TransformMotionSetup('s:TidyXml')
-nnoremap <expr> <leader>txx TransformMotionSetup('s:TidyXml') . '_'
+nnoremap <expr> <leader>tx "@_" . TransformMotionSetup('s:TidyXml')
+xnoremap <expr> <leader>tx "@_" . TransformMotionSetup('s:TidyXml')
+nnoremap <expr> <leader>txx "@_" . TransformMotionSetup('s:TidyXml') . '_'
 
-nnoremap <expr> <leader>th TransformMotionSetup('s:TidyHtml')
-xnoremap <expr> <leader>th TransformMotionSetup('s:TidyHtml')
-nnoremap <expr> <leader>thh TransformMotionSetup('s:TidyHtml') . '_'
+nnoremap <expr> <leader>th "@_" . TransformMotionSetup('s:TidyHtml')
+xnoremap <expr> <leader>th "@_" . TransformMotionSetup('s:TidyHtml')
+nnoremap <expr> <leader>thh "@_" . TransformMotionSetup('s:TidyHtml') . '_'
 
-nnoremap <expr> <leader>tj TransformMotionSetup('s:TidyJson')
-xnoremap <expr> <leader>tj TransformMotionSetup('s:TidyJson')
-nnoremap <expr> <leader>tjj TransformMotionSetup('s:TidyJson') . '_'
+nnoremap <expr> <leader>tj "@_" . TransformMotionSetup('s:TidyJson')
+xnoremap <expr> <leader>tj "@_" . TransformMotionSetup('s:TidyJson')
+nnoremap <expr> <leader>tjj "@_" . TransformMotionSetup('s:TidyJson') . '_'
 
 
 " Adding a new function exploring interactions b/w Vim & Python.   Not used yet.
@@ -2926,8 +3031,14 @@ nnoremap <leader>fms :set foldmethod=syntax<cr>
 nnoremap <leader>fme :set foldmethod=expr<cr>
 nnoremap <leader>fmd :set foldmethod=diff<cr>
 nnoremap <leader>fmi :set foldmethod=indent<cr>
-nnoremap <expr> <leader>fc ":<c-u>set foldcolumn=" . v:count . "<cr>"
-nnoremap <leader>fl? :set foldlevel?<cr>
+nnoremap        <leader>fl  <nop>
+nnoremap        <leader>fl? :set foldlevel?<cr>
+nnoremap        <leader>fl& :set foldlevel&<cr>
+nnoremap <expr> <leader>fll ":<c-u>set foldlevel=" . v:count . "<cr>"
+nnoremap        <leader>fc  <nop>
+nnoremap        <leader>fc? :set foldcolumn?<cr>
+nnoremap        <leader>fc& :set foldcolumn&<cr>
+nnoremap <expr> <leader>fcc ":<c-u>set foldcolumn=" . v:count . "<cr>"
 "}}}
 
 
@@ -3202,6 +3313,7 @@ nnoremap <leader>lon :colorscheme one<cr>
 nnoremap <leader>lp  <Nop>
 nnoremap <leader>lpb :colorscheme pablo<cr>
 nnoremap <leader>lpc :colorscheme PaperColor<cr>
+nnoremap <leader>lpe :colorscheme pencil<cr>
 nnoremap <leader>lpp :colorscheme peachpuff<cr>
 nnoremap <leader>lq  <Nop>
 nnoremap <leader>lr :colorscheme ron<cr>
@@ -3225,6 +3337,10 @@ nnoremap <leader>ly  <Nop>
 nnoremap <leader>lz  <Nop>
 nnoremap <leader>lzb :colorscheme zenburn<cr>
 nnoremap <leader>lzn :colorscheme zellner<cr>
+
+let g:pencil_higher_contrast_ui = 0   " 0=low (def), 1=high  (just background of code blocks)
+let g:pencil_neutral_headings = 0   " 0=blue (def), 1=normal (normal == all-greyscale)
+let g:pencil_terminal_italics = 0
 
 " NOTE:  activating "one" *before* "papercolor" sets the colors of the file
 "        heading bar (which is otherwise ignored by papercolor)
