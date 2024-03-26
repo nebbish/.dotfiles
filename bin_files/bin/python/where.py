@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python3
 import os, sys, platform, argparse
 
 def where_impl(val):

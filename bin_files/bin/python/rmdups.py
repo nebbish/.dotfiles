@@ -1,6 +1,5 @@
-#!/usr/bin/env python2
-from __future__ import print_function
-import inspect, logging, sys, os, imp
+#!/usr/bin/env python3
+import inspect, logging, sys, os
 import re
 import argparse
 
