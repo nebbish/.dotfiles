@@ -19,8 +19,8 @@ export LSCOLORS=Exfxcxdxbxegedabagacad
 
 # Set java version
 # https://www.kevinhooke.com/2017/10/05/switching-java-versions-on-mac-os/
-alias j13="export JAVA_HOME=$(/usr/libexec/java_home -v 13)"
-alias j8="export JAVA_HOME=$(/usr/libexec/java_home -v 1.8)"
+alias j13="export JAVA_HOME=$(2>/dev/null /usr/libexec/java_home -v 13)"
+alias j8="export JAVA_HOME=$(2>/dev/null /usr/libexec/java_home -v 1.8)"
 j8
 
 if [ -f ~/.exports_all ]; then
