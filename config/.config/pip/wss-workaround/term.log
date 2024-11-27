@@ -1,0 +1,115 @@
+
+
+jason@HOST wss-workaround % pushd /Library/Frameworks/Python.framework/Versions/3.7/etc/openssl/certs
+pushd: no such file or directory: /Library/Frameworks/Python.framework/Versions/3.7/etc/openssl/certs
+jason@HOST wss-workaround % pushd /Library/Frameworks/Python.framework/Versions/3.7/etc/openssl      
+/Library/Frameworks/Python.framework/Versions/3.7/etc/openssl ~/.config/pip/wss-workaround
+jason@HOST openssl % la
+total 0
+drwxrwxr-x  2 root  admin  64 Aug 14  2020 .
+drwxrwxr-x  3 root  admin  96 Aug 14  2020 ..
+jason@HOST openssl % sudo mkdir certs
+Password:
+jason@HOST openssl % sudo chmod 775 certs
+jason@HOST openssl % la
+total 0
+drwxrwxr-x  3 root  admin  96 Sep 24 13:41 .
+drwxrwxr-x  3 root  admin  96 Aug 14  2020 ..
+drwxrwxr-x  2 root  admin  64 Sep 24 13:41 certs
+jason@HOST openssl % popd
+~/.config/pip/wss-workaround
+jason@HOST wss-workaround % cp wss-intercept-ca.crt /Library/Frameworks/Python.framework/Versions/3.7/etc/openssl/certs
+jason@HOST wss-workaround % la /Library/Frameworks/Python.framework/Versions/3.7/etc/openssl/certs
+total 8
+drwxrwxr-x  3 root         admin    96 Sep 24 13:41 .
+drwxrwxr-x  3 root         admin    96 Sep 24 13:41 ..
+-rw-r--r--@ 1 jason  admin  1298 Sep 24 13:41 wss-intercept-ca.crt
+jason@HOST wss-workaround % conda
+zsh: command not found: conda
+jason@HOST wss-workaround % where conda
+conda not found
+jason@HOST wss-workaround % py -3 -m pip search conda  
+ERROR: XMLRPC request failed [code: -32500]
+RuntimeError: PyPI no longer supports 'pip search' (or XML-RPC search). Please use https://pypi.org/search (via a browser) instead. See https://w
+jason@HOST wss-workaround % pip config list
+global.cert='/Users/jason/.config/pip/wss-workaround/all.pem'
+global.extra-index-url='https://pypi.python.org/simple'
+global.index-url='https://internal-company-server/artifactory/api/pypi/star-pypi-snapshot/simple'
+jason@HOST wss-workaround % conda config --set ssl_verify $(pwd)/all.pem
+zsh: command not found: conda
+
+!!
+!! (here I install Anaconda3 using homebrew in another window)
+!!
+
+jason@HOST wss-workaround % rezsh
+jason@HOST wss-workaround % where conda
+conda not found
+jason@HOST wss-workaround % source ~/.zprofile 
+jason@HOST wss-workaround % where conda
+/usr/local/anaconda3/bin/conda
+jason@HOST wss-workaround % echo $PATH | tr ':' '\n'
+/Users/jason/bin
+/Users/jason/.local/bin
+/Users/jason/binpy
+/usr/local/anaconda3/bin
+/Users/jason/Documents/work/gcp/google-cloud-sdk/bin
+/usr/local/bin
+/System/Cryptexes/App/usr/bin
+/usr/bin
+/bin
+/usr/sbin
+/sbin
+/Applications/VMware Fusion.app/Contents/Public
+/Library/TeX/texbin
+/usr/local/MacGPG2/bin
+/opt/X11/bin
+/Applications/Wireshark.app/Contents/MacOS
+/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin
+/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin
+/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin
+jason@HOST wss-workaround % py -3 -m pip install wheel
+Looking in indexes: https://internal-company-server/artifactory/api/pypi/star-pypi-snapshot/simple, https://pypi.python.org/simple
+Requirement already satisfied: wheel in /usr/local/anaconda3/lib/python3.11/site-packages (0.38.4)
+
+!!
+!! NOT sure what I was thinking here -- but I accidentally uninstall wheel from Anaconda's install, then try to fix it quick (does not work)
+!!
+
+jason@HOST wss-workaround % py -3 -m pip uninstall -y wheel
+Found existing installation: wheel 0.38.4
+Uninstalling wheel-0.38.4:
+  Successfully uninstalled wheel-0.38.4
+jason@HOST wss-workaround % which python
+/usr/local/anaconda3/bin/python
+jason@HOST wss-workaround % py -3 -c "import sys; print(sys.executable)"
+/usr/local/anaconda3/bin/python3
+jason@HOST wss-workaround % py -3 -V
+Python 3.11.4
+jason@HOST wss-workaround % py -3 -m pip install --force-reinstall -v "wheel==0.38.4"
+Using pip 23.2.1 from /usr/local/anaconda3/lib/python3.11/site-packages/pip (python 3.11)
+Looking in indexes: https://internal-company-server/artifactory/api/pypi/star-pypi-snapshot/simple, https://pypi.python.org/simple
+Collecting wheel==0.38.4
+  ERROR: HTTP error 403 while getting https://files.pythonhosted.org/packages/bd/7c/d38a0b30ce22fc26ed7dbc087c6d00851fb3395e9d0dac40bec1f905030c/wheel-0.38.4-py3-none-any.whl (from https://pypi.org/simple/wheel/) (requires-python:>=3.7)
+ERROR: Could not install requirement wheel==0.38.4 from https://files.pythonhosted.org/packages/bd/7c/d38a0b30ce22fc26ed7dbc087c6d00851fb3395e9d0dac40bec1f905030c/wheel-0.38.4-py3-none-any.whl because of HTTP error 403 Client Error: Forbidden for url: https://files.pythonhosted.org/packages/bd/7c/d38a0b30ce22fc26ed7dbc087c6d00851fb3395e9d0dac40bec1f905030c/wheel-0.38.4-py3-none-any.whl for URL https://files.pythonhosted.org/packages/bd/7c/d38a0b30ce22fc26ed7dbc087c6d00851fb3395e9d0dac40bec1f905030c/wheel-0.38.4-py3-none-any.whl (from https://pypi.org/simple/wheel/) (requires-python:>=3.7)
+jason@HOST wss-workaround % 
+
+
+
+This is a log of me fixing my accidentally having un-installed Wheel from Anaconda's built-in Python.
+
+jason@HOST wss-workaround % py -3 -c "import wheel"
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+ModuleNotFoundError: No module named 'wheel'
+jason@HOST wss-workaround % py -3 -m pip install --force-reinstall -v "wheel==0.38.4"
+Using pip 23.2.1 from /usr/local/anaconda3/lib/python3.11/site-packages/pip (python 3.11)
+Looking in indexes: https://internal-company-server/artifactory/api/pypi/star-pypi-snapshot/simple, https://pypi.python.org/simple
+Collecting wheel==0.38.4
+  Downloading wheel-0.38.4-py3-none-any.whl (36 kB)
+Installing collected packages: wheel
+  changing mode of /usr/local/anaconda3/bin/wheel to 755
+Successfully installed wheel-0.38.4
+jason@HOST wss-workaround % py -3 -c "import wheel"
+jason@HOST wss-workaround %
+
