@@ -17,3 +17,12 @@ alias wwhich="whence -faw"
 
 alias ip4s='ifconfig | grep "inet " -B4'
 
+##
+## I think I added this when I had trouble with PIP and certificate validation
+##     -- anaconda is a (better?) Python package manager.
+## It involved WSS protection (which needs full "up the chain" cert validation)
+## I installed it via "brew install --cask anaconda" on Sep 24 2023
+## I also decided to make it optional by creating an alias to "activate" it
+##
+alias setana='export PATH=/usr/local/anaconda3/bin:$PATH'
+
