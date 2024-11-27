@@ -8,6 +8,18 @@ if [ -n "$DOTFILES_DEBUG" ] && [ "${TERM##*-}" = "256color" ]; then
 	echo "$(date) + $(whoami) + executing $__source"
 fi
 
+###################################################################################################
+##############           SECTION:  Added by the Google Cloud SDK installer           ##############
+##############                      (todo:  include this more gracefully)            ##############
+###################################################################################################
+# The next line updates PATH for the Google Cloud SDK.
+if [ -f '~/Documents/work/gcp/google-cloud-sdk/path.zsh.inc' ]; then . '~/Documents/work/gcp/google-cloud-sdk/path.zsh.inc'; fi
+
+# The next line enables shell command completion for gcloud.
+#if [ -f '~/Documents/work/gcp/google-cloud-sdk/completion.zsh.inc' ]; then . '~/Documents/work/gcp/google-cloud-sdk/completion.zsh.inc'; fi
+###################################################################################################
+###################################################################################################
+
 ##
 ## I think I added this when I had trouble with PIP and certificate validation
 ##     -- anaconda is a (better?) Python package manager.
