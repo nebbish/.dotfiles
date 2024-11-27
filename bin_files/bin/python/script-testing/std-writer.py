@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 import sys
-import argparse
 
 cargs = sys.argv[1:]
 out = err = False

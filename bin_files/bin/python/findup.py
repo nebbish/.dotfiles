@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
+from plumbum import cli
 import os, sys, glob
 
-def main():
+def search(pat, cur=os.getcwd()):
 	files = []
-	pat = sys.argv[1]
-	cur = os.path.abspath(os.getcwd())
 	while cur:
 		#print('checking {}'.format(cur))
 		glob_expr = os.path.join(cur, pat)
@@ -18,9 +17,20 @@ def main():
 		print("\n\t{}".format("\n\t".join(files)))
 	return 0
 
-if __name__ == '__main__':
-	if not sys.argv[1]:
-		raise Exception('Need something to look for')
+class App(cli.Application):
+    """This will search for the specified file in both the specified directory
+    AND the parent of that directory, looping and searching each parent until
+    the root is encountered and printing all of the results"""
 
-	sys.exit(main())
+    VERSION = "1.0"
+
+    start = cli.SwitchAttr(["-s", "--start"], str, default=os.getcwd(),
+                           help="Specify the location to start the upwards search")
+
+    def main(self, glob):
+        return search(glob, self.start)
+
+
+if __name__ == '__main__':
+    App.run()
 

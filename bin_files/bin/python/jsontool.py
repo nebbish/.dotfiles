@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import inspect, logging, sys, os, re
-import argparse, platform
-import subprocess
+import argparse
 from pprint import pprint, pformat
 import json
+import codecs
 
 # Disable PYC files for our user-modules
 sys.dont_write_bytecode = True
@@ -15,16 +15,6 @@ def app_log():
 	return logging.getLogger(__name__ if __name__ != '__main__' else os.path.splitext(os.path.basename(__file__))[0])
 app_log().setLevel(logging.DEBUG)
 
-
-def run_child(cmdargs, exp_rc=None, *args, **kwargs):
-	app_log().info('Running:  {}'.format(cmdargs))
-	proc = subprocess.Popen(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, *args, **kwargs)
-	(stdout, _) = proc.communicate()
-	if exp_rc is not None and exp_rc != proc.returncode:
-		stdout_msg = '\n\t'.join(stdout.split('\n')).rstrip() if stdout else 'None'
-		eprint('...cmd returned unexpected error code\n    stdout:\n\t{}\n'.format(stdout_msg))
-		raise RuntimeError('child process returned [{}] but expected [{}]'.format(proc.returncode, exp_rc))
-	return (proc.returncode, stdout)
 
 class Tee(object):
 	"""
@@ -133,7 +123,8 @@ class ToolApp(object):
 		##
 		## Construct the parser, and setup the options
 		##
-		parser = argparse.ArgumentParser(description=inspect.getdoc(self))
+		parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                                         description=inspect.getdoc(self))
 
 		##
 		## Handy options that should be available on every cmd-line script
@@ -158,6 +149,10 @@ class ToolApp(object):
 		parser.add_argument("-o", "--outfile", dest="outfile", default=None, const="", nargs='?',
 							help="Specify where to write the output (otherwise its stdout).\n" +
 								 "If specified with no arguments, it writes back to the input file")
+		parser.add_argument("--no-sort", dest="sort_keys", default=True, action="store_false",
+							help="pass sort_keys=False into the module")
+		parser.add_argument("--minify", default=False, action="store_true",
+							help="minify the JSON instead of prettify it.")
 
 
 		##
@@ -231,7 +226,15 @@ class ToolApp(object):
 
 	def DoWork(self):
 		if self.args.infile is None:
-			raw_data = sys.stdin.read()
+			# NOTE:  if VIM is calling this script as an external program, it will
+			#        PREPEND the BOM to the portion of the buffer sent to the external
+			#        program WHEN the buffer itself starts with a BOM.
+			#        (see:  https://stackoverflow.com/q/51480423/5844631)
+			# NOTE:  for PY2 we pass in `sys.stdin`, but for PY3 it must be `sys.stdin.buffer`
+			#        i have not tested whether PY3's encoding detection handles BOM's in STDIN
+			#        instead, I just adjusted to keep the code that I know can handle it
+			with codecs.getreader('utf_8_sig')(sys.stdin.buffer, errors='replace') as stdin:
+				raw_data = stdin.read()
 		else:
 			with open(self.args.infile, 'r') as f:
 				raw_data = f.read()
@@ -242,7 +245,10 @@ class ToolApp(object):
 			print('invalid json: %s' % e)
 			return -1
 
-		outstr = json.dumps(data, indent=4, sort_keys=True)
+		if self.args.minify:
+			outstr = json.dumps(data, separators=(',', ':'), sort_keys=self.args.sort_keys)
+		else:
+			outstr = json.dumps(data, indent=4, sort_keys=self.args.sort_keys)
 		if self.args.outfile is None:
 			print(outstr)
 		else:

@@ -1,19 +1,27 @@
 #!/usr/bin/env python3
+from plumbum import local
+from plumbum.cmd import p4, cmd
+
 import sys, os, re, argparse
-import subprocess
 from pprint import pprint,pformat
 
-def run_child(cmdargs, exp_rc=None, *args, **kwargs):
-	proc = subprocess.Popen(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, *args, **kwargs)
-	(stdout, _) = proc.communicate()
-	if exp_rc is not None and exp_rc != proc.returncode:
-		stdout_msg = '\n\t'.join(stdout.split('\n')).rstrip() if stdout else 'None'
-		print('...cmd exited [{}], but [{}] was epxected\n    stdout:\n\t{}\n'.format(proc.returncode, exp_rc, stdout_msg))
-		raise RuntimeError('child process exited with non-zero value:  {}'.format(proc.returncode))
-	return (proc.returncode, stdout)
+def eprint(*args, **kwargs):
+    print(*args, file=sys.stderr, **kwargs)
 
-def process_request(pathspec, ignore_list):
-	(rc, out) = run_child(['p4', 'opened'] + ([pathspec] if pathspec else []))
+def gather_cl_info(cl):
+	cl_args = [] if cl == 'default' else [cl]
+	info = p4['change', '-o'][cl_args]()
+	data = {
+			'all': info,
+			'desc': re.search(r'Description:.*[\n\r]*((?:\t.*[\n\r]+)+)', info).group(1).rstrip(),
+			'spec': re.search(r'^Client:[ \t]+(.*)', info, re.M).group(1).rstrip()
+		}
+	return data
+
+def process_client(cargs, client):
+	with local.env(P4CLIENT=client):
+		p4_args = [cargs.path] if cargs.path else []
+		out = p4['opened'][p4_args]()
 	#print(out)
 
 	results = {}
@@ -32,28 +40,78 @@ def process_request(pathspec, ignore_list):
 
 	print()
 	for cl in sorted(results.keys(), key=lambda x: '0' if x == 'default' else x):
-		if cl in ignore_list:
+		if cl in cargs.ignore_list:
 			continue
-		pprint({cl: results[cl]})
-		print()
+
+		output = { cl : results[cl] }
+
+		# Optionally print a description for this CL before pprint'ing the dictionary
+		if cargs.descriptions:
+			print(gather_cl_info(cl)['desc'])
+
+		pprint(output)
+		print('\n\n')
+
+def p4_info():
+	# On a fresh system, I learned that there CAN be a line returned without a colon:
+	#    "Client unknown."
+	# so...  I added a filter below to skip lines without colons
+
+	lines = p4['info']().strip().splitlines()
+	pairs = [i.split(':',1) for i in lines if ':' in i]
+	return {k.strip():v.strip() for (k,v) in pairs}
+p4info = p4_info()
 
 def main():
 	ignore_list = []
-	parser = argparse.ArgumentParser(description="Scan a folder recursively for text vs binary files (by type)")
+	parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+									 description="Scan a folder recursively for text vs binary files (by type)")
 	parser.add_argument("path", nargs="?", default=None,
 						help = 'Specify the files expression for the P4 cmd "opened"')
-	parser.add_argument("-i", "--ignore", nargs='*', default=ignore_list,
+	parser.add_argument("-d", "--descriptions", action="store_true",
+						help="include the CL descriptions in the output")
+	parser.add_argument("-i", "--ignore-list", nargs='*', default=ignore_list,
 						help="specify CLs that should be ignored in the query")
+	parser.add_argument("--all-clients", action="store_true",
+						help="show opened files on all clients")
 	parser.add_argument("--show-args", action="store_true", dest="show_args", help="<internal>")
 
-	args = parser.parse_args()
-	if args.show_args:
-		lines = pformat(args, indent=4).splitlines()
+	cargs = parser.parse_args()
+	if cargs.show_args:
+		lines = pformat(cargs, indent=4).splitlines()
 		args_str = '\n'.join(["    " + ln for ln in lines])
 		print("Args:\n{}".format(args_str))
 		sys.exit(0)
 
-	process_request(args.path, args.ignore)
+
+	clients = []
+	if cargs.all_clients:
+		import socket
+		thishost = socket.gethostname().lower()
+		out = p4['clients', '-u', p4info['User name']]()
+		for cli_line in out.splitlines():
+			cli = cli_line.split()[1]
+			clidata = p4['client', '-o', cli]()
+
+			# Filter out clients that DO specify a host, and it is NOT the current host
+			# NOTE:  this re will pick up CR characters :( -- hence the .rstrip() below
+			mhost = re.search(r'^Host:\s*(\S.*)$', clidata, re.M)
+			if mhost:
+				if mhost.group(1).rstrip().lower() != thishost:
+					eprint(f"skipping client {cli} with host entry for a different computer:  {mhost.group(1)}")
+					continue
+
+			clients.append(cli)
+	elif p4info['Client name'] == p4info['Client host']:
+		print("No current P4CLIENT defined, nothing to do")
+	else:
+		clients.append(p4info['Client name'])
+
+	for cli in clients:
+		if len(clients) > 1:
+			print(f"{cli}\n{'='*len(cli)}")
+		process_client(cargs, cli)
+
 	return 0
 
 

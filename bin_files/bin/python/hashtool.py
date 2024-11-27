@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import os, sys, argparse, hashlib
+import os, sys, argparse, hashlib, codecs
 
 
 def main():
@@ -13,7 +13,12 @@ def main():
 	cargs = parser.parse_args()
 
 	if cargs.path is None:
-		data = sys.stdin.read()
+		# NOTE:  if VIM is calling this script as an external program, it will
+		#        PREPEND the BOM to the portion of the buffer sent to the external
+		#        program WHEN the buffer itself starts with a BOM.
+		#        (see:  https://stackoverflow.com/q/51480423/5844631)
+		with codecs.getreader('utf_8_sig')(sys.stdin, errors='replace') as stdin:
+			data = stdin.read()
 	else:
 		with open(cargs.path, 'rb') as f:
 			data = f.read()

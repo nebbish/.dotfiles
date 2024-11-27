@@ -3,7 +3,8 @@ import sys, os, re, argparse
 from pprint import pformat
 
 def main():
-	parser = argparse.ArgumentParser(description="Scan a folder (maybe recursively) for text vs binary files (by type)")
+	parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+                                     description="Scan a folder (maybe recursively) for text vs binary files (by type)")
 
 	parser.add_argument("root", nargs='?',
 						help = 'Specify the folder to scan')
@@ -11,21 +12,21 @@ def main():
 	parser.add_argument("-i", "--ignore-case", action="store_true", help="if specified, ignore case (all output is lowercase)")
 	parser.add_argument("--show-args", action="store_true", dest="show_args", help="<internal>")
 
-	args = parser.parse_args()
-	if args.show_args:
-		lines = pformat(args, indent=4).splitlines()
+	cargs = parser.parse_args()
+	if cargs.show_args:
+		lines = pformat(cargs, indent=4).splitlines()
 		args_str = '\n'.join(["    " + ln for ln in lines])
 		print("Args:\n{}".format(args_str))
 		sys.exit(0)
-	if args.root is None:
-		args.root = os.getcwd()
+	if cargs.root is None:
+		cargs.root = os.getcwd()
 
 	maxlength = 0
 	maxcount = 1
 	exts = {}
-	for root, dirs, files in os.walk(args.root):
+	for root, dirs, files in os.walk(cargs.root):
 		# Prune all the directories if we are not recursive
-		if not args.recursive:
+		if not cargs.recursive:
 			dirs[:] = []
 		for f in files:
 			if '.' in f:
@@ -37,7 +38,7 @@ def main():
 					ext = f[1:]
 			else:
 				ext = "<NA>"
-			if args.ignore_case:
+			if cargs.ignore_case:
 				ext = ext.lower()
 			if len(ext) > maxlength:
 				maxlength = len(ext)

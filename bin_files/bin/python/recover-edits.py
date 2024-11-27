@@ -33,7 +33,7 @@ class TempDir():
             shutil.rmtree(self.tempdir)
         return
 
-def longify(path):
+def longify(path, force=False):
     # This only matters on windows
     if not in_win: return path
 
@@ -46,7 +46,13 @@ def longify(path):
         # It will blow up in Python3 but otherwise is harmless
         pass
     if path[:4] != u'\\\\?\\':
-        path = u'\\\\?\\' + path
+        # Adding a limiter -- to only add this when the length demands it.
+        # This limiter is a **band-aid** to avoid a real problem:
+        #    the GNU `diff` utility cannot handle the prefix :(
+        # the error:
+        #    assert rc in [0, 1], f"Got a 'not found' return code from 'diff':  {rc}"
+        if len(path) > 250 or force:
+            path = u'\\\\?\\' + path
     return path
 
 def os_walk(top, topdown=True, onerror=None, followlinks=False):
@@ -98,7 +104,7 @@ def get_computer_name_from_swp_file(swp_path):
     return comp_name_str.strip('\0') + ('' if comp_name_str.endswith('\0') else '...')
 
 
-def recover_edits(start_root, depth, depth_first, rm_orphaned, rm_recovered, use_built_in_walk):
+def recover_edits(start_root, depth, depth_first, rm_orphaned, rm_recovered, force, use_built_in_walk):
     rx_swap = re.compile(r'^(_|\.(.*))\.sw.$')
     if depth is not None:
         depth = int(depth)
@@ -107,25 +113,53 @@ def recover_edits(start_root, depth, depth_first, rm_orphaned, rm_recovered, use
     ##
     ## Create a remove helper that moves instead of deleting
     ##
+    backup_tag = 'recovered_swp_files'
     timestr = datetime.now().strftime("%Y_%m_%d_%H_00_00")
-    backup_name = 'recovered_swp_files_{}'.format(timestr)
+    backup_name = '{}_{}'.format(backup_tag, timestr)
     backup_root = os.path.join(tempfile.gettempdir(), backup_name)
+    def is_prior_backup(path):
+        return os.path.basename(path).lower().startswith(backup_tag)
+
     def remove(path):
+        if not os.path.exists(path):
+            print('    error deleting SWP file (i.e. moving into backup area) -- SWP file not there')
+            return
         # rel_path holds the full path except the drive (the [1:] does this)
         #          i.e.  relative to the drive :)
         rel_path = os.sep.join(Path(path).parts[1:-1])
         # NOTE:  currently this is my ONLY use of "pathlib", `Path.parts`
         #        perhaps the whole file should be made to use pathlib :)
-        backup_path = longify(os.path.join(backup_root, rel_path))
+        backup_path = longify(os.path.join(backup_root, rel_path), True)
+        # NOTE:  longify is "forced" here because it is NOT FULL LENGTH yet.
+        #        within `shutil.move` below, it is path-joined and becomes longer
         if not os.path.exists(backup_path):
             os.makedirs(backup_path)
-        shutil.move(longify(path), backup_path)
+
+        # When 'force' is not True -- we don't have to even check for existing backups.
+        # we just let any errors from `shutil.move(...)` propagate
+        try:
+            if force:
+                # Check for and clean up any pre-existing backup
+                dst = longify(os.path.join(backup_path, os.path.basename(path)))
+                if os.path.exists(dst):
+                    os.remove(dst)
+
+            shutil.move(longify(path), backup_path)
+        except Exception as e:
+            print(e)
 
 
     func = os.walk if use_built_in_walk else os_walk
     for (root, dirs, files) in func(longify(start_root), topdown=(not depth_first)):
         plain_root = root[4:] if root.startswith('\\\\?\\') else root
         # print("Processing:  {}".format(plain_root))
+
+        ##
+        ## Handle the situation when we encounter a previous run's backup area
+        ##
+        if is_prior_backup(root):
+            dirs[:] = []
+            continue
 
         ##
         ## Handle the depth parameter -- depending on where we started, we may already be too deep
@@ -201,7 +235,7 @@ def recover_edits(start_root, depth, depth_first, rm_orphaned, rm_recovered, use
 
                     print('    no original file found')
                     if rm_orphaned:
-                        print('   deleting orphaned SWP file (i.e. moving into TEMP area)')
+                        print('    deleting orphaned SWP file (i.e. moving into TEMP area)')
                         remove(swp_path)
                     continue
 
@@ -217,7 +251,10 @@ def recover_edits(start_root, depth, depth_first, rm_orphaned, rm_recovered, use
                 if not os.path.exists(orig_name):
                     orig_name = os.path.join(root, '.' + swp_match.group(2))
                 if not os.path.exists(orig_name):
-                    print('    cannot find the original file, skipping')
+                    print('    cannot find the original file')
+                    if rm_orphaned:
+                        print('    deleting orphaned SWP file (i.e. moving into TEMP area)')
+                        remove(swp_path)
                     continue
 
                 if orig_name == rec_txt:
@@ -329,6 +366,8 @@ class App(cli.Application):
                            help="remove .swp files when matching file is missing")
     rm_recovered = cli.Flag(["rr", "remove-recovered"], default=False,
                             help="remove .swp files after having recovered it")
+    force = cli.Flag(["f", "force"], default=False,
+                     help='Overwrite any pre-existing backup when removing a handled swap file')
     use_built_in_walk = cli.Flag(["b", "built-in"], default=False,
                                  help="use built-in os.walk -vs- custom local def")
 
@@ -339,6 +378,7 @@ class App(cli.Application):
                              self.depth_first,
                              self.rm_orphaned,
                              self.rm_recovered,
+                             self.force,
                              self.use_built_in_walk)
 
 if __name__ == '__main__':

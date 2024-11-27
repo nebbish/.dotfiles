@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
-from __future__ import print_function
-
 import inspect, logging, sys, os, re
 import argparse, platform
-import subprocess
 from pprint import pformat
 import codecs
 
@@ -14,16 +11,6 @@ def app_log():
 	return logging.getLogger(__name__ if __name__ != '__main__' else os.path.splitext(os.path.basename(__file__))[0])
 app_log().setLevel(logging.DEBUG)
 
-
-def run_child(cmdargs, exp_rc=None, *args, **kwargs):
-	app_log().info('Running:  {}'.format(cmdargs))
-	proc = subprocess.Popen(cmdargs, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, *args, **kwargs)
-	(stdout, _) = proc.communicate()
-	if exp_rc is not None and exp_rc != proc.returncode:
-		stdout_msg = '\n\t'.join(stdout.split('\n')).rstrip() if stdout else 'None'
-		eprint('...cmd returned unexpected error code\n    stdout:\n\t{}\n'.format(stdout_msg))
-		raise RuntimeError('child process returned [{}] but expected [{}]'.format(proc.returncode, exp_rc))
-	return (proc.returncode, stdout)
 
 class Tee(object):
 	"""
@@ -293,6 +280,7 @@ class TabToolApp(object):
 		return self.args
 
 	class SpaceMgr(object):
+		NBSP = chr(0xa0)
 		def __init__(self, curcol, tabwidth, *args, **kwargs):
 			self.tabwidth = tabwidth
 			self.startcol = curcol
@@ -308,8 +296,8 @@ class TabToolApp(object):
 			self.curpart = ''
 
 		def add_char(self, ch):
-			if ch not in [' ','\t','\r']:
-				raise ValueError("'ch' must be either a space or tab")
+			if ch not in [' ','\t','\r', self.NBSP]:
+				raise ValueError("'ch' must be a space, tab, or NBSP char")
 			self.curpart += ch
 			if ch in [' ','\r']:
 				self.curgap -= 1
