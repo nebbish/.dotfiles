@@ -118,6 +118,10 @@ function dl_cwp() {
     scp $@ -i $key $usrsrv:$src $dest
 }
 
+## ############################################################################
+## Pull in shell-generic functions too
+## ############################################################################
+
 if [ -f ~/.functions_all ]; then
 	source ~/.functions_all
 fi;
