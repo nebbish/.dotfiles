@@ -591,7 +591,10 @@ nnoremap <leader>shcf? :set shellcmdflag?<cr>
 nnoremap <leader>shcf& :set shellcmdflag&<cr>
 
 if has('macunix')
-	let $BASH_ENV = "~/.bashrc_for_vim"
+	" MacOS now uses ZShell - and the zshell mechanism uses ZDOTDIR env var
+	let $ZDOTDIR = expand("~/.vim")
+	" Still keep the Bash mechanism just in case Bash shell is used on MacOS
+	let $BASH_ENV = expand("~/.vim/.bashrc")
 	set pyxversion=2
     " i: 'interactive' to get all the aliases
     "set shellcmdflag=-ic
@@ -601,7 +604,7 @@ if has('macunix')
     "        So for now -- I will create a mapping to add interactive :D
     nnoremap <leader>shcfi :set shellcmdflag=-ic<cr>
 elseif ! has('win32')
-	let $BASH_ENV = "~/.bashrc_for_vim"
+	let $BASH_ENV = expand("~/.vim/.bashrc")
 	set shellcmdflag=-l\ -c
 endif
 "}}}
