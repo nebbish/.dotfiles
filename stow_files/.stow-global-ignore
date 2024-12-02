@@ -19,8 +19,7 @@
 ##
 
 ## vim swap files
-\..*?\.sw\w
+\.[^\/]*?\.sw\w$
 
-# Ignore everything except the '.local' folder and its contents
-/(?!\.local).*
-
+## python files
+.*?\.pyc

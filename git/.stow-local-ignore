@@ -19,8 +19,17 @@
 ##
 
 ## vim swap files
-\..*?\.sw\w
+##   (from global ignore file since the existance of this local
+##    will prevent processing of the global for this package)
+\.[^\/]*?\.sw\w$
 
-## Everything specific for now
+
+##
+## PURPOSE of this local ignore:  to ignore this odd file I'm still not sure about.
+##
+## It is a copy of a ~/.gitk I had.
+## I have NO idea whether it can/should be saved/preserved
+## as a persistant "dot file" in this repo.
+##
 /not_sure_if.*
 

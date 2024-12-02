@@ -19,11 +19,4 @@
 ##
 
 ## vim swap files
-\..*?\.sw\w
-
-## git
-\.git
-\.gitignore
-
-## python files
-.*?\.pyc
+\.[^\/]*?\.sw\w$
