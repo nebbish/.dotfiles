@@ -45,6 +45,28 @@ nnoremap <leader>vifn :set viminfofile=NONE<cr>
 nnoremap <leader>vifd :set viminfofile&<cr>
 nnoremap <leader>vif? :set viminfofile?<cr>
 nnoremap <leader>vif= :set viminfofile=
+nnoremap <leader>vc   <nop>
+nnoremap <leader>vcl  :call SetupViminfoClean()<cr>
+
+function! SetupViminfoClean() abort
+    let vicur = &viminfofile
+    if l:vicur == 'NONE'
+        echoerr "Already doing VI editing ?!?"
+        interrupt()
+    endif
+
+    if l:vicur == ''
+        if has('win32')
+            let vicur = expand('~') . '\_viminfo'
+        else
+            let vicur = expand('~') . '/.viminfo'
+        endif
+    endif
+    set viminfofile=NONE
+    let @q = 'd}knzz'
+    exe 'edit' l:vicur
+    call feedkeys('/\v\n\>.{-}(\\nerd_tree_|\\temp\\|fugitive:|\[bufexplorer\]|\\controlp$|diffpanel_\d|undotree_\d)' . "\n")
+endfunction
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
 "" This bit of magic will force this file to reload every time it is saved
@@ -390,6 +412,19 @@ set smartcase		" however, if a capital letter was entered, go back to case SENSi
 set showmatch		" briefly highlight the matching 'bracket' (i.e. '[]','()','{}',...)
 nnoremap <leader><space> :nohl<cr>
 nnoremap <leader>rr :redraw!<cr>
+nnoremap <leader>xl :AnsiEsc<cr>
+
+" Borrow <Enter> in normal mode to just highlight the current word
+function! HighlightText(text)
+    let rex = '\<' . VimRxEscape(a:text) . '\>'
+    let @/ = l:rex
+    echo '/'.@/
+    call histadd("search", l:rex)
+    set hls
+endfunction
+nnoremap <silent> <leader>hh :call HighlightText(expand("<cword>"))<cr>
+xnoremap <silent> <leader>hh :call HighlightText(VisualSelection())<cr>
+
 
 ""
 "" Search for selected text, forwards or backwards.
@@ -416,7 +451,7 @@ function! PerlRxEscape(val)
     "" # From Python 3.10 re.escape() source:
     "" #      _special_chars_map = {i: '\\' + chr(i) for i in b'()[]{}?*+-|^$\\.&~# \t\n\r\v\f'}
     "" #
-    return escape(a:val, '()[{?*+|^$.&~#')
+    return escape(a:val, '()[{?*+|^$.&~#\')
 endfunction
 
 function! ToLinuxVARIfExists(match)
@@ -500,11 +535,11 @@ function! WatchCmdEscape(val)
 
     "" The following cmd:
     ""
-    ""      sepmcli sql "select top 30 dateadd(millisecond, cast(time_stamp as bigint) % 1000, 0) as time_stamp_dt, event_desc from V_SERVER_SYSTEM_LOG where event_desc like '%replic%' order by time_stamp_dt desc;"
+    ""      sqltool sql "select top 30 ... from V_SERVER_LOG where field like '%expr%';"
     ""
     "" Should become the following Watch command, which works:
     ""
-    ""      watch cmd /c     sepmcli sql '"'select top 30 dateadd(millisecond, cast(time_stamp as bigint) % 1000, 0) as time_stamp_dt, event_desc from V_SERVER_SYSTEM_LOG where event_desc like '\''%replic%'\'' order by time_stamp_dt desc;'"'
+    ""      watch cmd /c     sqltool sql '"'select top 30 ... from V_SERVER_LOG where field like '\''%expr%'\'';'"'
     ""
 
     " NOTE: This WHole function exists to solve a special case:
@@ -1281,12 +1316,12 @@ function! VisualSelection()
     return join(lines, "\n")
 endfunction
 
-function! GetMarksFile(fname)
+function! GetMarksFile(fname) abort
     let path = a:fname->resolve()
     " Determine path to "marks" file
-    if l:path =~? '\vDocuments[/\\]build-files[/\\][^/\\]{-}-cmds\.(txt|md)$'
+    if l:path =~? '\vDocuments[/\\]build-files[/\\]%([^/\\]+[/\\])*[^/\\]{-}-cmds\.(txt|md)$'
         return substitute(l:path, '\v-cmds\.(txt|md)$', '-marks.\1', '')
-    elseif l:path =~? '\vDocuments[/\\]test-files[/\\]cmds-[^/\\]+\.(txt|md)$'
+    elseif l:path =~? '\vDocuments[/\\]%(test-files|work)[/\\]%([^/\\]+[/\\])*cmds-[^/\\]+\.(txt|md)$'
         return substitute(l:path, '\vcmds-([^/\\]+\.(txt|md))$', 'marks-\1', '')
     endif
     echoe "Only know how to save marks for my cmds files"
@@ -1421,9 +1456,9 @@ let g:WatchHighlightDiffs = 1
 function! LineAsWatchCmd() abort
     let darg = g:WatchHighlightDiffs == 1 ? " -d " : " "
     if v:count == 0
-        let cmd = "term ++close watch" . l:darg
+        let cmd = "term ++kill=term ++close watch" . l:darg
     else
-        let cmd = "term ++close watch -n " . v:count . l:darg
+        let cmd = "term ++kill=term ++close watch -n " . v:count . l:darg
     endif
     if has ('win32')
         let cmd0 = split(getline('.'))[0]
@@ -1463,6 +1498,14 @@ function! OutputCaptureHeading(data)
     call writefile(['',''], 'out.txt', 'as')
     call writefile(l:writedata, 'out.txt', 'as')
 endfunction
+function! LineAsSplitCmd(capture) abort
+    let text =getline('.')
+    if has('win32')
+        let text = 'cmd /c ' . l:text . ' && pause'
+    endif
+    " NOTE: we pass '1' for "wait" param, to prevent prefixing with "start "
+    return TextAsShellCmd(a:capture, 1, l:text)
+endfunction
 function! LineAsShellCmd(capture, wait) abort
     return TextAsShellCmd(a:capture, a:wait, getline('.'))
 endfunction
@@ -1487,6 +1530,29 @@ function! CmdPipeEscape(line)
     ""
 endfunction
 function! TextAsShellCmd(capture, wait, text) abort
+    " NOTE:  internally to VIM, :!start... is handled WAAAY differetly than :!...
+    "        without "start", the :! command calls `vimrun.exe` with an ADJUSTED
+    "        string, escaping a few different characters with an "^" !!!
+    "
+    " Considering the following example command:    echo !@#$%^&*,.?%;:[]{}"`|\/''()<>"
+    "
+    " If a:wait == 1, and we do NOT prepend ":!start "
+    "     i.e.  literal VIM cmd line, :!echo \!@\#$\%^&*,.?\%;:[]{}"`|\/''()<>"
+    " then GVIM calls `vimrun` with:
+    "       C:\tools\vim\vim90\vimrun C:\Windows\system32\cmd.exe /v:on /c (echo !^@#$%^^^&*,.?%;:[]{}^"`^|\/''^(^)^<^>^")
+    "
+    " BUT if a:wait == 0, and we DO prepend ":!start "
+    "     i.e.  literal VIM cmd line, :!start cmd /v:on /c (echo \!@\#$\%^&*,.?\%;:[]{}"`|\/''()<>")
+    " then GVIM calls `cmd` DIRECTLY with:
+    "       cmd /v:on /c (echo !@#$%^&*,.?%;:[]{}"`|\/''()<>")
+    "
+    " (the above was captured with procmon)
+    "
+    " As we see, the VIMRUN cmd-line is QUITE escaped....
+    "
+    " If this presents a problem, try delayed-expansion with '!' instead of '%'
+    "
+
     " TODO:  this OS detection is duplicated just below, remove that
     "        duplication
     let line = a:text
@@ -1605,15 +1671,17 @@ function! EpochToDate(sec)
 endfunction
 
 nnoremap <leader>ed :norm ]op<c-r>=EpochToDate(<c-r><c-w>)<cr><cr>
-vnoremap <leader>ed :<c-u>norm ]op<c-r>=EpochToDate(VisualSelection())<cr><cr>
+xnoremap <leader>ed :<c-u>norm ]op<c-r>=EpochToDate(VisualSelection())<cr><cr>
 
 nnoremap <leader>shrug :echo '¯\_(ツ)_/¯'<cr>
 cnoremap <expr> <c-s><c-s> '¯\_(ツ)_/¯'
 inoremap <expr> <c-s><c-s> '¯\_(ツ)_/¯'
-cnoremap <expr> <c-s><c-d> trim(system(has('win32') ? 'cdate' : 'date'))
+cnoremap <expr> <c-s><c-g> substitute(trim(system('guidgen')), '\v^.{-}\{(.{-})\}.*', '\1', '')
+inoremap <expr> <c-s><c-g> substitute(trim(system('guidgen')), '\v^.{-}\{(.{-})\}.*', '\1', '')
 cnoremap <expr> <c-s><c-t> trim(system((has('win32') ? 'cdate' : 'date') . ' +"%Y-%m-%d-%H-%M-%S"'))
-inoremap <expr> <c-s><c-d> trim(system(has('win32') ? 'cdate' : 'date'))
 inoremap <expr> <c-s><c-t> trim(system((has('win32') ? 'cdate' : 'date') . ' +"%Y-%m-%d-%H-%M-%S"'))
+cnoremap <expr> <c-s><c-d> trim(system(has('win32') ? 'cdate' : 'date'))
+inoremap <expr> <c-s><c-d> trim(system(has('win32') ? 'cdate' : 'date'))
 
 ""
 "" The above mapping was created and used when dealing with a saved VIMINFO file
@@ -1647,13 +1715,19 @@ nnoremap <leader>es :r !echo <c-r>=VimCmdEscape(getline('.'))<cr><cr>
 "" ell    : [E]xecute [L]ine [L]aunch   -- w/o count: "free", with count: "capture"
 "" NEW:
 "" elsr   : [E]xecute [L]ine [S]plit [R]un      -- w/o count: "free", with count: "capture"
+"" elvr   : [E]xecute [L]ine [V]ert  [R]un      -- w/o count: "free", with count: "capture"
 
 ""  0 == LAUNCH
 ""  1 == RUN  (i.e. wait)
 
 nnoremap <leader>el   <nop>
-nnoremap <leader>elr  :<c-u>!<c-r>=LineAsShellCmd(v:count, 1)<cr><cr>
-nnoremap <leader>ell  :<c-u>!<c-r>=LineAsShellCmd(v:count, 0)<cr><cr>
+if has('win32')
+    nnoremap <leader>elr  :<c-u>silent !<c-r>=LineAsShellCmd(v:count, 1)<cr><cr>
+    nnoremap <leader>ell  :<c-u>silent !<c-r>=LineAsShellCmd(v:count, 0)<cr><cr>
+else
+    nnoremap <leader>elr  :<c-u>!<c-r>=LineAsShellCmd(v:count, 1)<cr><cr>
+    nnoremap <leader>ell  :<c-u>!<c-r>=LineAsShellCmd(v:count, 0)<cr><cr>
+endif
 
 nnoremap <leader>eld  <nop>
 nnoremap <leader>eldr :<c-u>put =LineAsShellCmd(v:count, 1)<cr>
@@ -1661,18 +1735,59 @@ nnoremap <leader>eldl :<c-u>put =LineAsShellCmd(v:count, 0)<cr>
 nnoremap <leader>eldw :<c-u>put =LineAsWatchCmd()<cr>
 
 nnoremap <leader>els  <nop>
-nnoremap <leader>elsr :<c-u>term ++close <c-r>=LineAsShellCmd(v:count, 1)<cr><cr><c-w>:sleep 200ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr><c-w>p
+nnoremap <leader>elsr :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr>
+nnoremap <leader>elv  <nop>
+nnoremap <leader>elvr :<c-u>vert term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:set wfw<cr>
 
-vnoremap <leader>ev   <nop>
-vnoremap <leader>evr  :<c-u>!<c-r>=VisualAsShellCmd(v:count, 1)<cr><cr>
-vnoremap <leader>evl  :<c-u>!<c-r>=VisualAsShellCmd(v:count, 0)<cr><cr>
+xnoremap <leader>ev   <nop>
+xnoremap <leader>evr  :<c-u>!<c-r>=VisualAsShellCmd(v:count, 1)<cr><cr>
+xnoremap <leader>evl  :<c-u>!<c-r>=VisualAsShellCmd(v:count, 0)<cr><cr>
+
+nnoremap <leader>ef   <nop>
+nnoremap <leader>efr  :<c-u>!<c-r>=TextAsShellCmd(v:count, 1, '"' . Expand('p') . '"')<cr><cr>
+nnoremap <leader>efl  :<c-u>!<c-r>=TextAsShellCmd(v:count, 0, '"' . Expand('p') . '"')<cr><cr>
+
+""
+"" Mappings to execute the paragraph AT A MARK within the specified buffer
+""
+"" This section frees up registers I used to record frequently, and kept around
+""    (i.e. I always knew to keep 'm' available for jumping to 'm' and executing)
+""
+nnoremap        <leader>em   <nop>
+nmap     <expr> <leader>ema  '\ab' . v:count1 . '<cr>''a\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emb  '\ab' . v:count1 . '<cr>''b\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emc  '\ab' . v:count1 . '<cr>''c\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emd  '\ab' . v:count1 . '<cr>''d\epl<c-o>\a,\ac'
+nmap     <expr> <leader>eme  '\ab' . v:count1 . '<cr>''e\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emf  '\ab' . v:count1 . '<cr>''f\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emg  '\ab' . v:count1 . '<cr>''g\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emh  '\ab' . v:count1 . '<cr>''h\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emi  '\ab' . v:count1 . '<cr>''i\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emj  '\ab' . v:count1 . '<cr>''j\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emk  '\ab' . v:count1 . '<cr>''k\epl<c-o>\a,\ac'
+nmap     <expr> <leader>eml  '\ab' . v:count1 . '<cr>''l\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emm  '\ab' . v:count1 . '<cr>''m\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emn  '\ab' . v:count1 . '<cr>''n\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emo  '\ab' . v:count1 . '<cr>''o\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emp  '\ab' . v:count1 . '<cr>''p\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emq  '\ab' . v:count1 . '<cr>''q\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emr  '\ab' . v:count1 . '<cr>''r\epl<c-o>\a,\ac'
+nmap     <expr> <leader>ems  '\ab' . v:count1 . '<cr>''s\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emt  '\ab' . v:count1 . '<cr>''t\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emu  '\ab' . v:count1 . '<cr>''u\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emv  '\ab' . v:count1 . '<cr>''v\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emw  '\ab' . v:count1 . '<cr>''w\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emx  '\ab' . v:count1 . '<cr>''x\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emy  '\ab' . v:count1 . '<cr>''y\epl<c-o>\a,\ac'
+nmap     <expr> <leader>emz  '\ab' . v:count1 . '<cr>''z\epl<c-o>\a,\ac'
+
 
 nnoremap <leader>wad  <nop>
 nnoremap <leader>wad? :echo "Watch difference hightlighting is: " . (g:WatchHighlightDiffs == 1 ? "on" : "off")<cr>
 nnoremap <leader>wadd :let g:WatchHighlightDiffs = 0<cr>:norm \wad?<cr>
 nnoremap <leader>wade :let g:WatchHighlightDiffs = 1<cr>:norm \wad?<cr>
 
-nnoremap <leader>wal  :<c-u><c-r>=LineAsWatchCmd()<cr><cr><c-w>:sleep 200ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr><c-w>p
+nnoremap <leader>wal  :<c-u><c-r>=LineAsWatchCmd()<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr><c-w>p
 nnoremap <leader>wvl  :<c-u>vert <c-r>=LineAsWatchCmd()<cr><cr><c-w>:set wfw<cr><c-w>p
 
 nnoremap <leader>waq  <c-w>j<c-w><c-c>
@@ -1690,8 +1805,13 @@ nnoremap <leader>wvq  <c-w>l<c-w><c-c>
 "" epsr   : [E]xecute [P]aragraph [S]plit [R]un      -- w/o count: "free", w/ count: "capture"
 
 nnoremap <leader>ep   <nop>
-nnoremap <leader>epr  :<c-u>!<c-r>=InnerParagraphAsShellCmd(v:count, 1)<cr><cr>
-nnoremap <leader>epl  :<c-u>!<c-r>=InnerParagraphAsShellCmd(v:count, 0)<cr><cr>
+if has('win32')
+    nnoremap <leader>epr  :<c-u>silent !<c-r>=InnerParagraphAsShellCmd(v:count, 1)<cr><cr>
+    nnoremap <leader>epl  :<c-u>silent !<c-r>=InnerParagraphAsShellCmd(v:count, 0)<cr><cr>
+else
+    nnoremap <leader>epr  :<c-u>!<c-r>=InnerParagraphAsShellCmd(v:count, 1)<cr><cr>
+    nnoremap <leader>epl  :<c-u>!<c-r>=InnerParagraphAsShellCmd(v:count, 0)<cr><cr>
+endif
 
 nnoremap <leader>epd  <nop>
 nnoremap <leader>epdr :<c-u>put =InnerParagraphAsShellCmd(v:count, 1)<cr>
@@ -1871,21 +1991,26 @@ endfunction
 function! GrepPrgForCmd()
     return join(split(&grepprg, ' ')[:-2], ' ')
 endfunction
+if has('macunix')
+    let g:shellq = "'"
+else
+    let g:shellq = '"'
+endif
 nnoremap        <leader>gw  <nop>
-nnoremap <expr> <leader>gwc ':Redir !' . GrepPrgForCmd() . ' "' . GrepEscape(expand('<cword>')) . '" '
-nnoremap <expr> <leader>gwl ':lgrep! "' . GrepEscape(expand('<cword>')) . '" '
+nnoremap <expr> <leader>gwc ':Redir !' . GrepPrgForCmd() . ' ' . g:shellq . GrepEscape(expand('<cword>')) . g:shellq . ' '
+nnoremap <expr> <leader>gwl ':lgrep! ' . g:shellq . GrepEscape(expand('<cword>')) . g:shellq . ' '
 nnoremap        <leader>ga  <nop>
-nnoremap <expr> <leader>gac ':Redir !' . GrepPrgForCmd() . ' "' . GrepEscape(expand('<cWORD>')) . '" '
-nnoremap <expr> <leader>gal ':lgrep! "' . GrepEscape(expand('<cWORD>')) . '" '
+nnoremap <expr> <leader>gac ':Redir !' . GrepPrgForCmd() . ' ' . g:shellq . GrepEscape(expand('<cWORD>')) . g:shellq . ' '
+nnoremap <expr> <leader>gal ':lgrep! ' . g:shellq . GrepEscape(expand('<cWORD>')) . g:shellq . ' '
 nnoremap        <leader>gl  <nop>
-nnoremap <expr> <leader>glc ':Redir !' . GrepPrgForCmd() . ' "' . GrepEscape(getline(".")) . '" '
-nnoremap <expr> <leader>gll ':lgrep! "' . GrepEscape(getline(".")) . '" '
-vnoremap        <leader>gw  <nop>
-vnoremap <expr> <leader>gwc ':<c-u>Redir !' . GrepPrgForCmd() . ' "<c-r>=GrepEscape(VisualSelection())<cr>" '
-vnoremap <expr> <leader>gwl ':<c-u>lgrep! "<c-r>=GrepEscape(VisualSelection())<cr>" '
+nnoremap <expr> <leader>glc ':Redir !' . GrepPrgForCmd() . ' ' . g:shellq . GrepEscape(getline(".")) . g:shellq . ' '
+nnoremap <expr> <leader>gll ':lgrep! ' . g:shellq . GrepEscape(getline(".")) . g:shellq . ' '
+xnoremap        <leader>gw  <nop>
+xnoremap <expr> <leader>gwc ':<c-u>Redir !' . GrepPrgForCmd() . ' ' . g:shellq . '<c-r>=GrepEscape(VisualSelection())<cr>' . g:shellq . ' '
+xnoremap <expr> <leader>gwl ':<c-u>lgrep! ' . g:shellq . '<c-r>=GrepEscape(VisualSelection())<cr>' . g:shellq . ' '
 
 " \cf == C-lean F-ile listing   (the output of llist or clist -- so things like gF and CTRL-W_F work)
-nnoremap <leader>cf :%s/\v^%( *\d+ )?(.{-}):(\d+):/\1 \2 :/<cr>
+nnoremap <leader>cf :%s/\v^%( *\d+ )?(.{-}):(\d+%( col \d+)?):/\1 \2 :/<cr>
 nnoremap <leader>ch :%s/\v^ *\d+:? //<cr>
 
 
@@ -2155,25 +2280,36 @@ nnoremap <expr> <c-pagedown> PageKeysForDiffs() ? ':normal ]czz<cr>' : ':tabnext
 " (so the user-command must be "consuming" that COUNT, then the motion-pending destination is honored)
 "
 nnoremap <leader>dn   <nop>
-nnoremap <leader>dni  :<c-u>Normalize 'i'<cr>g@
-xnoremap <leader>dni  :<c-u>Normalize 'i'<cr>g@
-nnoremap <leader>dnii :<c-u>Normalize 'i'<cr>g@_
-nnoremap <leader>dnp  :<c-u>Normalize 'p'<cr>g@
-xnoremap <leader>dnp  :<c-u>Normalize 'p'<cr>g@
-nnoremap <leader>dnpp :<c-u>Normalize 'p'<cr>g@_
-nnoremap <leader>dnt  :<c-u>Normalize 't'<cr>g@
-xnoremap <leader>dnt  :<c-u>Normalize 't'<cr>g@
-nnoremap <leader>dntt :<c-u>Normalize 't'<cr>g@_
-nnoremap <leader>dnc  :<c-u>Normalize 'c'<cr>g@
-xnoremap <leader>dnc  :<c-u>Normalize 'c'<cr>g@
-nnoremap <leader>dncc :<c-u>Normalize 'c'<cr>g@_
-nnoremap <leader>dnr  :<c-u>Normalize 'r'<cr>g@
-xnoremap <leader>dnr  :<c-u>Normalize 'r'<cr>g@
-nnoremap <leader>dnrr :<c-u>Normalize 'r'<cr>g@_
+nnoremap <leader>dni  :<c-u>NormalizeTimes<cr>g@
+xnoremap <leader>dni  :<c-u>NormalizeTimes<cr>g@
+nnoremap <leader>dnii :<c-u>NormalizeTimes<cr>g@_
+nnoremap <leader>dnp  :<c-u>NormalizePIDs<cr>g@
+xnoremap <leader>dnp  :<c-u>NormalizePIDs<cr>g@
+nnoremap <leader>dnpp :<c-u>NormalizePIDs<cr>g@_
+nnoremap <leader>dnt  :<c-u>NormalizeTIDs<cr>g@
+xnoremap <leader>dnt  :<c-u>NormalizeTIDs<cr>g@
+nnoremap <leader>dntt :<c-u>NormalizeTIDs<cr>g@_
+nnoremap <leader>dnn  :<c-u>NormalizeLineNums<cr>g@
+xnoremap <leader>dnn  :<c-u>NormalizeLineNums<cr>g@
+nnoremap <leader>dnnn :<c-u>NormalizeLineNums<cr>g@_
+nnoremap <leader>dnc  :<c-u>NormalizeChannelIDs<cr>g@
+xnoremap <leader>dnc  :<c-u>NormalizeChannelIDs<cr>g@
+nnoremap <leader>dncc :<c-u>NormalizeChannelIDs<cr>g@_
+nnoremap <leader>dnr  :<c-u>NormalizeResponseIDs<cr>g@
+xnoremap <leader>dnr  :<c-u>NormalizeResponseIDs<cr>g@
+nnoremap <leader>dnrr :<c-u>NormalizeResponseIDs<cr>g@_
 
 " Moved the old \fs mapping to be a "normalizing" mapping using the motion:
 " ( NOTE:  this does NOT work if I use '<Cmd' instead of ':<c-u>' )
-vnoremap <leader>fs   :<c-u>Normalize 'd'<cr>g@
+xnoremap <leader>fs   :<c-u>NormalizeDelete<cr>g@
+xnoremap <leader>fv   :<c-u>NormalizeKeep<cr>g@
+
+nnoremap <leader>dnl  :<c-u>NormalizeColorCodes<cr>g@
+xnoremap <leader>dnl  :<c-u>NormalizeColorCodes<cr>g@
+nnoremap <leader>dnll :<c-u>NormalizeColorCodes<cr>g@_
+nnoremap <leader>dne  :<c-u>NormalizeEscapeCodes<cr>g@
+xnoremap <leader>dne  :<c-u>NormalizeEscapeCodes<cr>g@
+nnoremap <leader>dnee :<c-u>NormalizeEscapeCodes<cr>g@_
 
 "
 " Quick TIP:  Here's a macro in the @q register to normalize with an automatically incrementing COUNT:
@@ -2186,7 +2322,16 @@ vnoremap <leader>fs   :<c-u>Normalize 'd'<cr>g@
 "
 " Here is the User command whose SOLE purpose is to CONSUME the count, so the g@'s above work
 "
-command! -count -nargs=1 Normalize call NormalizeMotionSetup(v:count, <args>)
+command! -count NormalizeTimes       call NormalizeMotionSetup(v:count, 'i')
+command! -count NormalizePIDs        call NormalizeMotionSetup(v:count, 'p')
+command! -count NormalizeTIDs        call NormalizeMotionSetup(v:count, 't')
+command! -count NormalizeLineNums    call NormalizeMotionSetup(v:count, 'n')
+command! -count NormalizeDelete      call NormalizeMotionSetup(v:count, 'd')
+command! -count NormalizeKeep        call NormalizeMotionSetup(v:count, 'k')
+command! -count NormalizeChannelIDs  call NormalizeMotionSetup(v:count, 'c')
+command! -count NormalizeResponseIDs call NormalizeMotionSetup(v:count, 'r')
+command! -count NormalizeColorCodes  call NormalizeMotionSetup(v:count, 'l')
+command! -count NormalizeEscapeCodes call NormalizeMotionSetup(v:count, 'e')
 
 
 "
@@ -2196,17 +2341,25 @@ function! NormalizeMotionSetup(count, type) abort
     let s:save_cursor = getcurpos()
     let str_cnt = printf("%02d", a:count)
     if a:type == 'i'
-        let s:normalize_cmd = 's/\v[0-9/]{10}[- ]\d\d:\d\d:\d\d\.\d+/TIME/'
+        let s:normalize_cmd = 's/\v%([-/0-9]{10}|\d{4}.[a-z]{3}.\d\d)[- ]\d\d:\d\d:\d\d\.\d+/TIME/'
     elseif a:type == 'p'
-        let s:normalize_cmd = 's/\v((])@<= |\t)' . expand('<cword>') . '\1/\1P_' . l:str_cnt . '\1/'
+        let s:normalize_cmd = 's/\v(])( |\t)' . expand('<cword>') . '\2(:)/\1\2P_' . l:str_cnt . '\2\3/'
     elseif a:type == 't'
-        let s:normalize_cmd = 's/\v((:)@<= |\t)' . expand('<cword>') . '\1/\1T_' . l:str_cnt . '\1/'
+        let s:normalize_cmd = 's/\v(:)(%( |\t )?)' . expand('<cword>') . '\2([:\]])/\1\2T_' . l:str_cnt . '\2\3/'
+    elseif a:type == 'n'
+        let s:normalize_cmd = 's/\v(:)(%( |\t )?)([^:]{-})\(\d+\)\2([:\]])/\1\2\3(##)\2\4/'
     elseif a:type == 'd'
         let s:normalize_cmd = 'g/\v' . VimRxEscape(VisualSelection()) . '/d'
+    elseif a:type == 'k'
+        let s:normalize_cmd = 'v/\v' . VimRxEscape(VisualSelection()) . '/d'
     elseif a:type == 'c'
         let s:normalize_cmd = 'g/\v%( channel \{)@<=[^}]+%(})@=/call NormalizeGuidFromCurrentLine("channel", "CHANID")'
     elseif a:type == 'r'
         let s:normalize_cmd = 'g/\v%( response \{)@<=[^}]+%(})@=/call NormalizeGuidFromCurrentLine("response", "RESPID")'
+    elseif a:type == 'l'
+        let s:normalize_cmd = 's/\v(|\^\[)\[\d+m//g'
+    elseif a:type == 'e'
+        let s:normalize_cmd = 's/\v\^\[(\[\d+m)/\1/g'
     else
         echoerr "Unknown type: [" . a:type . "]"
         call interrupt()
@@ -2215,6 +2368,7 @@ function! NormalizeMotionSetup(count, type) abort
 endfunction
 
 function! NormalizeMotion(type) abort
+    let b:normalize_cmd = s:normalize_cmd
     exe "'[,']" . s:normalize_cmd
     PopSearch
     call setpos('.', s:save_cursor)
@@ -2393,6 +2547,8 @@ endif
 Plugin 'vim-airline/vim-airline'
 "" Found on the web.  Amazing assistance for working with Git repositories
 Plugin 'tpope/vim-fugitive'
+"" A Git log browser that depends on fugitive - not that useful
+"Plugin 'junegunn/gv.vim'
 "" Another one from tpope - that helps manage scripts (helps a developer of scripts)
 Plugin 'tpope/vim-scriptease'
 "" Another one from tpope - that helps launch sub-programs
@@ -2492,10 +2648,13 @@ Plugin 'mzlogin/vim-markdown-toc'
 Plugin 'preservim/vim-colors-pencil'
 Plugin 'inkarkat/vim-ingo-library'
 Plugin 'inkarkat/vim-mark'
+Plugin 'google/vim-searchindex'
+Plugin 'powerman/vim-plugin-AnsiEsc'
 
 "Plugin 'iamcco/markdown-preview.nvim'
-
 "Plugin 'neoclide/coc.nvim', {'revision': 'release'}
+
+"Plugin 'OmniSharp/omnisharp-vim'
 
 
 call vundle#end()			"" required
@@ -2840,17 +2999,6 @@ nnoremap <leader><leader>so :Limelight!<cr>
 "let g:vim_markdown_borderless_table=1
 
 
-nnoremap <leader><leader>mp  <nop>
-nnoremap <leader><leader>mpa :MarkdownPreview<cr>
-nnoremap <leader><leader>mpo :MarkdownPreviewStop<cr>
-
-"" NOTE:  this stylesheet did not solve my problems, which were from my bad syntax.
-""        I'm not sure yet IF this is helpful to me.
-" From markdown PREVIEW plugin, this makes it look like Github style
-" (copied from: https://github.com/sindresorhus/github-markdown-css)
-"let g:mkdp_markdown_css = '~/.vim/vimfiles/github-markdown.css'
-
-
 " If you want to enable fenced code block syntax highlighting in your markdown
 " documents you can enable it in your `.vimrc` like so:
 "let g:markdown_fenced_languages = ['html', 'python', 'bash=sh']
@@ -2865,9 +3013,9 @@ nnoremap <silent> <leader>zms :let g:markdown_syntax_conceal = 1<cr>
 " Syntax highlight is synchronized in 50 lines. It may cause collapsed
 " highlighting at large fenced code block.
 " In the case, please set larger value in your vimrc:
-"let g:markdown_minlines = 100
 nnoremap        <leader><leader>ml? :echo g:markdown_minlines<cr>
-nnoremap <expr> <leader><leader>mll ':let g:markdown_minlines = ' . v:count . '<cr>'
+nnoremap <expr> <leader><leader>mll ':<c-u>let g:markdown_minlines = ' . v:count . '<cr>'
+let g:markdown_minlines = 10
 
 nnoremap <leader><leader>mf  <nop>
 nnoremap <leader><leader>mf? :echo 'Markdown folding is: ' . (get(g:, 'vim_markdown_folding_disabled', 0) ? 'disabled' : 'enabled')<cr>
@@ -2925,6 +3073,19 @@ nnoremap <leader>hc<space> :set concealcursor=
 "}}}
 
 
+" Settings related to the MarkdownPreview "{{{
+nnoremap <leader><leader>mp  <nop>
+nnoremap <leader><leader>mpa :MarkdownPreview<cr>
+nnoremap <leader><leader>mpo :MarkdownPreviewStop<cr>
+
+"" NOTE:  this stylesheet did not solve my problems, which were from my bad syntax.
+""        I'm not sure yet IF this is helpful to me.
+" From markdown PREVIEW plugin, this makes it look like Github style
+" (copied from: https://github.com/sindresorhus/github-markdown-css)
+"let g:mkdp_markdown_css = '~/.vim/vimfiles/github-markdown.css'
+"}}}
+
+
 " Settings related to the vim-unimpaired "{{{
 " NOTE:  this option, 'unimpaired_recenter_after_jump', relies on my own
 "        edit to the unimpaired plugin - it is harmless if the edit is
@@ -2967,48 +3128,60 @@ endif
 "
 " (inspired by: " https://stackoverflow.com/questions/7845671/how-to-execute-base64-decode-on-selected-text-in-vim)
 "
-python3
-\ #
-\ # TODO:  refactor this section to have common "arg" conversion helpers
-\ #        and return value "cleaning" helpers (such as stripping the appended newline)
-\ #
-\ import binascii
-\ def uudecode(encoded_ascii_value):
-\     if encoded_ascii_value is bytes:
-\         encoded_ascii_value = encoded_ascii_value.decode('utf-8')
-\     return binascii.a2b_uu(encoded_ascii_value)
-\ def uuencode(original_value):
-\     if type(original_value) is str:
-\         original_value = original_value.encode('utf-8')
-\     return binascii.b2a_uu(original_value)
-\ def base64decode(encoded_ascii_value):
-\     if encoded_ascii_value is bytes:
-\         encoded_ascii_value = encoded_ascii_value.decode('utf-8')
-\     return binascii.a2b_base64(encoded_ascii_value)
-\ def base64encode(original_value):
-\     if type(original_value) is str:
-\         original_value = original_value.encode('utf-8')
-\     return binascii.b2a_base64(original_value)
+if has('python3')
+    python3
+    \ #
+    \ # TODO:  refactor this section to have common "arg" conversion helpers
+    \ #        and return value "cleaning" helpers (such as stripping the appended newline)
+    \ #
+    \ import binascii
+    \ def uudecode(encoded_ascii_value):
+    \     if encoded_ascii_value is bytes:
+    \         encoded_ascii_value = encoded_ascii_value.decode('utf-8')
+    \     return binascii.a2b_uu(encoded_ascii_value)
+    \ def uuencode(original_value):
+    \     if type(original_value) is str:
+    \         original_value = original_value.encode('utf-8')
+    \     return binascii.b2a_uu(original_value)
+    \ def base64decode(encoded_ascii_value):
+    \     if encoded_ascii_value is bytes:
+    \         encoded_ascii_value = encoded_ascii_value.decode('utf-8')
+    \     return binascii.a2b_base64(encoded_ascii_value)
+    \ def base64encode(original_value):
+    \     if type(original_value) is str:
+    \         original_value = original_value.encode('utf-8')
+    \     return binascii.b2a_base64(original_value)
 
-function! s:PyUuDecode(val) abort
-    return py3eval("uudecode('" .. a:val .. "')")
-endfunction
-function! s:PyUuEncode(val) abort
-    " NOTE:  not sure if the last character is always an extra appended newline
-    "        but all of my testing it was, and stripping it here is easier than
-    "        dealing with it during the VIM paste operation
-    return py3eval("uuencode('" .. a:val .. "')[:-1]")
-endfunction
+    function! s:PyUuDecode(val) abort
+        return py3eval("uudecode('" .. a:val .. "')")
+    endfunction
+    function! s:PyUuEncode(val) abort
+        " NOTE:  not sure if the last character is always an extra appended newline
+        "        but all of my testing it was, and stripping it here is easier than
+        "        dealing with it during the VIM paste operation
+        return py3eval("uuencode('" .. a:val .. "')[:-1]")
+    endfunction
 
-function! s:PyBase64Decode(str) abort
-    return py3eval("base64decode('" .. a:str .. "')")
-endfunction
-function! s:PyBase64Encode(str) abort
-    " NOTE:  not sure if the last character is always an extra appended newline
-    "        but all of my testing it was, and stripping it here is easier than
-    "        dealing with it during the VIM paste operation
-    return py3eval("base64encode('" .. a:str .. "')[:-1]")
-endfunction
+    function! s:PyBase64Decode(str) abort
+        return py3eval("base64decode('" .. a:str .. "')")
+    endfunction
+    function! s:PyBase64Encode(str) abort
+        " NOTE:  not sure if the last character is always an extra appended newline
+        "        but all of my testing it was, and stripping it here is easier than
+        "        dealing with it during the VIM paste operation
+        return py3eval("base64encode('" .. a:str .. "')[:-1]")
+    endfunction
+
+    function! s:PyQueryStringDecode(str) abort
+        return py3eval("qs_decode('" .. a:str .. "')")
+    endfunction
+    function! s:PyQueryStringEncode(str) abort
+        " NOTE:  not sure if the last character is always an extra appended newline
+        "        but all of my testing it was, and stripping it here is easier than
+        "        dealing with it during the VIM paste operation
+        return py3eval("qs_encode('" .. a:str .. "')[:-1]")
+    endfunction
+endif
 
 function! s:Base64Decode(str) abort
     return system('base64 -d', a:str)
@@ -3054,7 +3227,13 @@ endfunction
 
 function! s:TidyJson(str) abort
     " TODO:  optionally incorporate my new `jsontool` option:  "--no-sort" somehow
-    return system('jsontool', a:str)
+    let opts = ''
+    if s:vcount == 1
+        let opts = l:opts . ' --no-sort'
+    elseif s:vcount == 2
+        let opts = l:opts . ' --minify'
+    endif
+    return system('jsontool' . l:opts, a:str)
 endfunction
 
 "" Ugly hack, so the script works PRE-8.0
@@ -3116,19 +3295,38 @@ nnoremap <expr> <leader>[ <nop>
 "" #        transformation behavior WITHOUT affecting which lines of
 "" #        the buffer get transformed.
 "" #
-nnoremap <expr> <leader>]u "@_" . TransformMotionSetup('s:PyUuDecode')
-xnoremap <expr> <leader>]u "@_" . TransformMotionSetup('s:PyUuDecode')
-nnoremap <expr> <leader>]uu "@_" . TransformMotionSetup('s:PyUuDecode') . '_'
-nnoremap <expr> <leader>[u "@_" . TransformMotionSetup('s:PyUuEncode')
-xnoremap <expr> <leader>[u "@_" . TransformMotionSetup('s:PyUuEncode')
-nnoremap <expr> <leader>[uu "@_" . TransformMotionSetup('s:PyUuEncode') . '_'
+if exists('*s:PyUuDecode')
+    nnoremap <expr> <leader>]u "@_" . TransformMotionSetup('s:PyUuDecode')
+    xnoremap <expr> <leader>]u "@_" . TransformMotionSetup('s:PyUuDecode')
+    nnoremap <expr> <leader>]uu "@_" . TransformMotionSetup('s:PyUuDecode') . '_'
+endif
+if exists('*s:PyUuEncode')
+    nnoremap <expr> <leader>[u "@_" . TransformMotionSetup('s:PyUuEncode')
+    xnoremap <expr> <leader>[u "@_" . TransformMotionSetup('s:PyUuEncode')
+    nnoremap <expr> <leader>[uu "@_" . TransformMotionSetup('s:PyUuEncode') . '_'
+endif
 
-nnoremap <expr> <leader>]p "@_" . TransformMotionSetupD('s:PyBase64Decode')
-xnoremap <expr> <leader>]p "@_" . TransformMotionSetupD('s:PyBase64Decode')
-nnoremap <expr> <leader>]pp "@_" . TransformMotionSetupD('s:PyBase64Decode') . '_'
-nnoremap <expr> <leader>[p "@_" . TransformMotionSetupD('s:PyBase64Encode')
-xnoremap <expr> <leader>[p "@_" . TransformMotionSetupD('s:PyBase64Encode')
-nnoremap <expr> <leader>[pp "@_" . TransformMotionSetupD('s:PyBase64Encode') . '_'
+if exists('*s:PyBase64Decode')
+    nnoremap <expr> <leader>]p "@_" . TransformMotionSetupD('s:PyBase64Decode')
+    xnoremap <expr> <leader>]p "@_" . TransformMotionSetupD('s:PyBase64Decode')
+    nnoremap <expr> <leader>]pp "@_" . TransformMotionSetupD('s:PyBase64Decode') . '_'
+endif
+if exists('*s:PyBase64Encode')
+    nnoremap <expr> <leader>[p "@_" . TransformMotionSetupD('s:PyBase64Encode')
+    xnoremap <expr> <leader>[p "@_" . TransformMotionSetupD('s:PyBase64Encode')
+    nnoremap <expr> <leader>[pp "@_" . TransformMotionSetupD('s:PyBase64Encode') . '_'
+endif
+
+if exists('*s:PyQueryStringDecode')
+    nnoremap <expr> <leader>]r "@_" . TransformMotionSetup('s:PyQueryStringDecode')
+    xnoremap <expr> <leader>]r "@_" . TransformMotionSetup('s:PyQueryStringDecode')
+    nnoremap <expr> <leader>]rr "@_" . TransformMotionSetup('s:PyQueryStringDecode') . '_'
+endif
+if exists('*s:PyQueryStringEncode')
+    nnoremap <expr> <leader>[r "@_" . TransformMotionSetup('s:PyQueryStringEncode')
+    xnoremap <expr> <leader>[r "@_" . TransformMotionSetup('s:PyQueryStringEncode')
+    nnoremap <expr> <leader>[rr "@_" . TransformMotionSetup('s:PyQueryStringEncode') . '_'
+endif
 
 nnoremap <expr> <leader>]b "@_" . TransformMotionSetup('s:Base64Decode')
 xnoremap <expr> <leader>]b "@_" . TransformMotionSetup('s:Base64Decode')
@@ -3229,11 +3427,24 @@ nnoremap <expr> <leader>ii (v:count == '0' ? ':<c-u>G<cr>' : (v:count == '1' ? '
 "nnoremap <expr> <leader>it ':<c-u>echo ' . v:count . '<cr>'
 
 nnoremap        <leader>id        <nop>
-nnoremap        <leader>idd       :Gdiffsplit<cr>
-nnoremap        <leader>idv       :Gvdiffsplit<cr>
-nnoremap        <leader>idh       :Ghdiffsplit<cr>
-nnoremap <expr> <leader>id<space> ':Gdiffsplit '
-nnoremap <expr> <leader>idp       ':<c-u>G diff origin/master...origin/pull/' . v:count . '<cr>'
+nnoremap        <leader>idd       :Gdiffsplit!<cr>
+nnoremap <expr> <leader>idb       ':Gdiffsplit! ' . system('git merge-base master HEAD')->trim() . '<cr>'
+nnoremap        <leader>idv       :Gvdiffsplit!<cr>
+nnoremap        <leader>idh       <nop>
+nnoremap        <leader>idhh      :Ghdiffsplit!<cr>
+nnoremap <expr> <leader>idhb      ':Ghdiffsplit! ' . system('git merge-base master HEAD')->trim() . '<cr>'
+nnoremap <expr> <leader>id<space> ':Gdiffsplit! '
+
+"nnoremap <expr> <leader>idp       ':<c-u>G diff origin/master...origin/pull/' . v:count . '<cr>'
+nnoremap <expr> <leader>ib         <nop>
+nnoremap <expr> <leader>ibd        <nop>
+nnoremap <expr> <leader>ibdd       ':<c-u>vert G diff origin<cr>'
+nnoremap <expr> <leader>ibdm       ':<c-u>vert G diff origin/master<cr>'
+nnoremap <expr> <leader>ibdb       ':<c-u>vert G diff ' . system('git merge-base master HEAD')->trim() . '<cr>'
+nnoremap <expr> <leader>ibdp       ':<c-u>vert G diff origin/master...origin/pull/' . v:count . '<cr>'
+nnoremap <expr> <leader>ibd<space> ':<c-u>vert G diff '
+
+nnoremap        <leader>io  :e cmds.md<cr>:G<cr>:copen<cr>:hide<cr>:hide<cr>
 
 ""NOTE:  this is *OFTEN* not defined when I think it should be, so I'm adding my own mapping for it
 nnoremap <leader>dq :<c-u>call fugitive#DiffClose()<cr>
@@ -3252,11 +3463,24 @@ nnoremap <expr> <leader>ip ':<c-u>G pull '  . (v:count == '0' ? '--ff-only' : (v
 
 nnoremap        <leader>ic         <nop>
 nnoremap        <leader>ica        :G commit --amend<cr>
+
+" For the next one, pneumonic:  [C]urrent [W]ork
+nnoremap        <leader>icw        :G diff origin/master --name-only<cr>
+
 nnoremap        <leader>icz        <nop>
 nnoremap <expr> <leader>icz<space> ':G stash '
 nnoremap        <leader>iczl       :G stash list<cr>
-nnoremap        <leader>iczu       :G stash push -m current<cr>
-nnoremap        <leader>iczg       :G stash push --staged -m current_staged<cr>
+
+nnoremap        <leader>iczu        <nop>
+nnoremap <expr> <leader>iczu<space> ':G stash push -m '
+nnoremap        <leader>iczuu       :G stash push -m current<cr>
+nnoremap        <leader>iczs        <nop>
+nnoremap <expr> <leader>iczs<space> ':G stash push --keep-index --staged -m '
+nnoremap        <leader>iczss       :G stash push --keep-index --staged -m current_staged<cr>
+nnoremap        <leader>iczg        <nop>
+nnoremap <expr> <leader>iczg<space> ':G stash push --staged -m '
+nnoremap        <leader>iczgg       :G stash push --staged -m current_staged<cr>
+
 nnoremap <expr> <leader>icza       ':<c-u>G stash apply stash@{' . v:count . '}<cr>'
 nnoremap <expr> <leader>iczp       ':<c-u>G stash pop stash@{' . v:count . '}<cr>'
 nnoremap <expr> <leader>iczd       ':<c-u>G stash drop stash@{' . v:count . '}<cr>'
@@ -3282,32 +3506,90 @@ nnoremap <expr> <leader>icm<space> ':G merge '
 "" #     endif
 "" #     exe ':<c-u>' . l:pfx . a:cmd
 "" # endfunction
-"" # nnoremap <leader>il <nop>
+"" #
+"" # Example mapping to use the above:
+"" #
 "" # nnoremap <leader>ilo :call GitDo('G hlog')<cr>
 "" # nnoremap <leader>ila :call GitDo('G hlag')<cr>
-"" # " These next two mappings will populate the "local" and "quickfix" lists respectively
-"" # " NOTE: this involves an 'efm' within the Fugitive plugin that does NOT work with '--graph' or my '--pretty' formats
-"" # "       (i.e.  if I add --graph, then the quickfix window does not find the commits to jump to)
-"" # nnoremap <leader>ill :call GitDo('Gllog! --date=human --decorate -- ')<cr>
-"" # nnoremap <leader>ilc :call GitDo('Gclog! --date=human --decorate -- ')<cr>
-
-"" # nnoremap <leader>ilg <nop>
-"" # nnoremap <leader>ilgl :call GitDo('Gllog! --date=human --decorate --all --grep ')<cr>
-"" # nnoremap <leader>ilgc :call GitDo('Gclog! --date=human --decorate --all --grep ')<cr>
 "" #
 
+function! Gpfx() abort
+    if v:count == '0'
+        return 'G '
+    elseif v:count == '1'
+        return 'vert G '
+    endif
+    return '0G '
+endfunction
+
 nnoremap <leader>il <nop>
-nnoremap <expr> <leader>ilo (v:count == '0' ? ':<c-u>G hlog<cr>' : (v:count == '1' ? ':<c-u>vert G hlog<cr>' : ':<c-u>0G hlog<cr>'))
-nnoremap <expr> <leader>ila (v:count == '0' ? ':<c-u>G hlag<cr>' : (v:count == '1' ? ':<c-u>vert G hlag<cr>' : ':<c-u>0G hlag<cr>'))
+nnoremap <expr> <leader>ilf        <nop>
+nnoremap <expr> <leader>ilf<space> ':<c-u>' . Gpfx() . 'log --date=human --decorate -p --follow -- '
+nnoremap <expr> <leader>ilff       ':<c-u>' . Gpfx() . 'log --date=human --decorate -p --follow -- ' . Expand('g') . '<cr>'
+nnoremap <expr> <leader>ilo ':<c-u>' . Gpfx() . 'hlog<cr>'
+nnoremap <expr> <leader>ila ':<c-u>' . Gpfx() . 'hlag<cr>'
 " These next two mappings will populate the "local" and "quickfix" lists respectively
 " NOTE: this involves an 'efm' within the Fugitive plugin that does NOT work with '--graph' or my '--pretty' formats
 "       (i.e.  if I add --graph, then the quickfix window does not find the commits to jump to)
-nnoremap <leader>ill :Gllog! --date=human --decorate --
-nnoremap <leader>ilc :Gclog! --date=human --decorate --
+nnoremap <expr> <leader>ill ':Gllog! --date=human --decorate -- '
+nnoremap <expr> <leader>ilc ':Gclog! --date=human --decorate -- '
+
+"" #
+"" # Notes on the different "grep" options:
+"" #
+"" # --grep=<pattern>
+"" #
+"" #     Limit the commits output to ones with a log message that matches the
+"" #     specified pattern (regular expression). With more than one
+"" #     --grep=<pattern>, commits whose message matches any of the given patterns
+"" #     are chosen (but see --all-match).
+"" #
+"" #     When --notes is in effect, the message from the notes is matched as if it
+"" #     were part of the log message.
+"" #
+"" #
+"" #
+"" # -S<string>
+"" #
+"" #     Look for differences that change the number of occurrences of the specified
+"" #     string (i.e. addition/deletion) in a file. Intended for the scripter’s use.
+"" #
+"" #     It is useful when you’re looking for an exact block of code (like a
+"" #     struct), and want to know the history of that block since it first came
+"" #     into being: use the feature iteratively to feed the interesting block in
+"" #     the preimage back into -S, and keep going until you get the very first
+"" #     version of the block.
+"" #
+"" #     Binary files are searched as well.
+"" #
+"" #
+"" #
+"" # -G<regex>
+"" #
+"" #     Look for differences whose patch text contains added/removed lines that
+"" #     match <regex>.
+"" #
+"" #     To illustrate the difference between -S<regex> --pickaxe-regex and
+"" #     -G<regex>, consider a commit with the following diff in the same file:
+"" #
+"" #     +    return frotz(nitfol, two->ptr, 1, 0); ...
+"" #     -    hit = frotz(nitfol, mf2.ptr, 1, 0);
+"" #
+"" #     While git log -G"frotz\(nitfol" will show this commit, git log
+"" #     -S"frotz\(nitfol" --pickaxe-regex will not (because the number of
+"" #     occurrences of that string did not change).
+"" #
+"" #     Unless --text is supplied patches of binary files without a textconv filter
+"" #     will be ignored.
+"" #
+"" #     See the pickaxe entry in gitdiffcore[7] for more information.
 
 nnoremap        <leader>ilg  <nop>
-nnoremap <expr> <leader>ilgl ':Gllog! --date=human --decorate --all --grep '
-nnoremap <expr> <leader>ilgc ':Gclog! --date=human --decorate --all --grep '
+nnoremap <expr> <leader>ilgl ':Gllog! --date=human --decorate --all -G '
+nnoremap <expr> <leader>ilgc ':Gclog! --date=human --decorate --all -G '
+nnoremap        <leader>ils  <nop>
+nnoremap <expr> <leader>ilsl ':Gllog! --date=human --decorate --all -S '
+nnoremap <expr> <leader>ilsc ':Gclog! --date=human --decorate --all -S '
 
 nnoremap <leader>iw :Gwrite<cr>
 
@@ -3443,6 +3725,10 @@ nnoremap <leader>fd17p  :<c-u>call SetMSBuildDispatch('ms2017pro')<cr>
 nnoremap <leader>fd19   <nop>
 nnoremap <leader>fd19b  :<c-u>call SetMSBuildDispatch('ms2019bt')<cr>
 nnoremap <leader>fd19p  :<c-u>call SetMSBuildDispatch('ms2019pro')<cr>
+nnoremap <leader>fd2    <nop>
+nnoremap <leader>fd22   <nop>
+nnoremap <leader>fd22b  :<c-u>call SetMSBuildDispatch('ms2022bt')<cr>
+nnoremap <leader>fd22p  :<c-u>call SetMSBuildDispatch('ms2022pro')<cr>
 nnoremap <leader>fdd    <nop>
 nnoremap <leader>fddn   :<c-u>call SetMSBuildDispatch('dotnet publish')<cr>
 nnoremap <leader>fd19d  <nop>
@@ -3485,8 +3771,8 @@ function! SetGradleDispatch(...) abort range
         "" # Try from text on current line
         let gradleTool = l:projdir . '\gradlew'
     endif
-    if !exists("l:gradleTool")
-        "" # Try a wrapper in the current folder
+    if !filereadable("l:gradleTool")
+        "" # Try a default location
         let gradleTool = '.\gradlew'
     endif
     if !filereadable(l:gradleTool)
@@ -3989,24 +4275,27 @@ let g:pencil_terminal_italics = 0
 "        heading bar (which is otherwise ignored by papercolor)
 if ! exists("s:colorscheme_default_has_been_set")
     let s:colorscheme_default_has_been_set = 1
-    " NOTE:  I really use Papercolor almost everywhere   ... BUT ...
-    "        that one does NOT properly handle the window status line
-    "        SO I always find myself setting 'One' and then 'Papercolor'
-    "        to get the status lines right.
-    if has('macunix')
-        "colorscheme solarized8_high
-        colorscheme papercolor
-        set background=dark
-    elseif has('win32')
-        " Doing both one-right-after-the-other does NOT work here in VIMRC :(
-        " (so I have commentd out the switch to papercolor)
-            " colorscheme one
-            " redrawstatus!
-        colorscheme papercolor
-        set background=light
-    else
-        colorscheme solarized8
-        set background=dark
+
+    if 0 == len(argv())
+        " NOTE:  I really use Papercolor almost everywhere   ... BUT ...
+        "        that one does NOT properly handle the window status line
+        "        SO I always find myself setting 'One' and then 'Papercolor'
+        "        to get the status lines right.
+        if has('macunix')
+            "colorscheme solarized8_high
+            colorscheme papercolor
+            "set background=dark
+        elseif has('win32')
+            " Doing both one-right-after-the-other does NOT work here in VIMRC :(
+            " (so I have commentd out the switch to papercolor)
+                " colorscheme one
+                " redrawstatus!
+            colorscheme papercolor
+            set background=light
+        else " Linux?
+            colorscheme solarized8
+            set background=dark
+        endif
     endif
 endif
 "}}}
@@ -4049,6 +4338,24 @@ xnoremap <leader>re :Reverse<CR>
 "" Easy expansion of the active file directory
 ""
 function! Expand(flags)
+    "" TODO:  straighten this out so more of the base modifiers are exposed
+    ""        through my Expand() wrapper function
+    ""        REQUIRES:  organizing the pneumonics to all fit
+
+    ""
+    "" From fnamemodify():
+    "" :p           full path
+    "" :8           MS-Windows ONLY - convert to 8.3
+    "" :~           reduce to home-relative path
+    "" :.           reduce to CWD-relative path
+    "" :h           'head' of filename (last component)
+    "" :t           'tail' of filename (all but last component)
+    "" :r           'root' - with extension removed (can be repeated)
+    "" :e           'extension' -- just the extension
+    "" :s?pat?sub?  generic substitute against filename
+    "" :gs?pat?sub? as above, but substitute all occurrences
+    "" :S           escape special chars within filename (use as shell arg)
+    ""
     if a:flags == 'd'
         let retval = expand('%:p')->substitute('[\\/][^\\/]*$', '', '')
     elseif a:flags == 'l'
@@ -4068,6 +4375,8 @@ function! Expand(flags)
         let retval = substitute(l:out, '\v^(//depot/.{-}) //.*', '\1', '')
     elseif a:flags == 'c'
         let retval = expand('~') . '/.conan/data'
+    elseif a:flags == 'v'
+        let retval = VisualSelection()
     elseif a:flags == '%'
         let retval = getcwd()
     else
@@ -4090,6 +4399,7 @@ cnoremap <expr> %l  getcmdtype() =~ '[:=]' ? Expand('l')   : '%l'
 cnoremap <expr> %g  getcmdtype() =~ '[:=]' ? Expand('g')   : '%g'
 cnoremap <expr> %.  getcmdtype() =~ '[:=]' ? Expand('.')   : '%.'
 cnoremap <expr> %c  getcmdtype() =~ '[:=]' ? Expand('c')   : '%c'
+cnoremap <expr> %v  getcmdtype() =~ '[:=]' ? Expand('v')   : '%v'
 cnoremap <expr> %~  getcmdtype() =~ '[:=]' ? Expand('~')   : '%~'
 cnoremap <expr> %4  getcmdtype() =~ '[:=]' ? Expand('4')   : '%4'
 cnoremap <expr> %z  getcmdtype()
@@ -4107,6 +4417,7 @@ cnoremap <expr> <c-s><c-e>l Expand('l')
 cnoremap <expr> <c-s><c-e>g Expand('g')
 cnoremap <expr> <c-s><c-e>. Expand('.')
 cnoremap <expr> <c-s><c-e>c Expand('c')
+cnoremap <expr> <c-s><c-e>v Expand('v')
 cnoremap <expr> <c-s><c-e>~ Expand('~')
 cnoremap <expr> <c-s><c-e>4 Expand('4')
 
@@ -4123,6 +4434,7 @@ inoremap <expr> <c-s><c-e>l Expand('l')
 inoremap <expr> <c-s><c-e>g Expand('g')
 inoremap <expr> <c-s><c-e>. Expand('.')
 inoremap <expr> <c-s><c-e>c Expand('c')
+inoremap <expr> <c-s><c-e>v Expand('v')
 inoremap <expr> <c-s><c-e>~ Expand('~')
 inoremap <expr> <c-s><c-e>4 Expand('4')
 
@@ -4153,18 +4465,24 @@ inoremap <expr> <c-s><c-o>e getcwd().'_build-logs\msbuild-detailed.log'
 inoremap <expr> <c-s><c-o>n getcwd().'_build-logs\msbuild-normal.log'
 inoremap <expr> <c-s><c-o>m getcwd().'_build-logs\msbuild-minimal.log'
 
-function! OutputLog(expr)
-    let l:log = glob('.\Output\Logs\en-us**\' . a:expr)
-    if l:log == ''
-        let l:log = glob('.\Windows**\' . a:expr)
+function! OutputLog(expr) abort
+    let l:res = split(glob('.\Output\Logs\en-us**\' . a:expr), '\n')
+    let l:res = l:res + split(glob('.\Windows**\' . a:expr), '\n')
+    if len(l:res) <= 1
+        let l:log = get(l:res, 0, '')
+    else
+        let prompt = copy(l:res)
+        for idx in range(len(prompt))
+           let l:prompt[l:idx] = l:idx . '. ' . l:prompt[l:idx]
+        endfor
+        echo 'The expression, ' . a:expr . ', had multiple matches:'
+        let l:log = get(l:res, inputlist(l:prompt), '')
     endif
     if l:log == ''
         throw 'Unable to find output build log for [' . a:expr .']'
     endif
     return l:log
 endfunction
-
-" C:\sepm\github\sepm\Output\Logs\en-us\SEPM_OldServer_Gradle.txt
 
 cnoremap <expr> <c-s><c-o>r OutputLog('*Reporting*.txt')
 cnoremap <expr> <c-s><c-o>o OutputLog('*OldServer*.txt')
@@ -4173,8 +4491,8 @@ cnoremap <expr> <c-s><c-o>w OutputLog('*NewServer.txt')
 cnoremap <expr> <c-s><c-o>c OutputLog('*Cpp*.txt')
 cnoremap <expr> <c-s><c-o>8 OutputLog('*-msbuild-x86-Release.log')
 cnoremap <expr> <c-s><c-o>6 OutputLog('*-msbuild-x86_64-Release.log')
+cnoremap <expr> <c-s><c-o>g OutputLog('*-msbuild-*.log')
 
-inoremap <expr> <c-s><c-o>  <nop>
 inoremap <expr> <c-s><c-o>r OutputLog('*Reporting*.txt')
 inoremap <expr> <c-s><c-o>o OutputLog('*OldServer*.txt')
 inoremap <expr> <c-s><c-o>b OutputLog('*Bootstrap*.txt')
@@ -4182,6 +4500,7 @@ inoremap <expr> <c-s><c-o>w OutputLog('*NewServer.txt')
 inoremap <expr> <c-s><c-o>c OutputLog('*Cpp*.txt')
 inoremap <expr> <c-s><c-o>8 OutputLog('*-msbuild-x86-Release.log')
 inoremap <expr> <c-s><c-o>6 OutputLog('*-msbuild-x86_64-Release.log')
+inoremap <expr> <c-s><c-o>g OutputLog('*-msbuild-*.log')
 
 ""
 "" Handy mapping that I should have created LOOOOng ago.
@@ -4455,6 +4774,11 @@ nmap <leader>bi /\{<cr>j0mskn%k0me's0<c-v>'e0I	\tr's0kk
 nmap <leader>bu /\{<cr>j0mskn%k0me's0<c-v>'e0x's0kk
 nmap <leader>bf 0ms/\{<cr>%me's!'eclang-format<cr>
 
+function! s:ClangFormat() abort
+    call PosDump()
+    "pyf trim(system('where vim-clang-format.py'))
+endfunction
+
 if executable('vim-clang-format.py')
     "dir /b /s /a-d "C:\Program Files (x86)\Microsoft Visual Studio\clang*.exe"
     let g:clang_format_path = 'C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\Llvm\bin\clang-format.exe'
@@ -4462,6 +4786,13 @@ if executable('vim-clang-format.py')
     let g:clang_format_fallback_style = 'llvm'
     noremap <leader><leader>kk :pyf <c-r>=trim(system('where vim-clang-format.py'))<cr><cr>
     inoremap <c-k> <c-o>:pyf <c-r>=trim(system('where vim-clang-format.py'))<cr><cr>
+
+    "" # noremap <leader><leader>k :set formatexpr?<cr>
+    "" # let &formatexpr = 's:ClangFormat()'
+    augroup ClangFormatGroup
+        au!
+        "au BufEnter *.cpp *.h setlocal formatexpr=s:ClangFormat()
+    augroup END
 endif
 
 if has('win32')
@@ -4717,14 +5048,30 @@ nnoremap <silent> <leader>o    <nop>
 nnoremap <silent> <leader>oc   :<c-u>call OpenCompanionCode()<cr>
 
 if has('win32')
-    nnoremap <silent> <leader>of   <nop>
-    nnoremap <silent> <leader>ofd  <nop>
-    nnoremap <silent> <leader>ofdt :!start <c-r>=substitute(system('echo %USERPROFILE%'), '\v[\s\n\r]+$', '', '')<cr>\Desktop<cr>
-    nnoremap <silent> <leader>oft  <nop>
-    nnoremap <silent> <leader>oftp :!start <c-r>=substitute(system('echo %TEMP%'), '\v[\s\n\r]+$', '', '')<cr><cr>
-    nnoremap <silent> <leader>ofu  <nop>
-    nnoremap <silent> <leader>ofup :!start <c-r>=substitute(system('echo %USERPROFILE%'), '\v[\s\n\r]+$', '', '')<cr><cr>
+    nnoremap <silent> <leader>od   <nop>
+    nnoremap <silent> <leader>odd  <nop>
+    nnoremap <silent> <leader>oddt :!start <c-r>=substitute(system('echo %USERPROFILE%'), '\v[\s\n\r]+$', '', '')<cr>\Desktop<cr>
+    nnoremap <silent> <leader>odt  <nop>
+    nnoremap <silent> <leader>odtp :!start <c-r>=substitute(system('echo %TEMP%'), '\v[\s\n\r]+$', '', '')<cr><cr>
+    nnoremap <silent> <leader>odu  <nop>
+    nnoremap <silent> <leader>odup :!start <c-r>=substitute(system('echo %USERPROFILE%'), '\v[\s\n\r]+$', '', '')<cr><cr>
 endif
+
+function! Vopen(path) abort
+    if v:count == 0
+        exe 'tabedit ' . a:path
+    elseif v:count == 1
+        exe 'vs ' . a:path
+    elseif v:count == 2
+        exe 'edit ' . a:path
+    else
+        exe 'sp ' . a:path
+    endif
+    return ''
+endfunction
+
+nnoremap <silent> <leader>o. :<c-u>call Vopen(getline('.')->trim())<cr>
+xnoremap <silent> <leader>o. :<c-u>call Vopen(VisualSelection())<cr>
 
 nnoremap <silent> <leader>o <nop>
 nnoremap <silent> <leader>oq :copen<cr>
@@ -4745,6 +5092,7 @@ nnoremap <silent> <leader>zt :TagbarClose<cr>
 
 nnoremap <silent> <leader>za :cclose<bar>lclose<bar>NERDTreeClose<bar>TagbarClose<cr>
 nnoremap <silent> <leader>zz :hide<cr>
+xnoremap <silent> <leader>zz :hide<cr>
 
 nnoremap <silent> <leader>zg  <nop>
 nnoremap <silent> <leader>zgm :set guioptions-=m<cr>
@@ -4846,16 +5194,20 @@ endfunction
 function! EqualizeWindows(force) abort
     for bid in tabpagebuflist()
         let can_reset = a:force
+        let bopts = getbufvar(l:bid, '&')
+        let wopts = getwinvar(bufwinnr(l:bid), '&')
 
         " If not forcing, check buf props -- maybe still reset
         if ! l:can_reset
-            let bopts = getbufvar(l:bid, '&')
+            let neb_fw = getwinvar(bufwinnr(l:bid), 'neb_fw', 0)
+            let neb_fh = getwinvar(bufwinnr(l:bid), 'neb_fh', 0)
             let can_reset = l:bopts['buftype'] == ''
                        \ && l:bopts['buflisted'] == 1
                        \ && l:bopts['swapfile'] == 1
+                       \ && l:neb_fw != 1
+                       \ && l:neb_fh != 1
         endif
 
-        let wopts = getwinvar(bufwinnr(l:bid), '&')
         if l:wopts['winfixheight'] == 1 || l:wopts['winfixwidth'] == 1
             " Fixed windows *either* become unfixed...   or "fit to content"
             if l:can_reset
@@ -4863,7 +5215,13 @@ function! EqualizeWindows(force) abort
                 call setwinvar(bufwinnr(l:bid), '&winfixheight', 0)
                 call setwinvar(bufwinnr(l:bid), '&winfixwidth', 0)
             else
+                echo "Refitting to content, buffer " . bufname(l:bid)
                 call win_execute(bufwinid(l:bid), 'resize ' .  2 + GetBufLines(l:bid))
+                if l:bopts['textwidth'] > 0
+                    " NOTE:  NOT working :|
+                    let newsize = (5 + l:bopts['textwidth'])
+                    call win_execute(bufwinnr(l:bid), 'vertical resize ' . l:newsize)
+                endif
             endif
         endif
     endfor
@@ -4872,6 +5230,12 @@ endfunction
 nnoremap <leader>ww <cmd>call EchoWindowInfo(v:count)<cr>
 nnoremap <leader>we <cmd>call EqualizeWindows(v:count)<cr>
 nnoremap <leader>ws :call WindowSwap#EasyWindowSwap()<CR>
+
+nnoremap <leader>wf  <nop>
+nnoremap <leader>wfz :unlet! w:neb_fh w:neb_fw<cr>:set nowfh<cr>:set nowfh<cr>
+nnoremap <leader>wfh :let w:neb_fh = 1<cr>:set wfh<cr>
+nnoremap <leader>wfw :let w:neb_fw = 1<cr>:set wfw<cr>
+nnoremap <leader>wf? :call MultiEchoM('', ['Fixed width: ' . get(w:,'neb_fw',0), 'Fixed height: ' . get(w:,'neb_fh',0)])<cr>
 
 function! SetGuiSize(lines, columns)
 	" Inspired from: https://vim.fandom.com/wiki/Maximize_or_set_initial_window_size
@@ -4895,13 +5259,13 @@ endfunction
 " 'm' for minimal
 " 't' for tall
 " 'q' for "quarter" size (of my big monitor)
-" 'f' for "fourth" size (of my laptop screen)
+" 'o' for "fourth" size (of my laptop screen)
 nnoremap <leader>wx :call SetGuiSize(1000, 1000)<cr>
 nnoremap <leader>wn :call SetGuiSize(93, 293)<cr>
 nnoremap <leader>wm :call SetGuiSize(38, 135)<cr>
 nnoremap <leader>wt :call SetGuiSize(100, 135)<cr>
 nnoremap <leader>wq :call SetGuiSize(80, 272)<cr>
-nnoremap <leader>wf :call SetGuiSize(48, 144)<cr>
+nnoremap <leader>wo :call SetGuiSize(48, 144)<cr>
 nnoremap <leader>w? :set lines?<bar>set columns?<cr>
 
 "nnoremap <leader>wz :call popup_clear(1)<cr>
@@ -5126,7 +5490,7 @@ nnoremap <leader>msdf :set errorformat=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l\\\,%c):\ %m
 
 nmap <leader>mg    <nop>
 nmap <leader>mgb   :cgetb<cr>
-vmap <leader>mgv   :<c-u>cget <c-r>=VisualSelection()<cr><cr>
+xmap <leader>mgv   :<c-u>cget <c-r>=VisualSelection()<cr><cr>
 
 nmap <leader>mgm   <nop>
 nmap <leader>mgms  <nop>
@@ -5134,6 +5498,10 @@ nmap <leader>mgmsa :cget <c-r>=getcwd()<cr>_build-logs\msbuild-diagnostic.log<cr
 nmap <leader>mgmse :cget <c-r>=getcwd()<cr>_build-logs\msbuild-detailed.log<cr>
 nmap <leader>mgmsn :cget <c-r>=getcwd()<cr>_build-logs\msbuild-normal.log<cr>
 nmap <leader>mgmsm :cget <c-r>=getcwd()<cr>_build-logs\msbuild-minimal.log<cr>
+
+nmap <leader>mgg   <nop>
+nmap <leader>mggm  <nop>
+nmap <leader>mggms \msdf:cget <c-r>=OutputLog('*-msbuild-*.log')<cr><cr>\mcl
 
 nmap <leader>mgo   <nop>
 nmap <leader>mgol  <nop>
