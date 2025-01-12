@@ -20,7 +20,7 @@ done
 ##
 ## Now stow all the packages that can be folded
 ##
-for d in allshells bash bin_files devstuff git p4 screen zshell; do
+for d in allshells bash bin_files devstuff git p4 screen tmux zshell; do
 	echo "Stowing $d ..."
 	stow -R $d "$@"
 done

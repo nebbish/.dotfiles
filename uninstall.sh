@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-for d in allshells bash bin_files config devstuff git p4 screen vim zshell; do
+for d in allshells bash bin_files config devstuff git p4 screen vim tmux zshell; do
 	echo "Unstowing $d ..."
 	stow -D $d
 done
