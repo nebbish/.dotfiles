@@ -72,12 +72,15 @@ function juniq() {
 ## ############################################################################
 function py() {
     ver=$1
-    if [ $ver = -3 ]; then
+    # NOTE:  using the '&&' operator requires DOUBLE square bracketes
+    if [[ -n $ver && $ver = -3 ]]; then
         python3 ${@:2}
-    elif [ $ver = -2 ]; then
-        python ${@:2}
+    elif [[ -n $ver && $ver = -2 ]]; then
+        python2 ${@:2}
     else
-        echo "Unrecognizable or unknown version spec provided: ${ver}"
+        # Assume un-specified - whatever comes first - python
+        python ${@:1}
+        # echo "Unrecognizable or unknown version spec provided: ${ver}"
     fi
 }
 
