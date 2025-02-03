@@ -26,8 +26,12 @@ set -ga terminal-overrides "*:kUP3=\e[1;3A,*:kDN3=\e[1;3B,*:kRIT3=\e[1;3C,*:kLFT
 # -- re-arraning windows -------------------------------------------------------
 
 # From:  https://superuser.com/a/552493/659417
+#   NOTE:  for MacOS whose 'meta' key produces special characters (vs control codes)
+#          we add a second row where those special characters run the mapping
 bind-key M-, swap-window -t -1\; select-window -t -1
+bind-key ≤   swap-window -t -1\; select-window -t -1
 bind-key M-. swap-window -t +1\; select-window -t +1
+bind-key ≥   swap-window -t +1\; select-window -t +1
 
 # -- vim-tmux-navigator --------------------------------------------------------
 
@@ -36,7 +40,9 @@ bind-key M-. swap-window -t +1\; select-window -t +1
 # NOTE (jes):  I had to tweak it a little - removing 'tmux ' from the start of each cmd
 
 is_vim="ps -o state= -o comm= -t '#{pane_tty}' \
-    | ggrep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?(view|n?vim?x?)(diff)?$'"
+    | grep -iqE '^[^TXZ ]+ +(\\S+\\/)?g?(view|n?vim?x?)(diff)?$'"
+bind-key C-q if-shell "$is_vim" 'display-message "it IS vim"' 'display-message "it is NOT vim"'
+
 bind-key -n C-h if-shell "$is_vim" "send-keys C-h"  "select-pane -L"
 bind-key -n C-j if-shell "$is_vim" "send-keys C-j"  "select-pane -D"
 bind-key -n C-k if-shell "$is_vim" "send-keys C-k"  "select-pane -U"
