@@ -512,6 +512,24 @@ endfunction
 
 "" for %s in (semsrv) do @(sc query %s | ag "^S|STATE")
 
+function! CmdPipeEscape(line)
+    " NOTE:  there is an **ODD** side-effect of the CMD behavior of
+    "        launching TWO shells when there are two '|' (pipes)
+    "        see:  https://ss64.com/nt/syntax-esc.html#pipeline
+    "   SO:  if the user's cmd (l:line) contains an escaped pipe,
+    "        we need to *double* escape it
+    "        (non-escaped pipes can be left alone)
+    return substitute(a:line, '\v\^\|', '^^^|', 'g')
+    ""
+    "" PS:  Here's an example that is not currently handled:
+    ""        TWO levels of PIPEing:
+    ""      (for /f %f in ('git ... ^^^| tr "/" "\\\\"') do @(echo %f)) | wc
+    ""
+    ""        which when getting captured adds our own extra level (now Three):
+    ""      ((for /f %f in ('git ... ^^^| tr "/" "\\\\"') do @(echo %f)) | wc) 2>&1 | tee -ai out.txt
+    ""
+endfunction
+
 function! WatchCmdEscape(val)
     "" #
     "" # This function also performs VimCmdEscape() on the passed in value:
@@ -1502,6 +1520,9 @@ function! LineAsSplitCmd(capture) abort
     let text =getline('.')
     if has('win32')
         let text = 'cmd /c ' . l:text . ' && pause'
+    else
+        "let text = substitute(l:text, '\v\|', '\\|', 'g')
+        let text = '++shell ' . l:text
     endif
     " NOTE: we pass '1' for "wait" param, to prevent prefixing with "start "
     return TextAsShellCmd(a:capture, 1, l:text)
@@ -1511,23 +1532,6 @@ function! LineAsShellCmd(capture, wait) abort
 endfunction
 function! VisualAsShellCmd(capture, wait) abort
     return TextAsShellCmd(a:capture, a:wait, VisualSelection())
-endfunction
-function! CmdPipeEscape(line)
-    " NOTE:  there is an **ODD** side-effect of the CMD behavior of
-    "        launching TWO shells when there are two '|' (pipes)
-    "        see:  https://ss64.com/nt/syntax-esc.html#pipeline
-    "   SO:  if the user's cmd (l:line) contains an escaped pipe,
-    "        we need to *double* escape it
-    "        (non-escaped pipes can be left alone)
-    return substitute(a:line, '\v\^\|', '^^^|', 'g')
-    ""
-    "" PS:  Here's an example that is not currently handled:
-    ""        TWO levels of PIPEing:
-    ""      (for /f %f in ('git ... ^^^| tr "/" "\\\\"') do @(echo %f)) | wc
-    ""
-    ""        which when getting captured adds our own extra level (now Three):
-    ""      ((for /f %f in ('git ... ^^^| tr "/" "\\\\"') do @(echo %f)) | wc) 2>&1 | tee -ai out.txt
-    ""
 endfunction
 function! TextAsShellCmd(capture, wait, text) abort
     " NOTE:  internally to VIM, :!start... is handled WAAAY differetly than :!...
@@ -1733,9 +1737,12 @@ nnoremap <leader>eld  <nop>
 nnoremap <leader>eldr :<c-u>put =LineAsShellCmd(v:count, 1)<cr>
 nnoremap <leader>eldl :<c-u>put =LineAsShellCmd(v:count, 0)<cr>
 nnoremap <leader>eldw :<c-u>put =LineAsWatchCmd()<cr>
+nnoremap <leader>elds :<c-u>put =LineAsSplitCmd(v:count)<cr>
 
 nnoremap <leader>els  <nop>
-nnoremap <leader>elsr :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr>
+" Not sure if I want to keep the delayed resize or not...    as of now, not.
+"nnoremap <leader>elsr :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr>
+nnoremap <leader>elsr :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr>
 nnoremap <leader>elv  <nop>
 nnoremap <leader>elvr :<c-u>vert term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:set wfw<cr>
 
@@ -2703,7 +2710,11 @@ nmap # <Plug>MarkSearchPrev
 
 " Settings related to Coc "{{{
 
-let g:coc_node_path = 'C:\ProgramData\nvm\v18.16.0\node.exe'
+"" # On my windows dev box, I used other node versions, and this one for Vim
+if filereadable('C:\ProgramData\nvm\v18.16.0\node.exe')
+    let g:coc_node_path = 'C:\ProgramData\nvm\v18.16.0\node.exe'
+endif
+
 let s:coc_plug_exists = filter(copy(g:vundle#bundles), 'v:val["name"] == "coc.nvim"')->len()
 
 "" # "wget -P %userprofile%\AppData\Local\coc\manually-installed-extensions\kotlin\server\lib https://repo1.maven.org/maven2/org/slf4j/slf4j-nop/2.0.3/slf4j-nop-2.0.3.jar
