@@ -512,6 +512,24 @@ endfunction
 
 "" for %s in (semsrv) do @(sc query %s | ag "^S|STATE")
 
+function! CmdPipeEscape(line)
+    " NOTE:  there is an **ODD** side-effect of the CMD behavior of
+    "        launching TWO shells when there are two '|' (pipes)
+    "        see:  https://ss64.com/nt/syntax-esc.html#pipeline
+    "   SO:  if the user's cmd (l:line) contains an escaped pipe,
+    "        we need to *double* escape it
+    "        (non-escaped pipes can be left alone)
+    return substitute(a:line, '\v\^\|', '^^^|', 'g')
+    ""
+    "" PS:  Here's an example that is not currently handled:
+    ""        TWO levels of PIPEing:
+    ""      (for /f %f in ('git ... ^^^| tr "/" "\\\\"') do @(echo %f)) | wc
+    ""
+    ""        which when getting captured adds our own extra level (now Three):
+    ""      ((for /f %f in ('git ... ^^^| tr "/" "\\\\"') do @(echo %f)) | wc) 2>&1 | tee -ai out.txt
+    ""
+endfunction
+
 function! WatchCmdEscape(val)
     "" #
     "" # This function also performs VimCmdEscape() on the passed in value:
@@ -1502,6 +1520,9 @@ function! LineAsSplitCmd(capture) abort
     let text =getline('.')
     if has('win32')
         let text = 'cmd /c ' . l:text . ' && pause'
+    else
+        "let text = substitute(l:text, '\v\|', '\\|', 'g')
+        let text = '++shell ' . l:text
     endif
     " NOTE: we pass '1' for "wait" param, to prevent prefixing with "start "
     return TextAsShellCmd(a:capture, 1, l:text)
@@ -1511,23 +1532,6 @@ function! LineAsShellCmd(capture, wait) abort
 endfunction
 function! VisualAsShellCmd(capture, wait) abort
     return TextAsShellCmd(a:capture, a:wait, VisualSelection())
-endfunction
-function! CmdPipeEscape(line)
-    " NOTE:  there is an **ODD** side-effect of the CMD behavior of
-    "        launching TWO shells when there are two '|' (pipes)
-    "        see:  https://ss64.com/nt/syntax-esc.html#pipeline
-    "   SO:  if the user's cmd (l:line) contains an escaped pipe,
-    "        we need to *double* escape it
-    "        (non-escaped pipes can be left alone)
-    return substitute(a:line, '\v\^\|', '^^^|', 'g')
-    ""
-    "" PS:  Here's an example that is not currently handled:
-    ""        TWO levels of PIPEing:
-    ""      (for /f %f in ('git ... ^^^| tr "/" "\\\\"') do @(echo %f)) | wc
-    ""
-    ""        which when getting captured adds our own extra level (now Three):
-    ""      ((for /f %f in ('git ... ^^^| tr "/" "\\\\"') do @(echo %f)) | wc) 2>&1 | tee -ai out.txt
-    ""
 endfunction
 function! TextAsShellCmd(capture, wait, text) abort
     " NOTE:  internally to VIM, :!start... is handled WAAAY differetly than :!...
@@ -1733,9 +1737,12 @@ nnoremap <leader>eld  <nop>
 nnoremap <leader>eldr :<c-u>put =LineAsShellCmd(v:count, 1)<cr>
 nnoremap <leader>eldl :<c-u>put =LineAsShellCmd(v:count, 0)<cr>
 nnoremap <leader>eldw :<c-u>put =LineAsWatchCmd()<cr>
+nnoremap <leader>elds :<c-u>put =LineAsSplitCmd(v:count)<cr>
 
 nnoremap <leader>els  <nop>
-nnoremap <leader>elsr :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr>
+" Not sure if I want to keep the delayed resize or not...    as of now, not.
+"nnoremap <leader>elsr :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr>
+nnoremap <leader>elsr :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr>
 nnoremap <leader>elv  <nop>
 nnoremap <leader>elvr :<c-u>vert term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:set wfw<cr>
 
@@ -2703,7 +2710,11 @@ nmap # <Plug>MarkSearchPrev
 
 " Settings related to Coc "{{{
 
-let g:coc_node_path = 'C:\ProgramData\nvm\v18.16.0\node.exe'
+"" # On my windows dev box, I used other node versions, and this one for Vim
+if filereadable('C:\ProgramData\nvm\v18.16.0\node.exe')
+    let g:coc_node_path = 'C:\ProgramData\nvm\v18.16.0\node.exe'
+endif
+
 let s:coc_plug_exists = filter(copy(g:vundle#bundles), 'v:val["name"] == "coc.nvim"')->len()
 
 "" # "wget -P %userprofile%\AppData\Local\coc\manually-installed-extensions\kotlin\server\lib https://repo1.maven.org/maven2/org/slf4j/slf4j-nop/2.0.3/slf4j-nop-2.0.3.jar
@@ -2985,6 +2996,10 @@ nnoremap <leader><leader>so :Limelight!<cr>
 "" # " (either from the installed VIM, or tpope/vim-markdown)
 "" # " (--OR-- the more functional preservim/vim-markdown)
 "" # "
+"" # " Above, I have chosen to use preservim's plugin.
+"" # " Therefore, all the global variables have the vim_ prefix
+"" # " (which is not there in tpope's version)
+"" # "
 
 " Preservim Markdown automatic key mappings, disabled via a global:
 "    call <sid>MapNotHasmapto(']]', 'Markdown_MoveToNextHeader')
@@ -2998,24 +3013,27 @@ nnoremap <leader><leader>so :Limelight!<cr>
 "let g:vim_markdown_no_default_key_mappings=1
 "let g:vim_markdown_borderless_table=1
 
+""
+"" This prevents the bullets and indenting that I usually don't want
+""
+"let g:vim_markdown_auto_insert_bullets = 0
+let g:vim_markdown_new_list_item_indent = 0
 
-" If you want to enable fenced code block syntax highlighting in your markdown
-" documents you can enable it in your `.vimrc` like so:
-"let g:markdown_fenced_languages = ['html', 'python', 'bash=sh']
+"" # If you want to enable fenced code block syntax highlighting in your markdown
+"" # documents you can enable it in your `.vimrc` like so:
+"let g:vim_markdown_fenced_languages = ['html', 'python', 'bash=sh']
 
-" To disable markdown syntax concealing add the following to your vimrc:
-"let g:markdown_syntax_conceal = 0
-nnoremap <silent> <leader>om  <nop>
-nnoremap <silent> <leader>oms :let g:markdown_syntax_conceal = 0<cr>
-nnoremap <silent> <leader>zm  <nop>
-nnoremap <silent> <leader>zms :let g:markdown_syntax_conceal = 1<cr>
-
-" Syntax highlight is synchronized in 50 lines. It may cause collapsed
-" highlighting at large fenced code block.
-" In the case, please set larger value in your vimrc:
-nnoremap        <leader><leader>ml? :echo g:markdown_minlines<cr>
-nnoremap <expr> <leader><leader>mll ':<c-u>let g:markdown_minlines = ' . v:count . '<cr>'
-let g:markdown_minlines = 10
+"" #
+"" # This setting, g:markdown_minlines, is ONLY used in Tim Pope's markdown plugin
+"" # which is currently commented out above in favor of preservim's version
+"" #
+"" # " Syntax highlight is synchronized in 50 lines. It may cause collapsed
+"" # " highlighting at large fenced code block.
+"" # " In the case, please set larger value in your vimrc:
+"" # nnoremap        <leader><leader>ml? :echo g:markdown_minlines<cr>
+"" # nnoremap <expr> <leader><leader>mll ':<c-u>let g:markdown_minlines = ' . v:count . '<cr>'
+"" # let g:markdown_minlines = 10
+"" #
 
 nnoremap <leader><leader>mf  <nop>
 nnoremap <leader><leader>mf? :echo 'Markdown folding is: ' . (get(g:, 'vim_markdown_folding_disabled', 0) ? 'disabled' : 'enabled')<cr>
@@ -3061,11 +3079,26 @@ nnoremap <expr> <leader><hh IndentionMotionSetup('<') . '_'
 "" # " /Users/jasonsinger/.vim/after
 "" # "
 
+" To disable markdown syntax concealing add the following to your vimrc:
+"let g:vim_markdown_conceal = 0
+nnoremap <silent> <leader>om  <nop>
+nnoremap <silent> <leader>oms :let g:vim_markdown_conceal = 0<cr>
+nnoremap <silent> <leader>zm  <nop>
+nnoremap <silent> <leader>zms :let g:vim_markdown_conceal = 1<cr>
+
 nnoremap        <leader>hl  <nop>
 nnoremap        <leader>hl? :set conceallevel?<cr>
 nnoremap        <leader>hl& :set conceallevel&<cr>
 nnoremap <expr> <leader>hll ':<c-u>set conceallevel=' . v:count . '<cr>'
+" Start out at 2:
+"   Concealed text is completely hidden unless it has a
+"   custom replacement character defined (see :syn-cchar).
+set conceallevel=2
 
+""
+"" This controls which "modes" it is OK to conceal text on the cursor line itself
+"" (values can be 'n', 'v', 'i', and 'c' - obvious mode first letters)
+""
 nnoremap <leader>hc        <nop>
 nnoremap <leader>hc?       :set concealcursor?<cr>
 nnoremap <leader>hc&       :set concealcursor&<cr>
@@ -3597,7 +3630,8 @@ nnoremap <leader>iw :Gwrite<cr>
 " Mneumonic:    resolve merge
 "
 nnoremap <leader>rm  <nop>
-nnoremap <leader>rmb gg/\v^[<=>]{4,}(\ [A-Z0-9a-z]{1,}\|$)<cr>zz
+" The {7} repeats below USED to be {4,} repeats. There may be a time 7 fails
+nnoremap <leader>rmb gg/\v^[<=>]{7}(\ [A-Z0-9a-z]{1,}\|$)<cr>zz
 "
 " These two macros will not work on the first line (the 'k' will halt execution when it cannot go up a line)
 " TODO:  add functions to handle this, also enabling period-repitition
