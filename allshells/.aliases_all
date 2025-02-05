@@ -60,7 +60,7 @@ elif [ "${OSTYPE:0:6}" = "darwin" ]; then
 	# Fixing the run-help widget and reversing the typical default aliasing
 	#    from:  http://zsh.sourceforge.net/Doc/Release/User-Contributions.html#Accessing-On_002dLine-Help
 	unalias run-help 2>/dev/null
-	autoload run-help
+	autoload run-help 2>/dev/null
 	# This was my experiment to help see the connection between these help systems
 	#alias man="run-help"
 
