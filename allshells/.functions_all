@@ -68,6 +68,29 @@ function juniq() {
 
 
 ## ############################################################################
+## New section for NVM utility
+## (there is also an 'section' for NVM in .exports_all)
+## ############################################################################
+#
+# NOTE:  I wanted to put this here, so that my VIM-launched "sub-shells" (with
+#        :!...) would have access to the NVM functions provided here.  HOWEVER,
+#        it turns out that doing this slowed VIM launching by 30 WHOLE SECONDS!
+#        I cannot yet explain why.  I tried:
+#
+#          1. Commenting out all plugins - trying to load, still 30s
+#          2. Restoring plugins, commenting out EVERYTHING else - still 30s
+#
+#        So maybe I look into the shell script from NVM and see what it does.
+#        Not at this time.
+#
+#        So I comment them out here, but leave them with this note saying why
+#        they cannot be here (where I would prefer)
+#
+#[ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
+#[ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+
+
+## ############################################################################
 ## Python section (to mimic "enough" of the Windows `py` utility)
 ## ############################################################################
 function py() {
