@@ -9,6 +9,19 @@ fi
 
 
 ## ############################################################################
+## New section for NVM utility
+## (there is also an 'section' for NVM in .functions_all)
+## ############################################################################
+export NVM_DIR="$HOME/.nvm"
+# NOTE: These "loading" of the NVM shell script guts SHOULD go into
+#       .functions_all and be missing from here, however for the sake of VIM
+#       not slowing down by 30s on every load...  I am leaving them here.  See
+#       .functions_all where these lines exist commented out with a note for
+#       more details.
+[ -s "/usr/local/opt/nvm/nvm.sh" ] && \. "/usr/local/opt/nvm/nvm.sh"  # This loads nvm
+[ -s "/usr/local/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/usr/local/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+
+## ############################################################################
 ## New section for the PyEnv utility
 ## ############################################################################
 
