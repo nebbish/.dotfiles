@@ -1,0 +1,6 @@
+plugins/**
+
+# VIM
+.sw?
+_.sw?
+.*.sw?
