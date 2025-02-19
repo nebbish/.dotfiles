@@ -186,6 +186,9 @@ def recover_edits(start_root, depth, depth_first, rm_orphaned, rm_recovered, for
             ## TODO:  validate this works with the swaps for anonymous files, i.e. _.swp
             ##
             swp_path = os.path.join(root, name)
+            if os.path.islink(swp_path):
+                print('Skipping symbolic link: {}'.format(swp_path))
+                continue
             print('Recovering:  {}'.format(swp_path))
 
             with TempDir() as workdir:
