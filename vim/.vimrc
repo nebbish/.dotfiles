@@ -1591,7 +1591,7 @@ function! GetInnerParagraph() abort
     let l:last = l:empty ? l:empty - 1 : line('$')
     return [l:first, l:last]
 endfunction
-function! InnerParagraphAsShellCmd(capture, wait) abort
+function! InnerParagraphForExecution(capture) abort
     let inner = GetInnerParagraph()
     let lines = getline(l:inner[0], l:inner[1])
 
@@ -1614,8 +1614,10 @@ function! InnerParagraphAsShellCmd(capture, wait) abort
     elseif has('win32')
         let lines = map(l:lines, '"(" . v:val . ")"')
     endif
-
-    let retval = join(l:lines, has('win32') ? ' & ' : ' ; ')
+    return join(l:lines, has('win32') ? ' & ' : ' ; ')
+endfunction
+function! InnerParagraphAsShellCmd(capture, wait) abort
+    let retval = InnerParagraphForExecution(a:capture)
     if a:wait == 0
         if has('win32')
             let retval = 'start cmd /v:on /c (' . l:retval . ') & pause'
@@ -1625,6 +1627,16 @@ function! InnerParagraphAsShellCmd(capture, wait) abort
         endif
     endif
     return VimCmdEscape(l:retval)
+endfunction
+function! InnerParagraphAsSplitCmd(capture) abort
+    let text = InnerParagraphForExecution(a:capture)
+    if has('win32')
+        let text = 'cmd /c ' . l:text . ' && pause'
+    else
+        "let text = substitute(l:text, '\v\|', '\\|', 'g')
+        let text = '++shell ' . l:text
+    endif
+    return VimCmdEscape(l:text)
 endfunction
 " NOTE:  because this helpful debugging macro is using single-quotes to surround the whole expression,
 "        AND b/c it is executing a VIM command, :echo, the rules for escaping contained "'" is to double them up
@@ -1718,8 +1730,8 @@ nnoremap <leader>es :r !echo <c-r>=VimCmdEscape(getline('.'))<cr><cr>
 "" elr    : [E]xecute [L]ine [R]un      -- w/o count: "free", with count: "capture"
 "" ell    : [E]xecute [L]ine [L]aunch   -- w/o count: "free", with count: "capture"
 "" NEW:
-"" elsr   : [E]xecute [L]ine [S]plit [R]un      -- w/o count: "free", with count: "capture"
-"" elvr   : [E]xecute [L]ine [V]ert  [R]un      -- w/o count: "free", with count: "capture"
+"" els    : [E]xecute [L]ine [S]plit [R]un      -- w/o count: "free", with count: "capture"
+"" elv    : [E]xecute [L]ine [V]ert  [R]un      -- w/o count: "free", with count: "capture"
 
 ""  0 == LAUNCH
 ""  1 == RUN  (i.e. wait)
@@ -1739,12 +1751,10 @@ nnoremap <leader>eldl :<c-u>put =LineAsShellCmd(v:count, 0)<cr>
 nnoremap <leader>eldw :<c-u>put =LineAsWatchCmd()<cr>
 nnoremap <leader>elds :<c-u>put =LineAsSplitCmd(v:count)<cr>
 
-nnoremap <leader>els  <nop>
 " Not sure if I want to keep the delayed resize or not...    as of now, not.
-"nnoremap <leader>elsr :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr>
-nnoremap <leader>elsr :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr>
-nnoremap <leader>elv  <nop>
-nnoremap <leader>elvr :<c-u>vert term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:set wfw<cr>
+"nnoremap <leader>els :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr>
+nnoremap <leader>els :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr>
+nnoremap <leader>elv :<c-u>vert term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:set wfw<cr>
 
 xnoremap <leader>ev   <nop>
 xnoremap <leader>evr  :<c-u>!<c-r>=VisualAsShellCmd(v:count, 1)<cr><cr>
@@ -1823,9 +1833,10 @@ endif
 nnoremap <leader>epd  <nop>
 nnoremap <leader>epdr :<c-u>put =InnerParagraphAsShellCmd(v:count, 1)<cr>
 nnoremap <leader>epdl :<c-u>put =InnerParagraphAsShellCmd(v:count, 0)<cr>
+nnoremap <leader>epds :<c-u>put =InnerParagraphAsSplitCmd(v:count)<cr>
 
-nnoremap <leader>eps  <nop>
-nnoremap <leader>epsr :<c-u>term ++close <c-r>=InnerParagraphAsShellCmd(v:count, 1)<cr><cr><c-w>:set wfh<cr><c-w>p
+nnoremap <leader>eps :<c-u>term ++close <c-r>=InnerParagraphAsSplitCmd(v:count)<cr><cr><c-w>:set wfh<cr><c-w>p
+nnoremap <leader>epv :<c-u>vert term ++close <c-r>=InnerParagraphAsSplitCmd(v:count)<cr><cr><c-w>:set wfw<cr><c-w>p
 
 nnoremap <leader>epc  :call ExecuteInnerParagraph()<cr>
 "}}}
