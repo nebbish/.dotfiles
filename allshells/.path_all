@@ -7,6 +7,15 @@ if [ -n "$DOTFILES_DEBUG" ]; then
     echo "$(date) + $(whoami) + ${TERM} + executing $__source"
 fi
 
+##
+## Load the Deno env
+##   NOTE:  this is a refactored version of what was added
+##          automatically by the deno install script - which
+##          by the way, can be skipped if the auto edit is already in the file
+## I moved it to here, added an existance check, and this comment here
+##
+[ -s "/Users/jason/.deno/bin" ] && export PATH="/Users/jason/.deno/bin:$PATH"
+
 # Setup ~/bin and ~/.local/bin to the $PATH value (the 2nd location hosts decrypted private files)
 if [ -n "$BASH_VERSION" ]; then
 	PATH=$HOME/bin:$HOME/.local/bin:$HOME/binpy:$PATH;
