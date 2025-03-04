@@ -105,7 +105,7 @@ def get_computer_name_from_swp_file(swp_path):
 
 
 def recover_edits(start_root, depth, depth_first, rm_orphaned, rm_recovered, force, use_built_in_walk):
-    rx_swap = re.compile(r'^(_|\.(.*))\.sw.$')
+    rx_swap = re.compile(r'^(_|\.(.*))?\.sw.$')
     if depth is not None:
         depth = int(depth)
 
@@ -266,7 +266,7 @@ def recover_edits(start_root, depth, depth_first, rm_orphaned, rm_recovered, for
                     #   * saving to "rec_txt" would have set the filename of the "[No Name]" buffer just recovered
                     #   * retrieving that name with "expand('%')" would produce the path to the 1st temp file
                     #   * so in this situation, the 2nd temp file contents is the path of the 1st temp file
-                    assert swp_match.group(1) == '_'
+                    assert swp_match.group(1) in [None, '_']
 
                     # Here we copy the recovered text file into the same path as the SWP file
                     # (not moving b/c we still may remove the SWP file into the backup area)
