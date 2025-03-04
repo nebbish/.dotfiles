@@ -2328,6 +2328,9 @@ nnoremap <leader>dnll :<c-u>NormalizeColorCodes<cr>g@_
 nnoremap <leader>dne  :<c-u>NormalizeEscapeCodes<cr>g@
 xnoremap <leader>dne  :<c-u>NormalizeEscapeCodes<cr>g@
 nnoremap <leader>dnee :<c-u>NormalizeEscapeCodes<cr>g@_
+nnoremap <leader>dnm  :<c-u>NormalizeManCodes<cr>g@
+xnoremap <leader>dnm  :<c-u>NormalizeManCodes<cr>g@
+nnoremap <leader>dnmm :<c-u>NormalizeManCodes<cr>g@_
 
 "
 " Quick TIP:  Here's a macro in the @q register to normalize with an automatically incrementing COUNT:
@@ -2350,6 +2353,7 @@ command! -count NormalizeChannelIDs  call NormalizeMotionSetup(v:count, 'c')
 command! -count NormalizeResponseIDs call NormalizeMotionSetup(v:count, 'r')
 command! -count NormalizeColorCodes  call NormalizeMotionSetup(v:count, 'l')
 command! -count NormalizeEscapeCodes call NormalizeMotionSetup(v:count, 'e')
+command! -count NormalizeManCodes    call NormalizeMotionSetup(v:count, 'm')
 
 
 "
@@ -2378,6 +2382,8 @@ function! NormalizeMotionSetup(count, type) abort
         let s:normalize_cmd = 's/\v(|\^\[)\[\d+m//g'
     elseif a:type == 'e'
         let s:normalize_cmd = 's/\v\^\[(\[\d+m)/\1/g'
+    elseif a:type == 'm'
+        let s:normalize_cmd = 's/\v_%x08|%x08.//g'
     else
         echoerr "Unknown type: [" . a:type . "]"
         call interrupt()
@@ -4305,30 +4311,33 @@ let g:pencil_terminal_italics = 0
 
 " NOTE:  activating "one" *before* "papercolor" sets the colors of the file
 "        heading bar (which is otherwise ignored by papercolor)
-if ! exists("s:colorscheme_default_has_been_set")
-    let s:colorscheme_default_has_been_set = 1
-
-    if 0 == len(argv())
+function! SetBackground() abort
+    let init_background = ((strftime("%H") < 7) || (strftime("%H")) > 17) ? "dark" : "light"
+    if 1 " 0 == len(argv())
         " NOTE:  I really use Papercolor almost everywhere   ... BUT ...
         "        that one does NOT properly handle the window status line
         "        SO I always find myself setting 'One' and then 'Papercolor'
         "        to get the status lines right.
         if has('macunix')
+            let macos_cmd = 'osascript -e ''tell app "System Events" to tell appearance preferences to get dark mode'''
+            let l:init_background = "false" == trim(system(l:macos_cmd)) ? "light" : "dark"
             "colorscheme solarized8_high
-            colorscheme papercolor
-            "set background=dark
+            "colorscheme papercolor
         elseif has('win32')
             " Doing both one-right-after-the-other does NOT work here in VIMRC :(
             " (so I have commentd out the switch to papercolor)
                 " colorscheme one
                 " redrawstatus!
             colorscheme papercolor
-            set background=light
         else " Linux?
             colorscheme solarized8
-            set background=dark
         endif
     endif
+    let &background = l:init_background
+endfunction
+if ! exists("s:colorscheme_default_has_been_set")
+    let s:colorscheme_default_has_been_set = 1
+    call SetBackground()
 endif
 "}}}
 
