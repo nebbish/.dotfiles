@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 ramdisk create 500
-ln -s /Volumes/ramdisk rd
+ln -s "$(ls -d /Volumes/ramdisk* | tail -1)" rd
 
 cp ~/.vimrc rd/vimrc
 >>rd/vimrc echo 'set nobackup'
