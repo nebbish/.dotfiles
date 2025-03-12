@@ -80,6 +80,8 @@ elif [ "${OSTYPE:0:6}" = "darwin" ]; then
 	alias myhist='history 0 | awk '\''{if (/exit$/) {chk=$0 RS} else {chk=chk $0 RS}} END {printf "%s", chk}'\'''
 	alias rcp="rsync -av --info=progress2"
 
+    # Using the MacOS utilities, produce a PID tree of the current TMUX session
+    alias tpids='pstree -w -p $(tmux display-message -p "#{pid}")'
 fi
 
 # General development section
