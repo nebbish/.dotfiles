@@ -84,6 +84,14 @@ function py() {
     fi
 }
 
+function watcha() {
+    a=$(alias ${@: -1})
+    c=$(echo $a | awk -F= '{print $2}' | sed 's/^.//' | sed 's/.$//')
+    # NOTE:  the spaces around the subtraction are REQUIRED for zshell to interpret
+    #        as arithmetic and we do this expecting the ALIAS to be the LAST
+    #        argument, and the preceding options just get passed right through
+    watch ${@:1:$# - 1} $c
+}
 
 ## ############################################################################
 ## Mounting/Unmounting helper functions
