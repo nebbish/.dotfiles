@@ -107,6 +107,21 @@ function py() {
     fi
 }
 
+function watcha() {
+    #
+    # NOTE:  assumes the alias is the last thing on the command line!
+    #
+    # Grab the alias definition into 'c'
+    c=$(alias ${@: -1} | awk -F= '{print $2}' | sed 's/^.//' | sed 's/.$//')
+
+    # Anything between `watcha` and the alias (last thing) are interpreted as
+    # arguments to the GNU `watch` command, e.g. `-d`, `-w`, or `-n 4`
+
+    # NOTE:  the spaces around the subtraction are REQUIRED for zshell to interpret
+    #        as arithmetic and we do this expecting the ALIAS to be the LAST
+    #        argument, and the preceding options just get passed right through
+    echo watch ${@:1:$# - 1} $c
+}
 
 ## ############################################################################
 ## Mounting/Unmounting helper functions
