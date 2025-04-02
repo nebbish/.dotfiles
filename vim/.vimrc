@@ -176,7 +176,7 @@ set guioptions=
 
 " Don't use Ex mode, use Q for formatting.
 " Revert with ":unmap Q".
-"map Q gq
+map Q gq
 
 " CTRL-U in insert mode deletes a lot.  Use CTRL-G u to first break undo,
 " so that you can undo CTRL-U after inserting a line break.
@@ -425,6 +425,59 @@ endfunction
 nnoremap <silent> <leader>hh :call HighlightText(expand("<cword>"))<cr>
 xnoremap <silent> <leader>hh :call HighlightText(VisualSelection())<cr>
 
+""
+"" For formatting:  gq
+""
+" :h fo-table
+"
+"      a    Automatic formatting of paragraphs every time text is inserted/deleted
+"
+"      t    Auto-wrap text using 'textwidth'
+"      c    Auto-wrap comments using 'textwidth', inserting comment leader automatically.
+"
+"      r    Automatically insert comment leader after <Enter> from Insert mode
+"      o    Automatically insert comment leader after 'O' or 'o' from Normal mode
+"
+"      n    Recognize numbered lists  (does not play nice with '2')
+"           (note:  uses 'formatlistpat' to identify lists)
+"      2    When formatting, use 2nd line of paragraph to pick indent level
+"
+"      l    Break long lines that were long before entering insert mode
+"      j    Join lines "smartly" - i.e. removing comment leader
+"
+"  homemade:
+"      w    'all' auto-wrapping  (i.e. both 't' and 'c')
+"
+""
+""  current 'fo':  jcroql
+""
+nnoremap <leader>fo   <nop>
+nnoremap <leader>foh  <nop>
+nnoremap <leader>fohh :h fo-table<cr>
+nnoremap <expr> <leader>fo<space> ':set fo=' . &fo
+nnoremap <leader>fo?  :set fo?<cr>
+nnoremap <leader>fo&  :set fo&<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>foa  :set fo+=a<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fot  :set fo+=t<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>foc  :set fo+=c<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>for  :set fo+=r<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>foo  :set fo+=o<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fon  :set fo+=n<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fo2  :set fo+=2<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fol  :set fo+=l<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>foj  :set fo+=j<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fow  :set fo+=tc<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>foz  <nop>
+nnoremap <leader>foza :set fo-=a<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fozt :set fo-=t<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fozc :set fo-=c<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fozr :set fo-=r<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fozo :set fo-=o<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fozn :set fo-=n<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>foz2 :set fo-=2<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fozl :set fo-=l<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fozj :set fo-=j<cr>:echo "formatoptions now: " . &fo<cr>
+nnoremap <leader>fozw :set fo-=tc<cr>:echo "formatoptions now: " . &fo<cr>
 
 ""
 "" Search for selected text, forwards or backwards.
@@ -741,6 +794,22 @@ inoremap <F1> <esc>
 " I am inspired by something I read/saw somewhere I cannot remember:  a mapping to exit insert mode!
 " (i know of no word that legimately contains 'jj')
 inoremap jj <esc>
+
+" Start using <space> as a leader for executing macros:
+" BUT do not make a single space a 'no-op', so that it can still be used to navigate
+"" So, make a single space a no-op (I don't use it for navigation anway)
+"nnoremap <space>        <nop>
+"xnoremap <space>        <nop>
+" And make a 2nd space cancel the pending macro execution
+nnoremap <space><space> <nop>
+xnoremap <space><space> <nop>
+function! CreateRunMacroMaps() abort
+    for ltr in "abcdefghijklmnopqrstuvwxyz"
+        execute 'nnoremap <space>'.l:ltr.' @'.l:ltr
+        execute 'xnoremap <space>'.l:ltr.' @'.l:ltr
+    endfor
+endfunction
+call CreateRunMacroMaps()
 
 "set autoread        " This allows smooth re-read of altered files when no changes
 set encoding=utf-8
@@ -1060,7 +1129,7 @@ CommandAbbrev argtestq ArgTestQ
 command! -nargs=* -complete=command -range ArgTestF call ArgTest(<range>, <line1>, <line2>, <f-args>)
 CommandAbbrev argtestf ArgTestF
 
-function! DbgTest()
+function! DbgTest(type) abort
     if v:count == 0
         let cnt = 10
     else
@@ -1075,11 +1144,22 @@ function! DbgTest()
 		"" #    "input"  or "@"   input line history
 		"" #    "debug"  or ">"   debug command history
 		"" #    empty         the current or last used history
-        echo histget(":", "-" . l:idx)
+        echo printf('%4d %s', -l:idx, histget(a:type, "-" . l:idx))
         let idx = l:idx - 1
     endwhile
 endfunction
-nnoremap <leader>tz :<c-u>call DbgTest()<cr>
+nnoremap <leader>q: :<c-u>call DbgTest(':')<cr>
+nnoremap <leader>q/ :<c-u>call DbgTest('/')<cr>
+nnoremap <leader>q= :<c-u>call DbgTest('=')<cr>
+nnoremap <leader>q@ :<c-u>call DbgTest('@')<cr>
+nnoremap <leader>q> :<c-u>call DbgTest('>')<cr>
+
+nnoremap <leader>qp  <nop>
+nnoremap <leader>qp: :<c-u>norm ]op<c-r>=histget(':', "-" . v:count1)<cr><cr>
+nnoremap <leader>qp/ :<c-u>norm ]op<c-r>=histget('/', "-" . v:count1)<cr><cr>
+nnoremap <leader>qp= :<c-u>norm ]op<c-r>=histget('=', "-" . v:count1)<cr><cr>
+nnoremap <leader>qp@ :<c-u>norm ]op<c-r>=histget('@', "-" . v:count1)<cr><cr>
+nnoremap <leader>qp> :<c-u>norm ]op<c-r>=histget('>', "-" . v:count1)<cr><cr>
 
 " "}}}
 
@@ -1413,7 +1493,7 @@ function! MultiEchoM(header, data) abort
     endfor
 endfunction
 
-function! LoadMarks(fname)
+function! LoadMarks(fname) abort
     echo 'Loading marks...'
     let markspath = GetMarksFile(a:fname)
     for line in l:markspath->readfile()
@@ -1427,7 +1507,7 @@ function! LoadMarks(fname)
     endfor
 endfunction
 
-function! SaveMarks(fname)
+function! SaveMarks(fname) abort
     echo 'Saving marks...'
     let markspath = GetMarksFile(a:fname)
     redir => cmd_output
@@ -1454,6 +1534,7 @@ endfunction
 " Here, I choose to use the register notation:  @%
 nnoremap <leader>kk :call OpenMarks(0)<cr>
 nnoremap <leader>kd :call OpenMarks(1)<cr>
+nnoremap <leader>ky :let @" = DumpMarks(1)->join("\n")<cr>
 nnoremap <leader>kz :wincmd j<cr>:q<cr>
 nnoremap <leader>kl :call LoadMarks(@%)<cr>
 nnoremap <leader>ks :call SaveMarks(@%)<cr>
@@ -1529,6 +1610,17 @@ function! LineAsSplitCmd(capture) abort
 endfunction
 function! LineAsShellCmd(capture, wait) abort
     return TextAsShellCmd(a:capture, a:wait, getline('.'))
+endfunction
+function! VisualAsSplitCmd(capture) abort
+    let text = VisualSelection()
+    if has('win32')
+        let text = 'cmd /c ' . l:text . ' && pause'
+    else
+        "let text = substitute(l:text, '\v\|', '\\|', 'g')
+        let text = '++shell ' . l:text
+    endif
+    " NOTE: we pass '1' for "wait" param, to prevent prefixing with "start "
+    return TextAsShellCmd(a:capture, 1, l:text)
 endfunction
 function! VisualAsShellCmd(capture, wait) abort
     return TextAsShellCmd(a:capture, a:wait, VisualSelection())
@@ -1662,7 +1754,7 @@ endfunction
 nnoremap <leader>e  <nop>
 nnoremap <leader>ee :norm ]op<c-r>=eval(getline('.'))<cr><cr>
 xnoremap <leader>ee :<c-u>norm ]op<c-r>=eval(VisualSelection())<cr><cr>
-nnoremap <leader>em yypkA =<Esc>jOscale=2<Esc>:.,+1!bc<CR>kJ0
+nnoremap <leader>eh yypkA =<Esc>jOscale=2<Esc>:.,+1!bc<CR>kJ0
 nnoremap <leader>ec :<c-r>=getline('.')<cr><cr>
 xnoremap <leader>ec :<c-u><c-r>=VisualSelection()<cr><cr>
 
@@ -1744,21 +1836,24 @@ else
     nnoremap <leader>elr  :<c-u>!<c-r>=LineAsShellCmd(v:count, 1)<cr><cr>
     nnoremap <leader>ell  :<c-u>!<c-r>=LineAsShellCmd(v:count, 0)<cr><cr>
 endif
+nnoremap <leader>eld  :<c-u>:Dispatch <c-r>=LineAsShellCmd(v:count, 1)<cr><cr>
 
-nnoremap <leader>eld  <nop>
-nnoremap <leader>eldr :<c-u>put =LineAsShellCmd(v:count, 1)<cr>
-nnoremap <leader>eldl :<c-u>put =LineAsShellCmd(v:count, 0)<cr>
-nnoremap <leader>eldw :<c-u>put =LineAsWatchCmd()<cr>
-nnoremap <leader>elds :<c-u>put =LineAsSplitCmd(v:count)<cr>
+nnoremap <leader>elu  <nop>
+nnoremap <leader>elur :<c-u>put =LineAsShellCmd(v:count, 1)<cr>
+nnoremap <leader>elul :<c-u>put =LineAsShellCmd(v:count, 0)<cr>
+nnoremap <leader>eluw :<c-u>put =LineAsWatchCmd()<cr>
+nnoremap <leader>elus :<c-u>put =LineAsSplitCmd(v:count)<cr>
 
 " Not sure if I want to keep the delayed resize or not...    as of now, not.
 "nnoremap <leader>els :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr>
-nnoremap <leader>els :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr>
-nnoremap <leader>elv :<c-u>vert term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:set wfw<cr>
+nnoremap <leader>els :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>p
+nnoremap <leader>elv :<c-u>vert term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:set wfw<cr><c-w>p
 
 xnoremap <leader>ev   <nop>
 xnoremap <leader>evr  :<c-u>!<c-r>=VisualAsShellCmd(v:count, 1)<cr><cr>
 xnoremap <leader>evl  :<c-u>!<c-r>=VisualAsShellCmd(v:count, 0)<cr><cr>
+xnoremap <leader>evs  :<c-u>term ++close <c-r>=VisualAsSplitCmd(v:count)<cr><cr><c-w>p
+xnoremap <leader>evv  :<c-u>vert term ++close <c-r>=VisualAsSplitCmd(v:count)<cr><cr><c-w>:set wfw<cr><c-w>p
 
 nnoremap <leader>ef   <nop>
 nnoremap <leader>efr  :<c-u>!<c-r>=TextAsShellCmd(v:count, 1, '"' . Expand('p') . '"')<cr><cr>
@@ -1770,34 +1865,45 @@ nnoremap <leader>efl  :<c-u>!<c-r>=TextAsShellCmd(v:count, 0, '"' . Expand('p') 
 "" This section frees up registers I used to record frequently, and kept around
 ""    (i.e. I always knew to keep 'm' available for jumping to 'm' and executing)
 ""
-nnoremap        <leader>em   <nop>
-nmap     <expr> <leader>ema  '\ab' . v:count1 . '<cr>''a\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emb  '\ab' . v:count1 . '<cr>''b\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emc  '\ab' . v:count1 . '<cr>''c\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emd  '\ab' . v:count1 . '<cr>''d\epl<c-o>\a,\ac'
-nmap     <expr> <leader>eme  '\ab' . v:count1 . '<cr>''e\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emf  '\ab' . v:count1 . '<cr>''f\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emg  '\ab' . v:count1 . '<cr>''g\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emh  '\ab' . v:count1 . '<cr>''h\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emi  '\ab' . v:count1 . '<cr>''i\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emj  '\ab' . v:count1 . '<cr>''j\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emk  '\ab' . v:count1 . '<cr>''k\epl<c-o>\a,\ac'
-nmap     <expr> <leader>eml  '\ab' . v:count1 . '<cr>''l\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emm  '\ab' . v:count1 . '<cr>''m\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emn  '\ab' . v:count1 . '<cr>''n\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emo  '\ab' . v:count1 . '<cr>''o\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emp  '\ab' . v:count1 . '<cr>''p\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emq  '\ab' . v:count1 . '<cr>''q\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emr  '\ab' . v:count1 . '<cr>''r\epl<c-o>\a,\ac'
-nmap     <expr> <leader>ems  '\ab' . v:count1 . '<cr>''s\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emt  '\ab' . v:count1 . '<cr>''t\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emu  '\ab' . v:count1 . '<cr>''u\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emv  '\ab' . v:count1 . '<cr>''v\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emw  '\ab' . v:count1 . '<cr>''w\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emx  '\ab' . v:count1 . '<cr>''x\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emy  '\ab' . v:count1 . '<cr>''y\epl<c-o>\a,\ac'
-nmap     <expr> <leader>emz  '\ab' . v:count1 . '<cr>''z\epl<c-o>\a,\ac'
+function! InitMarkExecuteMaps() abort
+    nnoremap <leader>em    <nop>
+    nnoremap <leader>emc   <nop>
+    nnoremap <leader>eml   <nop>
+    nnoremap <leader>emr   <nop>
+    nnoremap <leader>emd   <nop>
+    nnoremap <leader>ema   <nop>
 
+    function! ExecuteMark(mark, cmd, rst) abort
+        if v:count == 0
+            execute 'norm ' . printf("'%s%s\<c-o>", a:mark, a:cmd)
+        else
+            execute 'tab sb ' . v:count
+            let t:markrun = 1
+            " The user paragraph can create tabs, and finish with whatever tab
+            " active - so we save the tab we just opened so we jump back to it
+            execute 'norm ' . printf("'%s%s\<c-o>", a:mark, a:cmd)
+            " Jump back to the fresh tab we marked with a tab-local value
+            let IsMarkTab = {k, v -> gettabvar(v, 'markrun', -1) == -1 ? 0 : k + 1}
+            let marktabs = filter(map(range(1, tabpagenr('$')), l:IsMarkTab), 'v:val')
+            " TODO: handle when this array has more than one tab
+            "       (i.e. somehow WE left one open previously)
+            execute 'tabn ' . l:marktabs[-1]
+            unlet t:markrun
+            " Then do the "post" work (maybe close a win, maybe a whole tab)
+            execute 'norm ' . printf("%s", a:rst)
+        endif
+    endfunction
+
+    for ltr in "abcdefghijklmnopqrstuvwxyz"
+        execute 'nnoremap <leader>emc' . l:ltr . ' <cmd>call ExecuteMark("'.l:ltr.'","\\epc","\\a,\\ac")<cr>'
+        execute 'nnoremap <leader>eml' . l:ltr . ' <cmd>call ExecuteMark("'.l:ltr.'","\\epl","\\a,\\ac")<cr>'
+        execute 'nnoremap <leader>emr' . l:ltr . ' <cmd>call ExecuteMark("'.l:ltr.'","\\epr","\\a,\\ac")<cr>'
+        " NOTE:  \eld is LINE based, while the rest of these are PARAGRAPH based
+        execute 'nnoremap <leader>emd' . l:ltr . ' <cmd>call ExecuteMark("'.l:ltr.'","\\eld","\\a,\\ac")<cr>'
+        execute 'nnoremap <leader>ema' . l:ltr . ' <cmd>call ExecuteMark("'.l:ltr.'","\\eps","\\a,\\zz")<cr>'
+    endfor
+endfunction
+call InitMarkExecuteMaps()
 
 nnoremap <leader>wad  <nop>
 nnoremap <leader>wad? :echo "Watch difference hightlighting is: " . (g:WatchHighlightDiffs == 1 ? "on" : "off")<cr>
@@ -2694,6 +2800,10 @@ Plugin 'inkarkat/vim-mark'
 Plugin 'google/vim-searchindex'
 Plugin 'powerman/vim-plugin-AnsiEsc'
 
+Plugin 'nebbish/emmet-vim'
+Plugin 'alvan/vim-closetag'
+Plugin 'AndrewRadev/tagalong.vim'
+
 "Plugin 'iamcco/markdown-preview.nvim'
 "Plugin 'neoclide/coc.nvim', {'revision': 'release'}
 
@@ -2708,6 +2818,33 @@ if s:bootstrap
 end
 
 filetype plugin indent on	"" required (the 'indent' clause is fine absent or present)
+"}}}
+
+
+" Settings related to emmet-vim "{{{
+let g:user_emmet_install_global = 0
+let g:user_emmet_leader_key = ','
+augroup VimEmmet
+    autocmd!
+    "autocmd FileType html,css EmmetInstall
+augroup end
+nnoremap        <leader><leader>e  <nop>
+nnoremap        <leader><leader>ei :EmmetInstall<cr>
+nnoremap <expr> <leader><leader>ee ':Emmet '
+"}}}
+
+" Settings related to vim-closetag "{{{
+""
+"" NOTE:   '\\c...' is 99% for CoC plugin, but \\ct was available at the moment
+""
+nnoremap <leader><leader>ct :CloseTagToggleBuffer<cr>
+"}}}
+
+" Settings related to tagalong.vim "{{{
+" Default types:  ['eco', 'eelixir', 'ejs', 'eruby', 'html', 'htmldjango', 'javascriptreact', 'jsx', 'php', 'typescriptreact', 'xml']
+let g:tagalong_filetypes = []
+let g:tagalong_additional_filetypes = []
+nnoremap <leader><leader>ti :call tagalong#Init()<cr>
 "}}}
 
 
@@ -2951,15 +3088,21 @@ augroup end
 "" # Spacebar mappings:
 "" #
 if s:coc_plug_exists
-"if exists(':CocList')
-    nnoremap        <silent><nowait> <space>a  :<C-u>CocList diagnostics<cr>
-    nnoremap        <silent><nowait> <space>e  :<C-u>CocList extensions<cr>
-    nnoremap        <silent><nowait> <space>c  :<C-u>CocList commands<cr>
-    nnoremap        <silent><nowait> <space>o  :<C-u>CocList outline<cr>
-    nnoremap        <silent><nowait> <space>s  :<C-u>CocList -I symbols<cr>
-    nnoremap        <silent><nowait> <space>j  :<C-u>CocNext<CR>
-    nnoremap        <silent><nowait> <space>k  :<C-u>CocPrev<CR>
-    nnoremap        <silent><nowait> <space>p  :<C-u>CocListResume<CR>
+    " There are <space> mappings higher up in this file, for easy execution of
+    " macros stored in one of the lowercase letter registers.
+    "
+    " Here we create 2<space> mappings for CoC commands
+    nnoremap        <silent><nowait> <space><space><space> <nop>
+    xnoremap        <silent><nowait> <space><space><space> <nop>
+
+    nnoremap        <silent><nowait> <space><space>a  :<C-u>CocList diagnostics<cr>
+    nnoremap        <silent><nowait> <space><space>e  :<C-u>CocList extensions<cr>
+    nnoremap        <silent><nowait> <space><space>c  :<C-u>CocList commands<cr>
+    nnoremap        <silent><nowait> <space><space>o  :<C-u>CocList outline<cr>
+    nnoremap        <silent><nowait> <space><space>s  :<C-u>CocList -I symbols<cr>
+    nnoremap        <silent><nowait> <space><space>j  :<C-u>CocNext<CR>
+    nnoremap        <silent><nowait> <space><space>k  :<C-u>CocPrev<CR>
+    nnoremap        <silent><nowait> <space><space>p  :<C-u>CocListResume<CR>
 endif
 
 "}}}
@@ -3198,28 +3341,29 @@ endif
 " (inspired by: " https://stackoverflow.com/questions/7845671/how-to-execute-base64-decode-on-selected-text-in-vim)
 "
 if has('python3')
-    python3
-    \ #
-    \ # TODO:  refactor this section to have common "arg" conversion helpers
-    \ #        and return value "cleaning" helpers (such as stripping the appended newline)
-    \ #
-    \ import binascii
-    \ def uudecode(encoded_ascii_value):
-    \     if encoded_ascii_value is bytes:
-    \         encoded_ascii_value = encoded_ascii_value.decode('utf-8')
-    \     return binascii.a2b_uu(encoded_ascii_value)
-    \ def uuencode(original_value):
-    \     if type(original_value) is str:
-    \         original_value = original_value.encode('utf-8')
-    \     return binascii.b2a_uu(original_value)
-    \ def base64decode(encoded_ascii_value):
-    \     if encoded_ascii_value is bytes:
-    \         encoded_ascii_value = encoded_ascii_value.decode('utf-8')
-    \     return binascii.a2b_base64(encoded_ascii_value)
-    \ def base64encode(original_value):
-    \     if type(original_value) is str:
-    \         original_value = original_value.encode('utf-8')
-    \     return binascii.b2a_base64(original_value)
+    python3 << trim endpython3
+    #
+    # TODO:  refactor this section to have common "arg" conversion helpers
+    #        and return value "cleaning" helpers (such as stripping the appended newline)
+    #
+    import binascii
+    def uudecode(encoded_ascii_value):
+        if encoded_ascii_value is bytes:
+            encoded_ascii_value = encoded_ascii_value.decode('utf-8')
+        return binascii.a2b_uu(encoded_ascii_value)
+    def uuencode(original_value):
+        if type(original_value) is str:
+            original_value = original_value.encode('utf-8')
+        return binascii.b2a_uu(original_value)
+    def base64decode(encoded_ascii_value):
+        if encoded_ascii_value is bytes:
+            encoded_ascii_value = encoded_ascii_value.decode('utf-8')
+        return binascii.a2b_base64(encoded_ascii_value)
+    def base64encode(original_value):
+        if type(original_value) is str:
+            original_value = original_value.encode('utf-8')
+        return binascii.b2a_base64(original_value)
+    endpython3
 
     function! s:PyUuDecode(val) abort
         return py3eval("uudecode('" .. a:val .. "')")
@@ -3303,6 +3447,39 @@ function! s:TidyJson(str) abort
         let opts = l:opts . ' --minify'
     endif
     return system('jsontool' . l:opts, a:str)
+endfunction
+
+function! s:TransposeMatrix(str) abort
+    let l:rows = split(a:str, '\n', 1)
+    let l:max_col = max(map(copy(l:rows), 'len(split(v:val))'))
+    let l:lines = map(range(1, l:max_col), '[]')
+    for l:row in l:rows
+        let l:cols = split(l:row)
+        for l:col in range(l:max_col)
+            call add(l:lines[l:col], get(l:cols, l:col, ''))
+        endfor
+    endfor
+    return join(map(l:lines, 'join(v:val)'), "\n")
+endfunction
+
+function! s:TransposeCSV(str) abort
+    let l:rows = split(a:str, '\n', 1)
+    let l:splitpat = '\v%("%(\\"|.)*"[ \t]*)?\zs,'
+    let l:splitpat = ','
+    let l:max_col = max(map(copy(l:rows), 'len(split(v:val, l:splitpat))'))
+    let l:lines = map(range(1, l:max_col), '[]')
+    for l:row in l:rows
+        let l:cols = split(l:row, l:splitpat)
+        for l:col in range(l:max_col)
+            call add(l:lines[l:col], trim(get(l:cols, l:col, '')))
+        endfor
+    endfor
+    return join(map(l:lines, 'join(v:val, ",")'), "\n")
+endfunction
+
+function! s:Demangle(str) abort
+    "return system('llvm-cxxfilt', a:str)
+    return trim(system('c++filt', a:str))
 endfunction
 
 "" Ugly hack, so the script works PRE-8.0
@@ -3416,6 +3593,18 @@ nnoremap <expr> <leader>tj "@_" . TransformMotionSetup('s:TidyJson')
 xnoremap <expr> <leader>tj "@_" . TransformMotionSetup('s:TidyJson')
 nnoremap <expr> <leader>tjj "@_" . TransformMotionSetup('s:TidyJson') . '_'
 
+nnoremap <expr> <leader>tm "@_" . TransformMotionSetup('s:TransposeMatrix')
+xnoremap <expr> <leader>tm "@_" . TransformMotionSetup('s:TransposeMatrix')
+nnoremap <expr> <leader>tmm "@_" . TransformMotionSetup('s:TransposeMatrix') . '_'
+
+nnoremap <expr> <leader>tc "@_" . TransformMotionSetup('s:TransposeCSV')
+xnoremap <expr> <leader>tc "@_" . TransformMotionSetup('s:TransposeCSV')
+nnoremap <expr> <leader>tcc "@_" . TransformMotionSetup('s:TransposeCSV') . '_'
+
+nnoremap <expr> <leader>tg "@_" . TransformMotionSetup('s:Demangle')
+xnoremap <expr> <leader>tg "@_" . TransformMotionSetup('s:Demangle')
+nnoremap <expr> <leader>tgg "@_" . TransformMotionSetup('s:Demangle') . '_'
+
 
 " Adding a new function exploring interactions b/w Vim & Python.   Not used yet.
 function! PyPrint() range
@@ -3479,7 +3668,7 @@ let g:undotree_SetFocusWhenToggle = 1 " default 0
 ""        yet asked to be pulled into the official author's repo
 let g:DirDiffRecursive=1
 let g:DirDiffIgnoreLineEndings=0
-let g:DirDiffExcludes = "_.sw?,.*.sw?"
+let g:DirDiffExcludes = "_.sw?,.*.sw?,*.pyc,*.a,*.o,*.so,*.dylib"
 "}}}
 
 
@@ -3891,6 +4080,13 @@ nnoremap <expr> <leader><leader>t:       ':Tabular /:<cr>'
 nnoremap <expr> <leader><leader>t,       ':Tabular /,<cr>'
 
 "" # "
+"" # " This is (pneumonic:) 'TaBle Numbers'
+"" # "    it aligns number columns on the decimal point.
+"" # "
+nnoremap        <leader>tb <nop>
+nnoremap        <leader>tbn :<c-u>g/\v(\\|) *%([-$][- $]*)?[,0-9]+\.\d\d *\1/ s/\v(\\|) *(%([-$][- $]*)?[,0-9]+\.\d\d) *\1@=/\=printf('%s %'. (len(submatch(0))-3) .'s ', submatch(1), submatch(2))/g<cr>
+
+"" # "
 "" # " From:  https://gist.github.com/tpope/287147
 "" # "
 " A function that can be used to "auto align" as-you-type:
@@ -4141,7 +4337,7 @@ let g:ctrlp_prompt_mappings = {
 
 
 " Tagbar mappings and settings "{{{
-nnoremap <leader>tb :TagbarOpen fjc<cr>
+nnoremap <leader>tg :TagbarOpen fjc<cr>
 nnoremap <leader>tt :TagbarToggle<cr>
 let g:tagbar_autofocus=0
 nnoremap <silent> <F9> :TagbarToggle<cr>
@@ -4420,18 +4616,35 @@ function! Expand(flags)
     ""        REQUIRES:  organizing the pneumonics to all fit
 
     ""
-    "" From fnamemodify():
-    "" :p           full path
-    "" :8           MS-Windows ONLY - convert to 8.3
-    "" :~           reduce to home-relative path
-    "" :.           reduce to CWD-relative path
-    "" :h           'head' of filename (last component)
-    "" :t           'tail' of filename (all but last component)
-    "" :r           'root' - with extension removed (can be repeated)
-    "" :e           'extension' -- just the extension
-    "" :s?pat?sub?  generic substitute against filename
-    "" :gs?pat?sub? as above, but substitute all occurrences
-    "" :S           escape special chars within filename (use as shell arg)
+    "" Helpful notes from fnamemodify() documentation:
+    ""
+    ""    :p           full path
+    ""    :8           MS-Windows ONLY - convert to 8.3
+    ""    :~           reduce to home-relative path
+    ""    :.           reduce to CWD-relative path
+    ""    :h           'head' of filename (last component)
+    ""    :t           'tail' of filename (all but last component)
+    ""    :r           'root' - with extension removed (can be repeated)
+    ""    :e           'extension' -- just the extension
+    ""    :s?pat?sub?  generic substitute against filename
+    ""    :gs?pat?sub? as above, but substitute all occurrences
+    ""    :S           escape special chars within filename (use as shell arg)
+    ""
+
+    ""
+    "" This function:
+    ""
+    ""    d            'dir': alias for 'h' - head (last path component removed)
+    ""    l            'link': current file name symbolic link target
+    ""    g            'git': git repo root for current file
+    ""    .            current file name resolved to current directory
+    ""    ~            home directory
+    ""    4            p4 depot path of current file
+    ""    c            full path of conan data folder:  ~/.conan/data
+    ""    v            VisualSelection()
+    ""    x            VimRxEscape(VisualSelection())
+    ""    %            current directory              <-- Kinda confusing, eh? maybe should change?
+    ""    ...          forwarded to expand('%:...') as flags on 'current file name'
     ""
     if a:flags == 'd'
         let retval = expand('%:p')->substitute('[\\/][^\\/]*$', '', '')
@@ -4454,6 +4667,8 @@ function! Expand(flags)
         let retval = expand('~') . '/.conan/data'
     elseif a:flags == 'v'
         let retval = VisualSelection()
+    elseif a:flags == 'x'
+        let retval = VimRxEscape(VisualSelection())
     elseif a:flags == '%'
         let retval = getcwd()
     else
@@ -4477,6 +4692,7 @@ cnoremap <expr> %g  getcmdtype() =~ '[:=]' ? Expand('g')   : '%g'
 cnoremap <expr> %.  getcmdtype() =~ '[:=]' ? Expand('.')   : '%.'
 cnoremap <expr> %c  getcmdtype() =~ '[:=]' ? Expand('c')   : '%c'
 cnoremap <expr> %v  getcmdtype() =~ '[:=]' ? Expand('v')   : '%v'
+cnoremap <expr> %x  getcmdtype() =~ '[:=]' ? Expand('x')   : '%x'
 cnoremap <expr> %~  getcmdtype() =~ '[:=]' ? Expand('~')   : '%~'
 cnoremap <expr> %4  getcmdtype() =~ '[:=]' ? Expand('4')   : '%4'
 cnoremap <expr> %z  getcmdtype()
@@ -4495,6 +4711,7 @@ cnoremap <expr> <c-s><c-e>g Expand('g')
 cnoremap <expr> <c-s><c-e>. Expand('.')
 cnoremap <expr> <c-s><c-e>c Expand('c')
 cnoremap <expr> <c-s><c-e>v Expand('v')
+cnoremap <expr> <c-s><c-e>x Expand('x')
 cnoremap <expr> <c-s><c-e>~ Expand('~')
 cnoremap <expr> <c-s><c-e>4 Expand('4')
 
@@ -4512,6 +4729,7 @@ inoremap <expr> <c-s><c-e>g Expand('g')
 inoremap <expr> <c-s><c-e>. Expand('.')
 inoremap <expr> <c-s><c-e>c Expand('c')
 inoremap <expr> <c-s><c-e>v Expand('v')
+inoremap <expr> <c-s><c-e>x Expand('x')
 inoremap <expr> <c-s><c-e>~ Expand('~')
 inoremap <expr> <c-s><c-e>4 Expand('4')
 
@@ -4928,20 +5146,11 @@ endif
 ""          The following URL explains a couple of reasons why a mapping may beep, and the solutions...
 ""              http://vim.wikia.com/wiki/Mapping_keys_in_Vim_-_Tutorial_%28Part_2%29
 ""
+
 ""
 "" F4       moves to next error in the quickfix window
 "" Shift+F4 moves to previous (again used 'sed -n l' to get codes)
 ""
-
-""
-"" disabling this so the new open/close mappings become more familiar
-""   \oq   (to open quickfix)
-""   \zq   (to close quickfix)
-""
-"nnoremap <leader>qo :copen<cr>
-"nnoremap <leader>qc :cclose<cr>
-"nnoremap <leader>ql :cclose<cr>
-
 nnoremap <f4> :cn<cr>
 if has("gui_running")
 	nnoremap <S-f4> :cp<cr>
@@ -5079,6 +5288,10 @@ nnoremap <leader>ah :call MoveWinToPrevTab()<cr>
 nnoremap <leader>al :call MoveWinToNextTab()<cr>
 "}}}
 
+" Opening & Closing mappings (utility windows and gui elements) "{{{
+nnoremap <silent> <leader>o    <nop>
+nnoremap <silent> <leader>oc   :<c-u>call OpenCompanionCode()<cr>
+
 function! OpenCompanionCode() range abort
     " See if current file is "test" or "src"
     let cur = bufname("%")
@@ -5119,10 +5332,6 @@ function! OpenCompanionCode() range abort
         exe 'sp ' . l:new
     endif
 endfunction
-
-" Opening & Closing mappings (utility windows and gui elements) "{{{
-nnoremap <silent> <leader>o    <nop>
-nnoremap <silent> <leader>oc   :<c-u>call OpenCompanionCode()<cr>
 
 if has('win32')
     nnoremap <silent> <leader>od   <nop>
@@ -5479,23 +5688,22 @@ nnoremap <c-kminus> zc
 "}}}
 
 
-""
-"" These mappings are helpful for perforce
-""
-nnoremap <leader>pe :!p4 edit "<c-r>=expand("%:p")<cr>"<cr>
-nnoremap <leader>pd :b#<cr>:!p4 delete "<c-r>=expand("#:p")<cr>"<cr>
-nnoremap <leader>pa :!p4 add "<c-r>=expand("%:p")<cr>"<cr>
-nnoremap <leader>pr :!p4 revert "<c-r>=expand("%:p")<cr>"<cr>
-nnoremap <expr> <leader>pb ':<c-u>1 Redir !p4 annotate -I -c ' . ( v:count==1 ? '-a ' : '' ) . '-u -T <c-r>=shellescape(expand("%:p"))<cr><cr>'
+" Mappings that are helpful for perforce "{{{
+"nnoremap <leader>pe :!p4 edit "<c-r>=expand("%:p")<cr>"<cr>
+"nnoremap <leader>pd :b#<cr>:!p4 delete "<c-r>=expand("#:p")<cr>"<cr>
+"nnoremap <leader>pa :!p4 add "<c-r>=expand("%:p")<cr>"<cr>
+"nnoremap <leader>pr :!p4 revert "<c-r>=expand("%:p")<cr>"<cr>
+"nnoremap <expr> <leader>pb ':<c-u>1 Redir !p4 annotate -I -c ' . ( v:count==1 ? '-a ' : '' ) . '-u -T <c-r>=shellescape(expand("%:p"))<cr><cr>'
 
-nnoremap <leader>pf :!p4 diff "<c-r>=expand("%:p")<cr>"<cr>
-nnoremap <leader>pv :!start /min cmd /c "set P4DIFF=<c-r>=expand("~")<cr>\bin\simple-vimdiff.bat&& p4 diff ^"<c-r>=expand("%:p")<cr>^""<cr>
+"nnoremap <leader>pf :!p4 diff "<c-r>=expand("%:p")<cr>"<cr>
+"nnoremap <leader>pv :!start /min cmd /c "set P4DIFF=<c-r>=expand("~")<cr>\bin\simple-vimdiff.bat&& p4 diff ^"<c-r>=expand("%:p")<cr>^""<cr>
 
 
 function! BackupCL(cl, name)
     call system('cl-save ' . a:cl . ' "' . a:name . '"')
     call system('cl-undo "' . a:name . '"')
 endfunction
+"}}}
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -5666,7 +5874,7 @@ nmap <leader>mgolc :copen<cr>\msdf:cget <c-o>c<cr>\mcl
 
 
 
-
+" Runtimepath DISABLING section (for totally deactivating installed plugins without un-installing them "{{{
 ""
 "" Experimenting with disabling plugins to see what's interfering with
 "" Fugitive (specifically it hangs when exiting a diff)
@@ -5772,4 +5980,4 @@ set runtimepath-=~\.vim\bundle\xterm-color-table.vim/after
 set runtimepath-=~\.vim\bundle\vim-stabs/after
 "set runtimepath-=~\.vim\bundle\kotlin-vim/after
 "set runtimepath-=~\.vim\bundle\coc.nvim/after
-
+"}}}
