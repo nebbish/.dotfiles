@@ -176,7 +176,7 @@ set guioptions=
 
 " Don't use Ex mode, use Q for formatting.
 " Revert with ":unmap Q".
-"map Q gq
+map Q gq
 
 " CTRL-U in insert mode deletes a lot.  Use CTRL-G u to first break undo,
 " so that you can undo CTRL-U after inserting a line break.
@@ -741,6 +741,35 @@ inoremap <F1> <esc>
 " I am inspired by something I read/saw somewhere I cannot remember:  a mapping to exit insert mode!
 " (i know of no word that legimately contains 'jj')
 inoremap jj <esc>
+
+" Start using <space> as a leader for executing macros:
+nnoremap <space><space> <nop>
+nnoremap <space>a @a
+nnoremap <space>b @b
+nnoremap <space>c @c
+nnoremap <space>d @d
+nnoremap <space>e @e
+nnoremap <space>f @f
+nnoremap <space>g @g
+nnoremap <space>h @h
+nnoremap <space>i @i
+nnoremap <space>j @j
+nnoremap <space>k @k
+nnoremap <space>l @l
+nnoremap <space>m @m
+nnoremap <space>n @n
+nnoremap <space>o @o
+nnoremap <space>p @p
+nnoremap <space>q @q
+nnoremap <space>r @r
+nnoremap <space>s @s
+nnoremap <space>t @t
+nnoremap <space>u @u
+nnoremap <space>v @v
+nnoremap <space>w @w
+nnoremap <space>x @x
+nnoremap <space>y @y
+nnoremap <space>z @z
 
 "set autoread        " This allows smooth re-read of altered files when no changes
 set encoding=utf-8
@@ -2332,6 +2361,13 @@ nnoremap <leader>dnm  :<c-u>NormalizeManCodes<cr>g@
 xnoremap <leader>dnm  :<c-u>NormalizeManCodes<cr>g@
 nnoremap <leader>dnmm :<c-u>NormalizeManCodes<cr>g@_
 
+nnoremap <leader>dnu  :<c-u>NormalizeUserName<cr>g@
+xnoremap <leader>dnu  :<c-u>NormalizeUserName<cr>g@
+nnoremap <leader>dnuu :<c-u>NormalizeUserName<cr>g@_
+nnoremap <leader>dnh  :<c-u>NormalizeHostName<cr>g@
+xnoremap <leader>dnh  :<c-u>NormalizeHostName<cr>g@
+nnoremap <leader>dnhh :<c-u>NormalizeHostName<cr>g@_
+
 "
 " Quick TIP:  Here's a macro in the @q register to normalize with an automatically incrementing COUNT:
 "             (works on thread values with the "t" normalize)
@@ -2354,6 +2390,8 @@ command! -count NormalizeResponseIDs call NormalizeMotionSetup(v:count, 'r')
 command! -count NormalizeColorCodes  call NormalizeMotionSetup(v:count, 'l')
 command! -count NormalizeEscapeCodes call NormalizeMotionSetup(v:count, 'e')
 command! -count NormalizeManCodes    call NormalizeMotionSetup(v:count, 'm')
+command! -count NormalizeUserName    call NormalizeMotionSetup(v:count, 'u')
+command! -count NormalizeHostName    call NormalizeMotionSetup(v:count, 'h')
 
 
 "
@@ -2384,6 +2422,10 @@ function! NormalizeMotionSetup(count, type) abort
         let s:normalize_cmd = 's/\v\^\[(\[\d+m)/\1/g'
     elseif a:type == 'm'
         let s:normalize_cmd = 's/\v_%x08|%x08.//g'
+    elseif a:type == 'u'
+        let s:normalize_cmd = 's/\v<' . trim(system('whoami')) . '>/user/g'
+    elseif a:type == 'h'
+        let s:normalize_cmd = 's/\v<' . substitute(trim(system('hostname')), '\.local$', '', '') . '>/Host/g'
     else
         echoerr "Unknown type: [" . a:type . "]"
         call interrupt()
@@ -3166,28 +3208,29 @@ endif
 " (inspired by: " https://stackoverflow.com/questions/7845671/how-to-execute-base64-decode-on-selected-text-in-vim)
 "
 if has('python3')
-    python3
-    \ #
-    \ # TODO:  refactor this section to have common "arg" conversion helpers
-    \ #        and return value "cleaning" helpers (such as stripping the appended newline)
-    \ #
-    \ import binascii
-    \ def uudecode(encoded_ascii_value):
-    \     if encoded_ascii_value is bytes:
-    \         encoded_ascii_value = encoded_ascii_value.decode('utf-8')
-    \     return binascii.a2b_uu(encoded_ascii_value)
-    \ def uuencode(original_value):
-    \     if type(original_value) is str:
-    \         original_value = original_value.encode('utf-8')
-    \     return binascii.b2a_uu(original_value)
-    \ def base64decode(encoded_ascii_value):
-    \     if encoded_ascii_value is bytes:
-    \         encoded_ascii_value = encoded_ascii_value.decode('utf-8')
-    \     return binascii.a2b_base64(encoded_ascii_value)
-    \ def base64encode(original_value):
-    \     if type(original_value) is str:
-    \         original_value = original_value.encode('utf-8')
-    \     return binascii.b2a_base64(original_value)
+    python3 << trim endpython3
+    #
+    # TODO:  refactor this section to have common "arg" conversion helpers
+    #        and return value "cleaning" helpers (such as stripping the appended newline)
+    #
+    import binascii
+    def uudecode(encoded_ascii_value):
+        if encoded_ascii_value is bytes:
+            encoded_ascii_value = encoded_ascii_value.decode('utf-8')
+        return binascii.a2b_uu(encoded_ascii_value)
+    def uuencode(original_value):
+        if type(original_value) is str:
+            original_value = original_value.encode('utf-8')
+        return binascii.b2a_uu(original_value)
+    def base64decode(encoded_ascii_value):
+        if encoded_ascii_value is bytes:
+            encoded_ascii_value = encoded_ascii_value.decode('utf-8')
+        return binascii.a2b_base64(encoded_ascii_value)
+    def base64encode(original_value):
+        if type(original_value) is str:
+            original_value = original_value.encode('utf-8')
+        return binascii.b2a_base64(original_value)
+    endpython3
 
     function! s:PyUuDecode(val) abort
         return py3eval("uudecode('" .. a:val .. "')")
@@ -4384,18 +4427,35 @@ function! Expand(flags)
     ""        REQUIRES:  organizing the pneumonics to all fit
 
     ""
-    "" From fnamemodify():
-    "" :p           full path
-    "" :8           MS-Windows ONLY - convert to 8.3
-    "" :~           reduce to home-relative path
-    "" :.           reduce to CWD-relative path
-    "" :h           'head' of filename (last component)
-    "" :t           'tail' of filename (all but last component)
-    "" :r           'root' - with extension removed (can be repeated)
-    "" :e           'extension' -- just the extension
-    "" :s?pat?sub?  generic substitute against filename
-    "" :gs?pat?sub? as above, but substitute all occurrences
-    "" :S           escape special chars within filename (use as shell arg)
+    "" Helpful notes from fnamemodify() documentation:
+    ""
+    ""    :p           full path
+    ""    :8           MS-Windows ONLY - convert to 8.3
+    ""    :~           reduce to home-relative path
+    ""    :.           reduce to CWD-relative path
+    ""    :h           'head' of filename (last component)
+    ""    :t           'tail' of filename (all but last component)
+    ""    :r           'root' - with extension removed (can be repeated)
+    ""    :e           'extension' -- just the extension
+    ""    :s?pat?sub?  generic substitute against filename
+    ""    :gs?pat?sub? as above, but substitute all occurrences
+    ""    :S           escape special chars within filename (use as shell arg)
+    ""
+
+    ""
+    "" This function:
+    ""
+    ""    d            'dir': alias for 'h' - head (last path component removed)
+    ""    l            'link': current file name symbolic link target
+    ""    g            'git': git repo root for current file
+    ""    .            current file name resolved to current directory
+    ""    ~            home directory
+    ""    4            p4 depot path of current file
+    ""    c            full path of conan data folder:  ~/.conan/data
+    ""    v            VisualSelection()
+    ""    x            VimRxEscape(VisualSelection())
+    ""    %            current directory              <-- Kinda confusing, eh? maybe should change?
+    ""    ...          forwarded to expand('%:...') as flags on 'current file name'
     ""
     if a:flags == 'd'
         let retval = expand('%:p')->substitute('[\\/][^\\/]*$', '', '')
@@ -4418,6 +4478,8 @@ function! Expand(flags)
         let retval = expand('~') . '/.conan/data'
     elseif a:flags == 'v'
         let retval = VisualSelection()
+    elseif a:flags == 'x'
+        let retval = VimRxEscape(VisualSelection())
     elseif a:flags == '%'
         let retval = getcwd()
     else
@@ -4441,6 +4503,7 @@ cnoremap <expr> %g  getcmdtype() =~ '[:=]' ? Expand('g')   : '%g'
 cnoremap <expr> %.  getcmdtype() =~ '[:=]' ? Expand('.')   : '%.'
 cnoremap <expr> %c  getcmdtype() =~ '[:=]' ? Expand('c')   : '%c'
 cnoremap <expr> %v  getcmdtype() =~ '[:=]' ? Expand('v')   : '%v'
+cnoremap <expr> %x  getcmdtype() =~ '[:=]' ? Expand('x')   : '%x'
 cnoremap <expr> %~  getcmdtype() =~ '[:=]' ? Expand('~')   : '%~'
 cnoremap <expr> %4  getcmdtype() =~ '[:=]' ? Expand('4')   : '%4'
 cnoremap <expr> %z  getcmdtype()
@@ -4459,6 +4522,7 @@ cnoremap <expr> <c-s><c-e>g Expand('g')
 cnoremap <expr> <c-s><c-e>. Expand('.')
 cnoremap <expr> <c-s><c-e>c Expand('c')
 cnoremap <expr> <c-s><c-e>v Expand('v')
+cnoremap <expr> <c-s><c-e>x Expand('x')
 cnoremap <expr> <c-s><c-e>~ Expand('~')
 cnoremap <expr> <c-s><c-e>4 Expand('4')
 
@@ -4476,6 +4540,7 @@ inoremap <expr> <c-s><c-e>g Expand('g')
 inoremap <expr> <c-s><c-e>. Expand('.')
 inoremap <expr> <c-s><c-e>c Expand('c')
 inoremap <expr> <c-s><c-e>v Expand('v')
+inoremap <expr> <c-s><c-e>x Expand('x')
 inoremap <expr> <c-s><c-e>~ Expand('~')
 inoremap <expr> <c-s><c-e>4 Expand('4')
 
@@ -4892,20 +4957,11 @@ endif
 ""          The following URL explains a couple of reasons why a mapping may beep, and the solutions...
 ""              http://vim.wikia.com/wiki/Mapping_keys_in_Vim_-_Tutorial_%28Part_2%29
 ""
+
 ""
 "" F4       moves to next error in the quickfix window
 "" Shift+F4 moves to previous (again used 'sed -n l' to get codes)
 ""
-
-""
-"" disabling this so the new open/close mappings become more familiar
-""   \oq   (to open quickfix)
-""   \zq   (to close quickfix)
-""
-"nnoremap <leader>qo :copen<cr>
-"nnoremap <leader>qc :cclose<cr>
-"nnoremap <leader>ql :cclose<cr>
-
 nnoremap <f4> :cn<cr>
 if has("gui_running")
 	nnoremap <S-f4> :cp<cr>
@@ -5043,6 +5099,10 @@ nnoremap <leader>ah :call MoveWinToPrevTab()<cr>
 nnoremap <leader>al :call MoveWinToNextTab()<cr>
 "}}}
 
+" Opening & Closing mappings (utility windows and gui elements) "{{{
+nnoremap <silent> <leader>o    <nop>
+nnoremap <silent> <leader>oc   :<c-u>call OpenCompanionCode()<cr>
+
 function! OpenCompanionCode() range abort
     " See if current file is "test" or "src"
     let cur = bufname("%")
@@ -5083,10 +5143,6 @@ function! OpenCompanionCode() range abort
         exe 'sp ' . l:new
     endif
 endfunction
-
-" Opening & Closing mappings (utility windows and gui elements) "{{{
-nnoremap <silent> <leader>o    <nop>
-nnoremap <silent> <leader>oc   :<c-u>call OpenCompanionCode()<cr>
 
 if has('win32')
     nnoremap <silent> <leader>od   <nop>
@@ -5443,9 +5499,7 @@ nnoremap <c-kminus> zc
 "}}}
 
 
-""
-"" These mappings are helpful for perforce
-""
+" Mappings that are helpful for perforce "{{{
 nnoremap <leader>pe :!p4 edit "<c-r>=expand("%:p")<cr>"<cr>
 nnoremap <leader>pd :b#<cr>:!p4 delete "<c-r>=expand("#:p")<cr>"<cr>
 nnoremap <leader>pa :!p4 add "<c-r>=expand("%:p")<cr>"<cr>
@@ -5460,6 +5514,7 @@ function! BackupCL(cl, name)
     call system('cl-save ' . a:cl . ' "' . a:name . '"')
     call system('cl-undo "' . a:name . '"')
 endfunction
+"}}}
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -5630,7 +5685,7 @@ nmap <leader>mgolc :copen<cr>\msdf:cget <c-o>c<cr>\mcl
 
 
 
-
+" Runtimepath DISABLING section (for totally deactivating installed plugins without un-installing them "{{{
 ""
 "" Experimenting with disabling plugins to see what's interfering with
 "" Fugitive (specifically it hangs when exiting a diff)
@@ -5736,4 +5791,4 @@ set runtimepath-=~\.vim\bundle\xterm-color-table.vim/after
 set runtimepath-=~\.vim\bundle\vim-stabs/after
 "set runtimepath-=~\.vim\bundle\kotlin-vim/after
 "set runtimepath-=~\.vim\bundle\coc.nvim/after
-
+"}}}
