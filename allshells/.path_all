@@ -16,6 +16,23 @@ fi
 ##
 [ -s "/Users/jason/.deno/bin" ] && export PATH="/Users/jason/.deno/bin:$PATH"
 
+##
+## Here is something for my MANUALLY installed Swift.
+## Commands I used to install it:
+##
+##    curl -O https://download.swift.org/swift-5.7.2-release/xcode/swift-5.7.2-RELEASE/swift-5.7.2-RELEASE-osx.pkg
+##    sudo installer -dumplog -verbose -target LocalSystem -pkg swift-5.7.2-RELEASE-osx.pkg
+##
+## I choose LocalSystem b/c I'm on an older MacOS that has NO swift under /usr/lib
+## And when I install the latest compatible FULL Xcode -- there is STILL NO swift under /usr/lib
+## Also Xcode did not add swift to /Library/Developer/Toolchains/... either.
+## So, there should be no possibility of interference since my installation provided
+## the first and only copy of Swift that will ever "live" on this older system.
+##
+if [ -s "/Library/Developer/Toolchains/swift-latest.xctoolchain" ]; then
+    export PATH=/Library/Developer/Toolchains/swift-latest.xctoolchain/usr/bin:$PATH
+fi;
+
 # Setup ~/bin and ~/.local/bin to the $PATH value (the 2nd location hosts decrypted private files)
 if [ -n "$BASH_VERSION" ]; then
 	PATH=$HOME/bin:$HOME/.local/bin:$HOME/binpy:$PATH;
