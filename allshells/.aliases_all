@@ -90,7 +90,19 @@ alias tt="tabtool.py"
 alias gobin="pushd ~/bin"
 alias py3="python3"
 
+##
+## Kasmweb/chrome is an image providing a working Chrome that is fully sandboxed and temporary.
+## Use it to explore "dangerous" URLs
+##
+if [ type -a docker 2>/dev/null ]; then
+    alias kch_start='docker run --rm -d --name=kchrome --shm-size=512m -p 6901:6901 -e VNC_PW=password kasmweb/chrome:1.16.1'
+    alias kch_stop='docker stop kchrome'
+    alias kch_open='open https://$(hostname):6901'
+    alias kch_show='docker container top kchrome'
+fi
+
 alias wpy="py -c 'import sys; print(sys.executable)'"
+alias wpy3="py -3 -c 'import sys; print(sys.executable)'"
 
 if [ -f ~/.local/.aliases ]; then
 	source ~/.local/.aliases
