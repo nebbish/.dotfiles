@@ -2863,7 +2863,13 @@ let g:coc_config_home = '~/.vim/vimfiles'
 set updatetime=300
 "" # "nnoremap <leader>set signcolumn=yes
 
+augroup FixingJsonCommentHighlight
+    autocmd!
+    autocmd FileType json syntax match Comment +\/\/.\+$+
+augroup end
+
 "" # Use `:CocDiagnostics` to get all diagnostics of current buffer in location list
+nnoremap <expr> <leader><leader>c  <nop>
 nnoremap <expr> <leader><leader>cr ':CocRestart<cr>'
 nnoremap <expr> <leader><leader>cc ':CocCommand '
 nnoremap <expr> <leader><leader>cl ':CocList '
@@ -2878,6 +2884,26 @@ nnoremap <expr> <leader><leader>co ':<c-u>' . ( v:count == 1 ? 'vnew ' : 'new' )
 
 nnoremap <leader><leader>cs <cmd>echo get(g:, 'coc_status', '<n/a>')<cr>
 
+nnoremap <expr> <leader><leader>di ':CocCommand deno.initializeWorkspace<cr>'
+
+nnoremap        <leader><leader>ca   <nop>
+nnoremap <expr> <leader><leader>ca<space> ':call CocAction("'
+nnoremap <expr> <leader><leader>cac  <nop>
+nnoremap <expr> <leader><leader>caca ':call CocAction("codeAction")<cr>'
+nnoremap <expr> <leader><leader>cacl ':call CocAction("codeLensAction")<cr>'
+nnoremap <expr> <leader><leader>cad  <nop>
+nnoremap <expr> <leader><leader>cadc ':call CocAction("doCodeAction")<cr>'
+nnoremap <expr> <leader><leader>caf  ':call CocAction("format")<cr>'
+nnoremap <expr> <leader><leader>cal  ':call CocAction("links")<cr>'
+
+nnoremap <expr> <leader><leader>cao  <nop>
+nnoremap <expr> <leader><leader>caoo ':call CocAction("showOutline")<cr>'
+nnoremap <expr> <leader><leader>caoc  <nop>
+nnoremap <expr> <leader><leader>caoci ':call CocAction("showIncomingCalls")<cr>'
+nnoremap <expr> <leader><leader>caoco ':call CocAction("showOutgoingCalls")<cr>'
+
+nnoremap <expr> <leader><leader>caz  <nop>
+nnoremap <expr> <leader><leader>cazo ':call CocAction("hideOutline")<cr>'
 
 "" #
 "" # Use tab for trigger completion with characters ahead and navigate.
@@ -3386,6 +3412,10 @@ function! s:TidyJson(str) abort
     return system('jsontool' . l:opts, a:str)
 endfunction
 
+function! s:TidyJavascript(str) abort
+    return system('deno fmt -', a:str)
+endfunction
+
 function! s:TransposeMatrix(str) abort
     let l:rows = split(a:str, '\n', 1)
     "let l:max_col = max(map(getline(1,'$'), 'len(split(v:val))'))
@@ -3518,6 +3548,10 @@ nnoremap <expr> <leader>thh "@_" . TransformMotionSetup('s:TidyHtml') . '_'
 nnoremap <expr> <leader>tj "@_" . TransformMotionSetup('s:TidyJson')
 xnoremap <expr> <leader>tj "@_" . TransformMotionSetup('s:TidyJson')
 nnoremap <expr> <leader>tjj "@_" . TransformMotionSetup('s:TidyJson') . '_'
+
+nnoremap <expr> <leader>tv "@_" . TransformMotionSetup('s:TidyJavascript')
+xnoremap <expr> <leader>tv "@_" . TransformMotionSetup('s:TidyJavascript')
+nnoremap <expr> <leader>tvv "@_" . TransformMotionSetup('s:TidyJavascript') . '_'
 
 nnoremap <expr> <leader>tm "@_" . TransformMotionSetup('s:TransposeMatrix')
 xnoremap <expr> <leader>tm "@_" . TransformMotionSetup('s:TransposeMatrix')
@@ -3849,10 +3883,11 @@ nnoremap `; :AbortDispatch<cr>
 ""
 "" Basic mappings to focus dispatch using the current line ( and maybe also the 'b' register, 'b' for 'build' :) )
 ""
-nnoremap <leader>fd     <nop>
-nnoremap <leader>fdl    :FocusDispatch <c-r><c-l><cr>
-nnoremap <leader>fdr    <nop>
-nnoremap <leader>fdrl   :FocusDispatch <c-r>b <c-r><c-l><cr>
+nnoremap        <leader>fd        <nop>
+nnoremap <expr> <leader>fd<space> ':FocusDispatch '
+nnoremap        <leader>fdl       :FocusDispatch <c-r><c-l><cr>
+nnoremap        <leader>fdr       <nop>
+nnoremap        <leader>fdrl      :FocusDispatch <c-r>b <c-r><c-l><cr>
 
 ""
 "" Next are mappings (& helper function) specifically for MSBuild
@@ -5690,6 +5725,7 @@ nnoremap <leader>msms :set errorformat=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l):\ %m,%[0-9
 nnoremap <leader>msmv :set errorformat=[%[a-z]%\\+]\ /%f[%l\\\,%c]\ %m<cr>
 nnoremap <leader>msd  <nop>
 nnoremap <leader>msdf :set errorformat=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l\\\,%c):\ %m,%[0-9:.]%#\ %#%[0-9>:]%#%f(%l):\ %m,%[0-9:.]%#\ %#%[0-9>:]%#%f:%l:\ %m,\ %#%f(%l\\\,%c):\ %m,\ %#%f(%l):\ %m,\ %#%f:%l:\ %m,\ %#%f\ %#:\ %m<cr>
+nnoremap <leader>msdl :set errorformat=%A%t%*\\w[%*[^]]]:\ %m,%C\ %#-->\ %f:%l:%c,%C%[0-9\ ]%\\+\\|%.%#,%C,%C\ %#\=\ hint:\ %m,%Z\ %#docs:\ %m<cr>
 
         "errorformat+=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l):\ %m
         "errorformat+=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l\\\,%c):\ %m
