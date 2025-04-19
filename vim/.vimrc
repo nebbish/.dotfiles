@@ -2926,20 +2926,91 @@ let g:coc_config_home = '~/.vim/vimfiles'
 set updatetime=300
 "" # "nnoremap <leader>set signcolumn=yes
 
+augroup FixingJsonCommentHighlight
+    autocmd!
+    autocmd FileType json syntax match Comment +\/\/.\+$+
+augroup end
+
 "" # Use `:CocDiagnostics` to get all diagnostics of current buffer in location list
-nnoremap <expr> <leader><leader>cr ':CocRestart<cr>'
-nnoremap <expr> <leader><leader>cc ':CocCommand '
-nnoremap <expr> <leader><leader>cl ':CocList '
-nnoremap <expr> <leader><leader>cd ':CocDisable<cr>'
-nnoremap <expr> <leader><leader>ce ':CocEnable<cr>'
+nnoremap <expr> <leader><leader>c         <nop>
+nnoremap        <leader><leader>cr        :CocRestart<cr>
+nnoremap        <leader><leader>cd        :CocDisable<cr>
+nnoremap        <leader><leader>ce        :CocEnable<cr>
+nnoremap        <leader><leader>cs        <cmd>echo get(g:, 'coc_status', '<n/a>')<cr>
+nnoremap <expr> <leader><leader>cq        ':CocDiagnostics<cr>'
 
-nnoremap <expr> <leader><leader>cq ':CocDiagnostics<cr>'
+nnoremap        <leader><leader>co        <nop>
+nnoremap <expr> <leader><leader>coc       ':<c-u>' . ( v:count == 1 ? 'vnew ' : 'new' ) . '<bar>CocConfig<cr>'
+nnoremap <expr> <leader><leader>col       ':<c-u>' . ( v:count == 1 ? 'vnew ' : 'new' ) . '<bar>CocOpenLog<cr>'
+nnoremap        <leader><leader>coo       :CocOutline<cr>
 
-nnoremap <expr> <leader><leader>cf '<Plug>(coc-fix-current)'
-nnoremap <expr> <leader><leader>cg ':<c-u>' . ( v:count == 1 ? 'vnew ' : 'new' ) . '<bar>CocConfig<cr>'
-nnoremap <expr> <leader><leader>co ':<c-u>' . ( v:count == 1 ? 'vnew ' : 'new' ) . '<bar>CocOpenLog<cr>'
+"" CocInstall section
+nnoremap        <leader><leader>ci        <nop>
+nnoremap <expr> <leader><leader>ci<space> ':CocInstall '
+nnoremap        <leader><leader>cim       :CocInstall coc-marketplace<cr>
 
-nnoremap <leader><leader>cs <cmd>echo get(g:, 'coc_status', '<n/a>')<cr>
+"" CocCommand section
+nnoremap        <leader><leader>cc        <nop>
+nnoremap <expr> <leader><leader>cc<space> ':CocCommand '
+nnoremap        <leader><leader>ccd       <nop>
+nnoremap        <leader><leader>ccdi      <nop>
+nnoremap        <leader><leader>ccdiw     :CocCommand deno.initializeWorkspace<cr>
+
+"" CocList section
+nnoremap        <leader><leader>cl        <nop>
+nnoremap <expr> <leader><leader>cl<space> ':CocList '
+nnoremap        <leader><leader>clm       :CocList marketplace<cr>
+nnoremap        <leader><leader>clo       :CocList outline<cr>
+nnoremap        <leader><leader>cls       :CocList -I symbols<cr>
+
+"" CocAction section  (with a couple other things...)
+
+" Pneumonic:  'q' for QuickFix   (i.e. fill Quickfix with CoC messages)
+nnoremap        <leader><leader>cf        <Plug>(coc-fix-current)
+nnoremap        <leader><leader>cg        <nop>
+nnoremap        <leader><leader>cgq       <Plug>(coc-format-selected)
+
+nnoremap        <leader><leader>ca        <nop>
+nnoremap <expr> <leader><leader>ca<space> ':call CocActionAsync("'
+nnoremap        <leader><leader>cac       <nop>
+nnoremap        <leader><leader>caca      <Plug>(coc-codeaction-selected)
+nnoremap        <leader><leader>cacr      <Plug>(coc-codeaction-refactor-selected)
+nnoremap        <leader><leader>cacrr     <Plug>(coc-codeaction-refactor)
+nnoremap        <leader><leader>cacl      <Plug>(coc-codelens-action)
+nnoremap        <leader><leader>car       <nop>
+nnoremap        <leader><leader>carf      <Plug>(coc-refactor)
+nnoremap        <leader><leader>carn      <Plug>(coc-rename)
+nnoremap        <leader><leader>cal       <Plug>(coc-openlink)
+
+nnoremap        <leader><leader>cas       <nop>
+nnoremap        <leader><leader>casi      :call CocActionAsync("showIncomingCalls")<cr>
+nnoremap        <leader><leader>caso      :call CocActionAsync("showOutgoingCalls")<cr>
+
+nnoremap        <leader><leader>caz       <nop>
+nnoremap        <leader><leader>cazo      :call CocActionAsync("hideOutline")<cr>
+
+
+function! CopyCocDiagnostic()
+    let info = get(b:, 'coc_diagnostic_info', '')
+    if empty(info)
+        echo "No diagnostics available for current buffer"
+        return
+    endif
+    let curline = line('.')
+
+    for diag in CocAction('diagnosticList')
+        if diag.lnum == curline
+            let @+ = printf("%s:%d:%d\t%s\n%s", Expand('g'), diag.lnum, diag.col, getline('.'), diag.message)
+            echo "Copied: " . strpart(diag.message, 0, 50) . "..."
+            return
+        endif
+    endfor
+
+    echo "No diagnostic on current line"
+endfunction
+
+" Map to leader key
+nnoremap        <leader><leader>cy  :call CopyCocDiagnostic()<CR>
 
 
 "" #
@@ -3449,6 +3520,10 @@ function! s:TidyJson(str) abort
     return system('jsontool' . l:opts, a:str)
 endfunction
 
+function! s:TidyJavascript(str) abort
+    return system('deno fmt -', a:str)
+endfunction
+
 function! s:TransposeMatrix(str) abort
     let l:rows = split(a:str, '\n', 1)
     let l:max_col = max(map(copy(l:rows), 'len(split(v:val))'))
@@ -3592,6 +3667,10 @@ nnoremap <expr> <leader>thh "@_" . TransformMotionSetup('s:TidyHtml') . '_'
 nnoremap <expr> <leader>tj "@_" . TransformMotionSetup('s:TidyJson')
 xnoremap <expr> <leader>tj "@_" . TransformMotionSetup('s:TidyJson')
 nnoremap <expr> <leader>tjj "@_" . TransformMotionSetup('s:TidyJson') . '_'
+
+nnoremap <expr> <leader>tv "@_" . TransformMotionSetup('s:TidyJavascript')
+xnoremap <expr> <leader>tv "@_" . TransformMotionSetup('s:TidyJavascript')
+nnoremap <expr> <leader>tvv "@_" . TransformMotionSetup('s:TidyJavascript') . '_'
 
 nnoremap <expr> <leader>tm "@_" . TransformMotionSetup('s:TransposeMatrix')
 xnoremap <expr> <leader>tm "@_" . TransformMotionSetup('s:TransposeMatrix')
@@ -3927,10 +4006,11 @@ nnoremap `; :AbortDispatch<cr>
 ""
 "" Basic mappings to focus dispatch using the current line ( and maybe also the 'b' register, 'b' for 'build' :) )
 ""
-nnoremap <leader>fd     <nop>
-nnoremap <leader>fdl    :FocusDispatch <c-r><c-l><cr>
-nnoremap <leader>fdr    <nop>
-nnoremap <leader>fdrl   :FocusDispatch <c-r>b <c-r><c-l><cr>
+nnoremap        <leader>fd        <nop>
+nnoremap <expr> <leader>fd<space> ':FocusDispatch '
+nnoremap        <leader>fdl       :FocusDispatch <c-r><c-l><cr>
+nnoremap        <leader>fdr       <nop>
+nnoremap        <leader>fdrl      :FocusDispatch <c-r>b <c-r><c-l><cr>
 
 ""
 "" Next are mappings (& helper function) specifically for MSBuild
@@ -5768,6 +5848,7 @@ nnoremap <leader>msms :set errorformat=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l):\ %m,%[0-9
 nnoremap <leader>msmv :set errorformat=[%[a-z]%\\+]\ /%f[%l\\\,%c]\ %m<cr>
 nnoremap <leader>msd  <nop>
 nnoremap <leader>msdf :set errorformat=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l\\\,%c):\ %m,%[0-9:.]%#\ %#%[0-9>:]%#%f(%l):\ %m,%[0-9:.]%#\ %#%[0-9>:]%#%f:%l:\ %m,\ %#%f(%l\\\,%c):\ %m,\ %#%f(%l):\ %m,\ %#%f:%l:\ %m,\ %#%f\ %#:\ %m<cr>
+nnoremap <leader>msdl :set errorformat=%A%t%*\\w[%*[^]]]:\ %m,%C\ %#-->\ %f:%l:%c,%C%[0-9\ ]%\\+\\|%.%#,%C,%C\ %#\=\ hint:\ %m,%Z\ %#docs:\ %m<cr>
 
         "errorformat+=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l):\ %m
         "errorformat+=%[0-9:.]%#\ %#%[0-9>:]%#%f(%l\\\,%c):\ %m
