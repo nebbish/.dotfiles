@@ -18,15 +18,28 @@ if [ -n "$DOTFILES_DEBUG" ]; then
 	echo "$(date) + $(whoami) + ${TERM} + executing $__source"
 fi
 
-if [ "${TERM##*-}" = "256color" ]; then
-	# The shell IS interactive - redirect to HOME to load the rest
-	export ZDOTDIR=~
-else
-	# The shell is NON-interactive, manually load functions & aliases
-	for file in ~/.{functions_zsh,aliases_zsh}; do
-		[ -r "$file" ] && [ -f "$file" ] && source "$file";
-	done;
-	unset file;
-fi
-
+##
+## There are two typical ways of checking for interactive:
+##   * if $- contains an 'i'     <-- documented, we choose this
+##   * if $PS1 contains a value
+##
+case "$-" in
+	*i*)
+		# The shell IS interactive - redirect to HOME to load the rest
+        if [ -n "$DOTFILES_DEBUG" ]; then
+            echo "This shell IS interactive"
+        fi
+		export ZDOTDIR=~
+		;;
+	*)
+		# The shell is NON-interactive, manually load functions & aliases
+        if [ -n "$DOTFILES_DEBUG" ]; then
+            echo "This shell is NOT interactive"
+        fi
+		for file in ~/.{functions_zsh,aliases_zsh}; do
+			[ -r "$file" ] && [ -f "$file" ] && source "$file";
+		done;
+		unset file;
+		;;
+esac
 
