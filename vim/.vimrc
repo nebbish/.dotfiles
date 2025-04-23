@@ -37,6 +37,7 @@ set viminfo='999,<500,s100,h,rA:,rB:,f0
 nnoremap <leader>v    <nop>
 nnoremap <expr> <leader>vb   ':vert sb '
 nnoremap <leader>ve   :tabedit $MYVIMRC<cr>
+nnoremap <leader>vn   :vnew<cr>
 nnoremap <leader>vr   :so $MYVIMRC<cr>
 nnoremap <leader>vt   :vert term<cr>
 nnoremap <leader>vi   <nop>
@@ -661,11 +662,11 @@ function! WatchCmdEscape(val)
 endfunction
 
 vnoremap <silent> * :<C-U> let old_reg=getreg('"')<Bar>let old_regtype=getregtype('"')<CR>
-                   \gvy/\v<C-R>=&ic?'\c':'\C'<CR>
+                   \gvy/\v<C-R>=&scs?'':&ic?'\c':'\C'<CR>
                    \<C-R><C-R>=substitute(VimRxEscape(@"), '\s\+', '\\s+', 'g')<CR><CR>
                    \gVzv:call setreg('"', old_reg, old_regtype)<CR>
 vnoremap <silent> # :<C-U> let old_reg=getreg('"')<Bar>let old_regtype=getregtype('"')<CR>
-                   \gvy?\v<C-R>=&ic?'\c':'\C'<CR>
+                   \gvy?\v<C-R>=&scs?'':&ic?'\c':'\C'<CR>
                    \<C-R><C-R>=substitute(VimRxEscape(@"), '\s\+', '\\s+', 'g')<CR><CR>
                    \gVzv:call setreg('"', old_reg, old_regtype)<CR>
 
@@ -877,6 +878,7 @@ set listchars+=extends:»,precedes:«
 "                                    y#   (yank whole file)
 "
 onoremap # :<c-u>norm! ggVG<cr>
+xnoremap # :<c-u>norm! ggVG<cr>
 "onoremap % :<c-u>norm! ggVG<cr>  <-- this interferes with using `%` to "go to matching brace"
 
 ""
@@ -926,6 +928,7 @@ nnoremap <a+right> <c-i>
 ""
 "" NOTE: I just discovered that 're=1' actually causes TypeScript files to
 ""       hang the IDE when opened.  ahgharghaghghrhghragaggagghrhgh!!!!!
+""       ( For MacOS, use re=2 )
 ""
 ""       (see: https://vi.stackexchange.com/questions/25086/vim-hangs-when-i-open-a-typescript-file)
 ""
@@ -933,7 +936,7 @@ nnoremap <a+right> <c-i>
 ""
 ""
 if has('macunix')
-    set regexpengine=1
+    set regexpengine=2
 else
     set regexpengine=0
 endif
@@ -1781,15 +1784,18 @@ endfunction
 nnoremap <leader>ed :norm ]op<c-r>=EpochToDate(<c-r><c-w>)<cr><cr>
 xnoremap <leader>ed :<c-u>norm ]op<c-r>=EpochToDate(VisualSelection())<cr><cr>
 
-nnoremap <leader>shrug :echo '¯\_(ツ)_/¯'<cr>
-cnoremap <expr> <c-s><c-s> '¯\_(ツ)_/¯'
-inoremap <expr> <c-s><c-s> '¯\_(ツ)_/¯'
-cnoremap <expr> <c-s><c-g> substitute(trim(system('guidgen')), '\v^.{-}\{(.{-})\}.*', '\1', '')
-inoremap <expr> <c-s><c-g> substitute(trim(system('guidgen')), '\v^.{-}\{(.{-})\}.*', '\1', '')
-cnoremap <expr> <c-s><c-t> trim(system((has('win32') ? 'cdate' : 'date') . ' +"%Y-%m-%d-%H-%M-%S"'))
-inoremap <expr> <c-s><c-t> trim(system((has('win32') ? 'cdate' : 'date') . ' +"%Y-%m-%d-%H-%M-%S"'))
-cnoremap <expr> <c-s><c-d> trim(system(has('win32') ? 'cdate' : 'date'))
-inoremap <expr> <c-s><c-d> trim(system(has('win32') ? 'cdate' : 'date'))
+cnoremap <expr> <c-s> <nop>
+inoremap <expr> <c-s> <nop>
+
+nnoremap <leader>shrug  :echo '¯\_(ツ)_/¯'<cr>
+cnoremap <expr> <c-s>s  '¯\_(ツ)_/¯'
+inoremap <expr> <c-s>s  '¯\_(ツ)_/¯'
+cnoremap <expr> <c-s>g  substitute(trim(system('guidgen')), '\v^.{-}\{(.{-})\}.*', '\1', '')
+inoremap <expr> <c-s>g  substitute(trim(system('guidgen')), '\v^.{-}\{(.{-})\}.*', '\1', '')
+cnoremap <expr> <c-s>t  trim(system((has('win32') ? 'cdate' : 'date') . ' +"%Y-%m-%d-%H-%M-%S"'))
+inoremap <expr> <c-s>t  trim(system((has('win32') ? 'cdate' : 'date') . ' +"%Y-%m-%d-%H-%M-%S"'))
+cnoremap <expr> <c-s>d  trim(system(has('win32') ? 'cdate' : 'date'))
+inoremap <expr> <c-s>d  trim(system(has('win32') ? 'cdate' : 'date'))
 
 ""
 "" The above mapping was created and used when dealing with a saved VIMINFO file
@@ -1812,6 +1818,7 @@ inoremap <expr> <c-s><c-d> trim(system(has('win32') ? 'cdate' : 'date'))
 ""
 "" eg       : [E]xecute [G]et    -- in foreground, paste output just below
 nnoremap <leader>eg :r !<c-r>=LineAsShellCmd(0,1)<cr><cr>
+xnoremap <leader>eg :r !<c-r>=VisualAsShellCmd(0,1)<cr><cr>
 nnoremap <leader>es :r !echo <c-r>=VimCmdEscape(getline('.'))<cr><cr>
 
 "" er.    : [E]xecute [R]un           -- in foreground (no pasting)
@@ -1845,7 +1852,7 @@ nnoremap <leader>eluw :<c-u>put =LineAsWatchCmd()<cr>
 nnoremap <leader>elus :<c-u>put =LineAsSplitCmd(v:count)<cr>
 
 " Not sure if I want to keep the delayed resize or not...    as of now, not.
-"nnoremap <leader>els :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr>
+"nnoremap <leader>els :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+getbufinfo("%")[0]["linecount"]<cr><cr><c-w>:set wfh<cr>
 nnoremap <leader>els :<c-u>term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>p
 nnoremap <leader>elv :<c-u>vert term ++close <c-r>=LineAsSplitCmd(v:count)<cr><cr><c-w>:set wfw<cr><c-w>p
 
@@ -1910,7 +1917,7 @@ nnoremap <leader>wad? :echo "Watch difference hightlighting is: " . (g:WatchHigh
 nnoremap <leader>wadd :let g:WatchHighlightDiffs = 0<cr>:norm \wad?<cr>
 nnoremap <leader>wade :let g:WatchHighlightDiffs = 1<cr>:norm \wad?<cr>
 
-nnoremap <leader>wal  :<c-u><c-r>=LineAsWatchCmd()<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+GetBufLines("%")<cr><cr><c-w>:set wfh<cr><c-w>p
+nnoremap <leader>wal  :<c-u><c-r>=LineAsWatchCmd()<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+getbufinfo("%")[0]["linecount"]<cr><cr><c-w>:set wfh<cr><c-w>p
 nnoremap <leader>wvl  :<c-u>vert <c-r>=LineAsWatchCmd()<cr><cr><c-w>:set wfw<cr><c-w>p
 
 nnoremap <leader>waq  <c-w>j<c-w><c-c>
@@ -2071,37 +2078,47 @@ else
 	execute 'set grepprg=' . s:gr_cmd
 endif
 
+"nnoremap        <leader>g         <nop> # This is done elsewhere in this file
+nnoremap        <leader>gr        <nop>
+nnoremap        <leader>gr?       :set grepprg?<cr>
+nnoremap <expr> <leader>gr<space> ':lgrep! '
+nnoremap        <leader>gc        <nop>
+nnoremap <expr> <leader>gc<space> ':Redir !' . GrepPrgForCmd() . ' '
+
 " Next we map some mappings to switch between the programs on system that have more than one choice
+nnoremap <leader>gra <nop>
 if executable('ag')
 	execute 'nnoremap <leader>grag :set grepprg=' . s:ag_cmd . '<cr>'
 else
-	execute 'nnoremap <leader>grag <Nop>'
+	execute 'nnoremap <leader>grag <cmd>echo "ag not found on this system"<cr>'
 endif
 " NOTE:  no 'elseif'   -- all mappings defined if programs exist
+nnoremap <leader>grg <nop>
 if executable('ggrep')
 	execute 'nnoremap <leader>grgg :set grepprg=' . s:gg_cmd . '<cr>'
 else
-	execute 'nnoremap <leader>grgg <Nop>'
+	execute 'nnoremap <leader>grgg <cmd>echo "ggrep not found on this system"<cr>'
 endif
+nnoremap <leader>grc <nop>
 if executable('cgrep')
 	execute 'nnoremap <leader>grcg :set grepprg=' . s:cg_cmd . '<cr>'
 else
-	execute 'nnoremap <leader>grcg <Nop>'
+	execute 'nnoremap <leader>grcg <cmd>echo "cgrep not found on this system"<cr>'
 endif
 execute 'nnoremap <leader>grgr :set grepprg=' . s:gr_cmd . '<cr>'
+nnoremap <leader>grd <nop>
 nnoremap <leader>grdf :set grepprg&<cr>
 
+nnoremap <leader>grn <nop>
 nnoremap <leader>grnv :set grepprg=<c-r>=escape(substitute(&grepprg, '--vimgrep ', '', ''), ' "\()\|')<cr><cr>
 nnoremap <leader>grnb :set grepprg=<c-r>=escape(substitute(&grepprg, '--search-binary ', '', ''), ' "\()\|')<cr><cr>
 nnoremap <leader>grab :set grepprg=<c-r>=escape(substitute(&grepprg, '\$\*$', '--search-binary $*', ''), ' "\()\|')<cr><cr>
 nnoremap <leader>grns :set grepprg=<c-r>=escape(substitute(&grepprg, '--silent ', '', ''), ' "\()\|')<cr><cr>
+nnoremap <leader>grdv :set grepprg=<c-r>=escape(substitute(&grepprg, '\$\*$', '--ignore .git --ignore node_modules --ignore .venv --ignore ''*js.map'' $*', ''), ' "\()\|')<cr><cr>
 nnoremap <leader>grch :set grepprg=<c-r>=escape(&grepprg, ' "\()\|')<cr>
 " NOTE: above, the '|' char needs to be escaped, while '\' does not,
 "       so the first '\' means itself and is not affecting the '(' right after it
 
-
-nnoremap <expr> <leader>gr<space> ':lgrep! '
-nnoremap <leader>gr? :set grepprg?<cr>
 
 " NOTE:  these INTENTIONALLY end with a space!
 "        now protected by using '<expr>' style mappings
@@ -2176,6 +2193,7 @@ funct! GallFunction(re)
 endfunct
 " Command to Grep through all open buffers
 command! -nargs=1 Gall call GallFunction(<q-args>)
+command! -nargs=1 GrepAll call GallFunction(<q-args>)
 "}}}
 
 
@@ -2369,6 +2387,9 @@ nmap <leader>dp <Plug>VimdiffPut
 
 " This is here to manually re-run the commands that I have in my p4vimdiff.sh script
 nnoremap <leader>ds :set diffopt=filler<cr>:wincmd =<cr>:normal gg]c<cr>:redraw!<cr>
+nnoremap <leader>df   <nop>
+nnoremap <leader>dfo  <nop>
+nnoremap <leader>dfo? :set diffopt?<cr>
 nnoremap <leader>dw  <nop>
 nnoremap <leader>dwi :set diffopt+=iwhite<cr>
 nnoremap <leader>dww :set diffopt-=iwhite<cr>
@@ -3747,7 +3768,7 @@ let g:undotree_SetFocusWhenToggle = 1 " default 0
 ""        yet asked to be pulled into the official author's repo
 let g:DirDiffRecursive=1
 let g:DirDiffIgnoreLineEndings=0
-let g:DirDiffExcludes = "_.sw?,.*.sw?,*.pyc,*.a,*.o,*.so,*.dylib"
+let g:DirDiffExcludes = "_.sw?,.*.sw?,*.pyc,*.a,*.o,*.so,*.dylib,.git"
 "}}}
 
 
@@ -3762,6 +3783,9 @@ nnoremap <leader>i <nop>
 nnoremap <expr> <leader>i<space> ':<c-u>' . ( v:count == 1 ? 'vert ' : '' ) . 'G '
 nnoremap <expr> <leader>ii (v:count == '0' ? ':<c-u>G<cr>' : (v:count == '1' ? ':<c-u>vert G<cr>' : ':<c-u>0G<cr>'))
 "nnoremap <expr> <leader>it ':<c-u>echo ' . v:count . '<cr>'
+
+nnoremap        <leader>io        <nop>
+nnoremap        <leader>ior       :G config --get remote.origin.url<cr>
 
 nnoremap        <leader>id        <nop>
 nnoremap        <leader>idd       :Gdiffsplit!<cr>
@@ -3927,6 +3951,9 @@ nnoremap <expr> <leader>ilgc ':Gclog! --date=human --decorate --all -G '
 nnoremap        <leader>ils  <nop>
 nnoremap <expr> <leader>ilsl ':Gllog! --date=human --decorate --all -S '
 nnoremap <expr> <leader>ilsc ':Gclog! --date=human --decorate --all -S '
+nnoremap        <leader>ilp  <nop>
+nnoremap <expr> <leader>ilpl ':Gllog! --date=human --decorate --all --grep '
+nnoremap <expr> <leader>ilpc ':Gclog! --date=human --decorate --all --grep '
 
 nnoremap <leader>iw :Gwrite<cr>
 
@@ -4690,13 +4717,13 @@ xnoremap <leader>re :Reverse<CR>
 ""
 "" Easy expansion of the active file directory
 ""
-function! Expand(flags)
+function! Expand(flags) abort
     "" TODO:  straighten this out so more of the base modifiers are exposed
     ""        through my Expand() wrapper function
     ""        REQUIRES:  organizing the pneumonics to all fit
 
     ""
-    "" Helpful notes from fnamemodify() documentation:
+    "" Built-in modifiers:        see: :h filename-modifiers
     ""
     ""    :p           full path
     ""    :8           MS-Windows ONLY - convert to 8.3
@@ -4706,51 +4733,37 @@ function! Expand(flags)
     ""    :t           'tail' of filename (all but last component)
     ""    :r           'root' - with extension removed (can be repeated)
     ""    :e           'extension' -- just the extension
-    ""    :s?pat?sub?  generic substitute against filename
-    ""    :gs?pat?sub? as above, but substitute all occurrences
     ""    :S           escape special chars within filename (use as shell arg)
     ""
-
+    "" Custom modifiers:
     ""
-    "" This function:
+    ""    :d           same as 'h' ('head') but ensuring full path, i.e. '%:p:h'
+    ""    :f           file name only (no extenstion)
+    ""    :l           'link': current file name symbolic link target
+    ""    :g           'git': git repo root relative for current file
+    ""    :4           p4 depot path of current file
     ""
-    ""    d            'dir': alias for 'h' - head (last path component removed)
-    ""    l            'link': current file name symbolic link target
-    ""    g            'git': git repo root for current file
-    ""    .            current file name resolved to current directory
-    ""    ~            home directory
-    ""    4            p4 depot path of current file
-    ""    c            full path of conan data folder:  ~/.conan/data
-    ""    v            VisualSelection()
-    ""    x            VimRxEscape(VisualSelection())
-    ""    %            current directory              <-- Kinda confusing, eh? maybe should change?
+    "" Anything else:
     ""    ...          forwarded to expand('%:...') as flags on 'current file name'
     ""
-    if a:flags == 'd'
-        let retval = expand('%:p')->substitute('[\\/][^\\/]*$', '', '')
+    if     a:flags == 'd'
+        let retval = expand('%:p:h')
+    elseif a:flags == 'f'
+        let retval = expand('%:t:r')
     elseif a:flags == 'l'
         let retval = expand('%')->resolve()
     elseif a:flags == 'g'
-        let gitdir = trim(system('cd ' . Expand('d') . ' && git rev-parse --show-toplevel'))
+        let chdir = 'cd ' . expand('%:h')
+        let gitcmd = 'git rev-parse --show-toplevel'
+        let gitdir = trim(system(l:chdir . ' && ' . l:gitcmd))
         if len(l:gitdir) == 0
             return ''
         endif
+        " from the full path, return everyting AFTER the full git repo dir
         let retval = Expand('p')[len(l:gitdir) + 1:]
-    elseif a:flags == '.'
-        let retval = expand('%')->fnamemodify(':.')
-    elseif a:flags == '~'
-        let retval = expand('~')
     elseif a:flags == '4'
         let out = system('p4 where ' . shellescape(expand('%:p')))
         let retval = substitute(l:out, '\v^(//depot/.{-}) //.*', '\1', '')
-    elseif a:flags == 'c'
-        let retval = expand('~') . '/.conan/data'
-    elseif a:flags == 'v'
-        let retval = VisualSelection()
-    elseif a:flags == 'x'
-        let retval = VimRxEscape(VisualSelection())
-    elseif a:flags == '%'
-        let retval = getcwd()
     else
         let retval = expand('%:' . a:flags)
     endif
@@ -4758,76 +4771,68 @@ function! Expand(flags)
     return l:retval
 endfunction
 
-"" NOTE:  this may not be working :(   (see ":help <expr>")
-cnoremap <expr> %p  getcmdtype() =~ '[:=]' ? Expand('p')   : '%p'
-cnoremap <expr> %d  getcmdtype() =~ '[:=]' ? Expand('d')   : '%d'
-cnoremap <expr> %%  getcmdtype() =~ '[:=]' ? Expand('%')   : '%%'
-cnoremap <expr> %f  getcmdtype() =~ '[:=]' ? Expand('t')   : '%f'
-cnoremap <expr> %t  getcmdtype() =~ '[:=]' ? Expand('t:r') : '%t'
-cnoremap <expr> %r  getcmdtype() =~ '[:=]' ? Expand('r')   : '%r'
-cnoremap <expr> %h  getcmdtype() =~ '[:=]' ? Expand('h')   : '%h'
-cnoremap <expr> %e  getcmdtype() =~ '[:=]' ? Expand('e')   : '%e'
-cnoremap <expr> %l  getcmdtype() =~ '[:=]' ? Expand('l')   : '%l'
-cnoremap <expr> %g  getcmdtype() =~ '[:=]' ? Expand('g')   : '%g'
-cnoremap <expr> %.  getcmdtype() =~ '[:=]' ? Expand('.')   : '%.'
-cnoremap <expr> %c  getcmdtype() =~ '[:=]' ? Expand('c')   : '%c'
-cnoremap <expr> %v  getcmdtype() =~ '[:=]' ? Expand('v')   : '%v'
-cnoremap <expr> %x  getcmdtype() =~ '[:=]' ? Expand('x')   : '%x'
-cnoremap <expr> %~  getcmdtype() =~ '[:=]' ? Expand('~')   : '%~'
-cnoremap <expr> %4  getcmdtype() =~ '[:=]' ? Expand('4')   : '%4'
-cnoremap <expr> %z  getcmdtype()
+function! CreateModifierMappings() abort
+    cnoremap <expr> <c-s><c-e>  <nop>
+    inoremap <expr> <c-s><c-e>  <nop>
+    nnoremap <leader>gf  <nop>
+    for ltr in "p8~.htreSdflg4"
+        execute 'cnoremap <expr> %'.l:ltr.' getcmdtype() =~ ''[:=]'' ? Expand('''.l:ltr.''') : ''%'.l:ltr.''''
+        execute 'cnoremap <expr> <c-s><c-e>'.l:ltr.' Expand('''.l:ltr.''')'
+        execute 'inoremap <expr> <c-s><c-e>'.l:ltr.' Expand('''.l:ltr.''')'
+        execute 'nnoremap <leader>gf'.l:ltr.' :let @"=''<c-r>=Expand('''.l:ltr.''')<cr>''<bar>let @+=@"<cr>'
+    endfor
+endfunction
+call CreateModifierMappings()
 
-cnoremap <expr> <c-s><c-e>  <nop>
-cnoremap <expr> <c-s><c-e>p Expand('p')
-cnoremap <expr> <c-s><c-e>d Expand('d')
-cnoremap <expr> <c-s><c-e>% Expand('%')
-cnoremap <expr> <c-s><c-e>f Expand('t')
-cnoremap <expr> <c-s><c-e>t Expand('t:r')
-cnoremap <expr> <c-s><c-e>r Expand('r')
-cnoremap <expr> <c-s><c-e>h Expand('h')
-cnoremap <expr> <c-s><c-e>e Expand('e')
-cnoremap <expr> <c-s><c-e>l Expand('l')
-cnoremap <expr> <c-s><c-e>g Expand('g')
-cnoremap <expr> <c-s><c-e>. Expand('.')
-cnoremap <expr> <c-s><c-e>c Expand('c')
-cnoremap <expr> <c-s><c-e>v Expand('v')
-cnoremap <expr> <c-s><c-e>x Expand('x')
-cnoremap <expr> <c-s><c-e>~ Expand('~')
-cnoremap <expr> <c-s><c-e>4 Expand('4')
+function! GetLoc(flags, ...) abort
+    ""
+    "" Return a special location based on the passed in flags
+    "" (like Expand() but totally unrelated to the current file's path)
+    ""
+    ""    +c           full path of conan data folder:  ~/.conan/data
+    ""    +v           VisualSelection()
+    ""    +x           VimRxEscape(VisualSelection())
+    ""    +%           current directory
+    ""
+    let curloc = a:0 >= 1 ? a:1 : getcwd()
+    if a:flags == 'c'
+        let retval = expand('~') . '/.conan/data'
+    elseif a:flags == 'p'
+        let retval = expand('~') . '/.vim/plugged'
+    elseif a:flags == 'v'
+        let retval = VisualSelection()
+    elseif a:flags == 'x'
+        let retval = VimRxEscape(VisualSelection())
+    elseif a:flags == 'd'
+        let retval = expand('~') . '/Documents/devplay'
+    elseif a:flags == 'g'
+        let retval = trim(system('cd ' . l:curloc . ' && git rev-parse --show-toplevel'))
+    elseif a:flags == '~'
+        let retval = expand('~')
+    elseif a:flags == '.'
+        let retval = getcwd()
+    else
+        throw "Unknown GetLoc() flags: [".a:flags."]"
+    endif
+    return l:retval
+endfunction
 
-inoremap <expr> <c-s><c-e>  <nop>
-inoremap <expr> <c-s><c-e>p Expand('p')
-inoremap <expr> <c-s><c-e>d Expand('d')
-inoremap <expr> <c-s><c-e>% Expand('%')
-inoremap <expr> <c-s><c-e>f Expand('t')
-inoremap <expr> <c-s><c-e>t Expand('t:r')
-inoremap <expr> <c-s><c-e>r Expand('r')
-inoremap <expr> <c-s><c-e>h Expand('h')
-inoremap <expr> <c-s><c-e>e Expand('e')
-inoremap <expr> <c-s><c-e>l Expand('l')
-inoremap <expr> <c-s><c-e>g Expand('g')
-inoremap <expr> <c-s><c-e>. Expand('.')
-inoremap <expr> <c-s><c-e>c Expand('c')
-inoremap <expr> <c-s><c-e>v Expand('v')
-inoremap <expr> <c-s><c-e>x Expand('x')
-inoremap <expr> <c-s><c-e>~ Expand('~')
-inoremap <expr> <c-s><c-e>4 Expand('4')
+function! CreateLocMappings() abort
+    cnoremap <expr> <c-s><c-g>  <nop>
+    inoremap <expr> <c-s><c-g>  <nop>
+    nnoremap <leader>gg  <nop>
+    for ltr in "cpvxdg~."
+        execute 'cnoremap <expr> ^'.l:ltr.' getcmdtype() =~ ''[:=]'' ? GetLoc('''.l:ltr.''') : ''^'.l:ltr.''''
+        execute 'cnoremap <expr> <c-s><c-g>'.l:ltr.' GetLoc('''.l:ltr.''')'
+        execute 'inoremap <expr> <c-s><c-g>'.l:ltr.' GetLoc('''.l:ltr.''')'
+        execute 'nnoremap <leader>gg'.l:ltr.' :let @"=''<c-r>=GetLoc('''.l:ltr.''')<cr>''<bar>let @+=@"<cr>'
+    endfor
+endfunction
+call CreateLocMappings()
 
-nnoremap <leader>gf  <nop>
-nnoremap <leader>gfp :let @"='<c-r>=Expand('p')<cr>'<bar>let @+=@"<cr>
-nnoremap <leader>gfd :let @"='<c-r>=Expand('d')<cr>'<bar>let @+=@"<cr>
-nnoremap <leader>gf% :let @"='<c-r>=Expand('%')<cr>'<bar>let @+=@"<cr>
-nnoremap <leader>gff :let @"='<c-r>=Expand('t')<cr>'<bar>let @+=@"<cr>
-nnoremap <leader>gft :let @"='<c-r>=Expand('t:r')<cr>'<bar>let @+=@"<cr>
-nnoremap <leader>gfr :let @"='<c-r>=Expand('r')<cr>'<bar>let @+=@"<cr>
-nnoremap <leader>gfh :let @"='<c-r>=Expand('h')<cr>'<bar>let @+=@"<cr>
-nnoremap <leader>gfe :let @"='<c-r>=Expand('e')<cr>'<bar>let @+=@"<cr>
-nnoremap <leader>gfl :let @"='<c-r>=Expand('l')<cr>'<bar>let @+=@"<cr>
-nnoremap <leader>gfg :let @"='<c-r>=Expand('g')<cr>'<bar>let @+=@"<cr>
-nnoremap <leader>gf. :let @"='<c-r>=Expand('.')<cr>'<bar>let @+=@"<cr>
-nnoremap <leader>gf4 :let @"='<c-r>=Expand('4')<cr>'<bar>let @+=@"<cr>
-
-
+""
+"" Custom values...
+""
 cnoremap <expr> <c-s><c-o>  <nop>
 cnoremap <expr> <c-s><c-o>a getcwd().'_build-logs\msbuild-diagnostic.log'
 cnoremap <expr> <c-s><c-o>e getcwd().'_build-logs\msbuild-detailed.log'
@@ -4887,7 +4892,13 @@ cnoremap <expr> <c-s><c-o>v  VisualSelection()
 "" mapping to set the current directory from a specific buffer's file path
 ""  w/o a count: uses the current buffer's path
 "" with a count: uses the path of that buffer
-"nnoremap <expr> <leader>cd ":<c-u>cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
+nnoremap        <leader>c    <nop>
+nnoremap        <leader>cd   <nop>
+nnoremap <expr> <leader>cdb  ":<c-u>cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
+nnoremap <expr> <leader>cdg  ":<c-u>cd <c-r>=GetLoc('g', fnamemodify((v:count == '0' ? '%' : '#' . v:count), ':p:h'))<cr><cr>"
+nnoremap        <leader>cd.  :cd ..<cr>
+nnoremap        <leader>cd.. :cd ../..<cr>
+
 "nnoremap <expr> <leader>xbcd ":<c-u>bufdo cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
 "nnoremap <expr> <leader>xtcd ":<c-u>tabdo cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
 "nnoremap <expr> <leader>xwcd ":<c-u>windo cd <c-r>=expand('" . (v:count == '0' ? '%' : '#' . v:count) . ":p:h')<cr><cr>"
@@ -5553,10 +5564,6 @@ function! EchoWindowInfo(verbose)
     endfor
 endfunction
 
-function! GetBufLines(bid) abort
-    return getbufline(a:bid, 0, "$")->reduce({a,v -> a + (len(v) > 0 ? 1 : 0)}, 0)
-endfunction
-
 function! EqualizeWindows(force) abort
     for bid in tabpagebuflist()
         let can_reset = a:force
@@ -5582,7 +5589,7 @@ function! EqualizeWindows(force) abort
                 call setwinvar(bufwinnr(l:bid), '&winfixwidth', 0)
             else
                 echo "Refitting to content, buffer " . bufname(l:bid)
-                call win_execute(bufwinid(l:bid), 'resize ' .  2 + GetBufLines(l:bid))
+                call win_execute(bufwinid(l:bid), 'resize ' .  2 + getbufinfo(l:bid)[0]['linecount'])
                 if l:bopts['textwidth'] > 0
                     " NOTE:  NOT working :|
                     let newsize = (5 + l:bopts['textwidth'])
