@@ -2715,250 +2715,339 @@ nnoremap <leader>[/ :PopSearch<cr>
 
 
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-"" This is for Vundle,  hosted on github here:  https://github.com/nebbish/Vundle.vim
-"" Vundle is a 'plugin manager' (but really a 'runtimepath' manager) I forked that
-"" helps with vim plugins:  installing/uninstalling/updating/...
+"" Plugin section for vim-plug
 """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" Vundle section    >>>  PLUGINs are in here  <<<    "{{{
-""
-"" It is based on pathogen, and supercedes it with ease of use - but requires 'git'
-"" and will perform 'git clone' actions for each configured repository
-""
-"" Brief Vundle help
-"" :PluginList       - lists configured plugins
-"" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
-"" :PluginSearch foo - searches for foo; append `!` to refresh local cache
-"" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
-""
-"" see :h vundle for more details or wiki for FAQ
-""
-filetype off			"" required for Vundle to load, will be re-enabled below
-
-""
-"" NOTE:  Got this recipe for how to "bootstrap" a Vundle setup from a fresh
-""        system with only 'git' available.
-""  see:  https://gist.github.com/klaernie/db37962e955c82254fed
-""
-"" I have modified it in the following ways:
-""    * to work on multiple platforms
-""    * to use :exe instead of :! so that no windows pop up
-""    * to activate my work branch from my Vundle fork
-""
-set runtimepath+=~/.vim/bundle/Vundle.vim
-let s:bootstrap = 0
-let s:vundlerepo = 'https://github.com/nebbish/Vundle.vim.git'
-let s:vundlehome = expand('~/.vim/bundle/Vundle.vim') " expand(...) also makes it OS specific
-let s:bundledir = fnamemodify(s:vundlehome, ':h')
-try
-	"
-	" NOTE:  I *want* to use shellescape() below for the path arguments, but since I need to run
-	"        this on BOTH Windows & *nix/Mac -- I need to manually surround with double quotes.
-	"
-	"           * On Windows  shellescape() surrounds with double quotes
-	"           * On *nix/mac shellescape() surrounds with single quotes
-	"
-	"        However, in both situations, this needs to work within:  exe "... system('... <here> ...') ..."
-	"
-    exe "silent call system('cd \"" . s:vundlehome . "\" && git checkout neb-dev')"
-    call vundle#begin()		"" can pass in a path for alternate plugin location
-catch /\vE117:|E282:/
-    let s:bootstrap = 1
-    if has('win32')
-        exe "silent call system('mkdir \"" . s:bundledir . "\"')"
-        exe "silent call system('set GIT_DIR= && git clone " . s:vundlerepo . " \"" . s:vundlehome . "\"')"
-    else
-        exe "silent call system('mkdir -p \"" . s:bundledir . "\"')"
-        exe "silent call system('unset GIT_DIR && git clone " . s:vundlerepo . " \"" . s:vundlehome . "\"')"
+" vim-plug section    >>>  PLUGINs are in here  <<<    "{{{
+function! AutoFetchVimPlug() abort
+    let vim_dir = has('nvim') ? stdpath('data') . '/site' : '~/.vim'
+    let plugvim = vim_dir . '/autoload/plug.vim'
+    if empty(glob(plugvim))
+        silent execute '!curl -fLo '.plugvim.' --create-dirs https://raw.githubusercontent.com/junegunn/vim-plug/master/plug.vim'
+        autocmd VimEnter * PlugInstall --sync | source $MYVIMRC
     endif
-    let s:ocwd = getcwd()
-    try
-        exe 'cd ' . s:vundlehome
-        exe "call system('git checkout neb-dev')"
-    finally
-        exe 'cd ' . s:ocwd
-    endtry
-    redraw!
-    call vundle#begin()
-endtry
-""   my fork of 'VundleVim/Vundle.vim'
-Plugin 'nebbish/Vundle.vim', {'revision': 'neb-dev'} "" let Vundle manage Vundle, REQUIRED
-""
-"" Other plugins here...
-""
+endfunction
+call AutoFetchVimPlug()
 
-"" YCM:  Completions and tool tips.
-""  NOTE:  needs more work to be enabled - more installed, and more locally built dependencies :(
-"Plugin 'ycm-core/YouCompleteMe'
+" vim-plug Mappings: "{{{
+"" # " `PlugInstall [name ...] [#threads]`  | Install plugins
+nnoremap        <leader><leader>p         <nop>
+nnoremap        <leader><leader>pi        <nop>
+nnoremap <expr> <leader><leader>pii       ':PlugInstall<cr>'
+nnoremap <expr> <leader><leader>pi<space> ':PlugInstall '
+"" # " `PlugUpdate [name ...] [#threads]`   | Install or update plugins
+nnoremap        <leader><leader>pu        <nop>
+nnoremap <expr> <leader><leader>puu       ':PlugUpdate<cr>'
+nnoremap <expr> <leader><leader>pu<space> ':PlugUpdate '
+"" # " `PlugSnapshot[!] [output path]`      | Generate script for restoring the current snapshot of the plugins
+nnoremap        <leader><leader>pn        <nop>
+nnoremap <expr> <leader><leader>pnn       ':PlugSnapshot<cr>'
+nnoremap <expr> <leader><leader>pn<space> ':PlugSnapshot '
+"" # " `PlugClean[!]`                       | Remove unlisted plugins (bang version will clean without prompt)
+nnoremap        <leader><leader>pc        :PlugClean<cr>
+"" # " `PlugUpgrade`                        | Upgrade vim-plug itself
+nnoremap        <leader><leader>pg        :PlugUpgrade<cr>
+"" # " `PlugStatus`                         | Check the status of plugins
+nnoremap        <leader><leader>ps        :PlugStatus<cr>
+"" # " `PlugDiff`                           | Examine changes from the previous update and the pending changes
+nnoremap        <leader><leader>pd        :PlugDiff<cr>
 
-"" Current Matchit options:
-""   Original (I think):  https://github.com/chrisbra/matchit
-""   The one I used to include here: https://github.com/geoffharcourt/vim-matchit
-""   Enhanced:  https://github.com/andymass/vim-matchup
-Plugin 'chrisbra/matchit'
-"" Found through this question:  "how to convert html escape codes"
-"" http://stackoverflow.com/questions/5733660/is-there-an-html-escape-paste-mode-for-vim
-""   my fork of 'tpope/unimpaired'
-Plugin 'nebbish/vim-unimpaired', {'revision': 'neb-dev'}
-"" After discovering the above, I just poked around the other stuff by Tim Pope, and liked this too:
-Plugin 'tpope/vim-eunuch'
-"" Much later I found this:
-Plugin 'tpope/vim-abolish'
-"" Found this one at: https://github.com/tmhedberg/SimpylFold
-"" It is about proper folding of PY code
-Plugin 'tmhedberg/SimpylFold'
-"" Found this one at: https://thoughtbot.com/blog/replacing-nerdtree-with-ctrl-p
-Plugin 'ctrlpvim/ctrlp.vim'
-"" Found this one here:
-Plugin 'majutsushi/tagbar'
-"" Co-worker pointed me towards this guy...
-""   my fork of preservim/nerdtree
-Plugin 'nebbish/nerdtree', {'revision': 'neb-dev'}
-Plugin 'preservim/nerdcommenter'
-"" Found this from:  https://ricostacruz.com/til/navigate-code-with-ctags
-Plugin 'craigemery/vim-autotag'
-"" Found this just by searching for something like it.   there are LOTS of forks that tweak it one way or another
-""    my fork of 'masaakif/nerdtree-useful-plugins'
-Plugin 'nebbish/nerdtree-useful-plugins', {'revision': 'neb-dev'}
-"" Stumbled upon this while exploring peoples write-up comparison of CtrlP and CommandT
-Plugin 'jlanzarotta/bufexplorer'
-"" Here are some 'object types' that work with the noun/verb command structure :D
-"" Found here:  https://blog.carbonfive.com/vim-text-objects-the-definitive-guide/
-""      argument (a)       good for all languages
-Plugin 'vim-scripts/argtextobj.vim'
-""      indent level (i)   good for languages like Python (which rely on indent level)
-Plugin 'michaeljsmith/vim-indent-object'
-"" This is meant to work with `ag` which I just installed
-if !has('win32')
-    Plugin 'rking/ag.vim'
-endif
-"Plugin 'Chun-Yang/vim-action-ag'
-"" Found while looking for an easy way to jump b/w decl & defn   -- not that easy, even with CTags & CtrlP
-""Plugin 'LucHermitte/lh-tags'     I'm not sure if I want this one - but I did not want to forget knowing about it ;)
-Plugin 'vim-airline/vim-airline'
-"" Found on the web.  Amazing assistance for working with Git repositories
-Plugin 'tpope/vim-fugitive'
-"" A Git log browser that depends on fugitive - not that useful
-"Plugin 'junegunn/gv.vim'
-"" Another one from tpope - that helps manage scripts (helps a developer of scripts)
-Plugin 'tpope/vim-scriptease'
-"" Another one from tpope - that helps launch sub-programs
-Plugin 'tpope/vim-dispatch'
-"" This was something I found looking for "vim as a merge tool"
-Plugin 'sjl/splice.vim'
-"" Here is another plugin for "generically" helping with conflict markers
-"" (does not have any SCM specifics, just open a file with markers, and start it)
-Plugin 'samoshkin/vim-mergetool'
+"" # " Set up the command line to manually load an unloaded plugin
+nnoremap        <leader><Leader>pl        <nop>
+nnoremap <expr> <leader><Leader>pl<space> ':call plug#load('
+" }}}
+
+call plug#begin()
+" List your plugins here
+
 "" I found this while searching around about Tmux mappings - and I'm gonna try it :)
 ""    Found here:  https://vimawesome.com/plugin/vim-tmux-navigator
 ""    Great writeup here:  https://gist.github.com/mislav/5189704
 if has('macunix')
     "" Right now, I only use tmux on my MacOS dev box
-    Plugin 'christoomey/vim-tmux-navigator'
+    Plug 'christoomey/vim-tmux-navigator'
 endif
-"" Stumbled across this while searching for something else...    but
-"" considering my own VIM use case...   this is PERFECT for me :)  (if it works)
-"Plugin 'unblevable/quick-scope'
+
+" TPope plugins: "{{{
+"" From vim-plug example
+Plug 'tpope/vim-sensible'
+"" Found through this question:  "how to convert html escape codes"
+"" http://stackoverflow.com/questions/5733660/is-there-an-html-escape-paste-mode-for-vim
+""   my fork of 'tpope/unimpaired'
+Plug 'nebbish/vim-unimpaired', {'branch': 'neb-dev'}
+"" Another helpful one:  adds shell commands with caps, e.g. :Rename (handles buffers too)
+Plug 'tpope/vim-eunuch'
+"" Much later I found this:  <-- don't use so much
+Plug 'tpope/vim-abolish'
+"" One of my favorites for helping with code editing!
+Plug 'tpope/vim-surround'
 "" Found this when I wanted to repeat my own mappings - surprised I didn't already have it
-Plugin 'tpope/vim-repeat'
-"" Not sure if I want this - but gonna grab it together with 'vim-repeat'
-Plugin 'tpope/vim-surround'
-"" Colors suggested by a good Vimcast: http://vimcasts.org/episodes/fugitive-vim-working-with-the-git-index/
-Plugin 'lifepillar/vim-solarized8'
-"" Found this while searching for a way to run the debugger from VIM.
-""    For `gdb`, there is a built-in feature:  `termdebug`
-"" However, I now use a Mac - so I want to run LLDB also :)
-""   NOTE:  currently not working -- this VIM binary seg-faults when importing 'lldb'.
-""          See: https://www.mail-archive.com/lldb-dev@lists.llvm.org/msg07787.html
-""          also: https://reviews.llvm.org/D70252 update to docs to explain this
-""   If I use /usr/bin/vim - (came with Catalina) it works.   grrrrrrrrrrrr
-"Plugin 'gilligan/vim-lldb'
-"" Here's something for comparing folders
-""    my fork of 'will133/vim-dirdiff'
-Plugin 'nebbish/vim-dirdiff', {'revision': 'neb-dev'}
-"" Found this when searching for a good way to swap words
-""     see:  https://vim.fandom.com/wiki/Swapping_characters,_words_and_lines
-"" There are other options -- I am trying this one for now :)
-Plugin 'kurkale6ka/vim-swap'
-"" I wish I could make the built-in functionality meed the needs, but this
-"" seems like a solid plugin -- if it all works
-Plugin 'wesQ3/vim-windowswap'
+Plug 'tpope/vim-repeat'
+"" Amazing assistance for working with Git repositories
+Plug 'tpope/vim-fugitive'
+"" Another one from tpope - that helps manage scripts (helps a developer of scripts)
+Plug 'tpope/vim-scriptease'
+"" Another one from tpope - that helps launch sub-programs
+Plug 'tpope/vim-dispatch'
+" "}}}
+
+" Editor enhancing plugins: "{{{
+"" Adds indent level (i) to vim motions (inner-indent, outer indent, ...)
+"" Really good for languages like Python (which rely on indent level) !
+Plug 'michaeljsmith/vim-indent-object'
+"" Here are some 'object types' that work with the noun/verb command structure :D
+"" Found here:  https://blog.carbonfive.com/vim-text-objects-the-definitive-guide/
+""      argument (a)       good for all languages
+Plug 'vim-scripts/argtextobj.vim'
 "" I was looking for a way to pad lines to align a character in a column
 "" This S.O. answer listed some options: https://superuser.com/a/771152/659417
 "" I'm going with the vim-easy-align, because I like the inerface:
 "" https://github.com/junegunn/vim-easy-align#tldr---one-minute-guide
-Plugin 'junegunn/vim-easy-align'
-Plugin 'godlygeek/tabular.git'
-"" Found this looking for a way to transpose arond a comma, here:
-""     https://stackoverflow.com/a/14741301/5844631
-Plugin 'PeterRincker/vim-argumentative'
-"" Found this when I learned that Gvim fonts are adjustable, handy for screensharing
-Plugin 'drmikehenry/vim-fontsize'
-"" More colorschemes, from:  https://vimcolorschemes.com/
-Plugin 'morhetz/gruvbox'
-Plugin 'arcticicestudio/nord-vim'
-Plugin 'joshdick/onedark.vim'
-"Plugin 'sainnhe/sonokai'
-"Plugin 'kaicataldo/material.vim'
-"Plugin 'sonph/onehalf'
-"Plugin 'vigoux/oak'
-Plugin 'cocopon/iceberg.vim'
-Plugin 'rakr/vim-one'
-Plugin 'NLKNguyen/papercolor-theme'
-Plugin 'altercation/vim-colors-solarized'
-Plugin 'sonph/onehalf', { 'rtp': 'vim' }
-"" Found this when looking for better c++ highlighting
-Plugin 'octol/vim-cpp-enhanced-highlight'
+Plug 'junegunn/vim-easy-align'
+"" Found this when searching for a good way to swap words
+""     see:  https://vim.fandom.com/wiki/Swapping_characters,_words_and_lines
+"" There are other options -- I am trying this one for now :)
+Plug 'kurkale6ka/vim-swap'
+"" A bit simply than above, useful for small things with mappings defined below
+Plug 'godlygeek/tabular'
+Plug 'preservim/nerdcommenter'
 "" Found this when looking up help for "nroff" for the '[[' and ']]' commands
-Plugin 'nebbish/jumpy.vim', {'revision': 'neb-dev'}
-"" Found this when trying to fix ONE highlighting
-Plugin 'coldfix/hexHighlight'
-Plugin 'guns/xterm-color-table.vim'
-"" I stumbled upon this handy page while searching for a built-in
-"" way to treat the current line as if an :Ex command and run it
-""   https://www.hillelwayne.com/post/intermediate-vim/
+Plug 'nebbish/jumpy.vim', {'branch': 'neb-dev'}
+"" This adds manuall marking of many different matches each with their own color
+Plug 'inkarkat/vim-mark'
+"" The above needs the vim-ingo-library to work
+Plug 'inkarkat/vim-ingo-library'
+"" Found this when I learned that Gvim fonts are adjustable, handy for screensharing
+Plug 'drmikehenry/vim-fontsize'
+"" I wish I could make the built-in functionality meed the needs, but this
+"" seems like a solid plugin -- if it all works
+Plug 'wesQ3/vim-windowswap'
+" "}}}
+
+" IDE feature plugins: "{{{
+" CoC is an LSP for a ton of languages
+"Plug 'neoclide/coc.nvim', {'branch': 'release'}
+" Markdown editing functionality
+" NOTE:  if the 'godlygeek/tabular' plugin is also used it MUST be included
+"        first. (i do use it, and it is included above)
+Plug 'preservim/vim-markdown'
+" NOTE:  this one requires a follow up command to finish the install
+"        (or a fancier entry right here, so Plugged does it automatically)
+"  CMD:  call mkdp#util#install()
+Plug 'iamcco/markdown-preview.nvim'
+" "}}}
+
+" HTML editing plugins: "{{{
+Plug 'nebbish/emmet-vim', {'branch': 'neb-dev'}
+Plug 'alvan/vim-closetag'
+Plug 'AndrewRadev/tagalong.vim'
+" "}}}
+
+" Utility adding plugins (dir tree, call tree, status bar, ..) "{{{
+"" Co-worker pointed me towards this guy...  (I like it, and even forked it for an update of my own)
+Plug 'nebbish/nerdtree', {'branch': 'neb-dev'}
+Plug 'vim-airline/vim-airline'
+"" Stumbled upon this while exploring peoples write-up comparison of CtrlP and CommandT
+Plug 'jlanzarotta/bufexplorer'
+"" I stumbled upon this handy page while searching for a built-in way to treat the current line as if an :Ex command and run it
+""     https://www.hillelwayne.com/post/intermediate-vim/
 "" On that page of great advice, was this little gem of a plugin:
-Plugin 'mbbill/undotree'
-"" I discovered this when looking up ".editconfig" which is a CROSS-IDE config file!!
-"" Apparently VS and IntelliJ, and Pycharm, and others all honor this tab-settings file
-"" For VIM, though -- this plugin adds mappings for <tab> and <cr> to handle something
-"" I'm calling "smart alignment", where tabs are used for the indent, but spaces are
-"" used to align wrapped lines
-"Plugin 'Thyrum/vim-stabs'   NOTE:   Disbaled b/c of the 'o' and 'O' mappings
-"" Kotlin syntax
-Plugin 'udalov/kotlin-vim'
+Plug 'mbbill/undotree'
+"" Here's something for comparing folders (I forked 'will133/vim-dirdiff')
+Plug 'nebbish/vim-dirdiff', {'branch': 'neb-dev'}
+" "}}}
+
 "" Found these, trying to help use VIM for pure writing
-Plugin 'junegunn/seoul256.vim'
-Plugin 'junegunn/goyo.vim'
-Plugin 'junegunn/limelight.vim'
-"" This is "like" Boost for Vim -- what will be in the next version
-"" (currently 2 years newer than what is on my MacOS, with changes I want)
-"Plugin 'tpope/vim-markdown'
-Plugin 'preservim/vim-markdown'
-Plugin 'mzlogin/vim-markdown-toc'
-Plugin 'preservim/vim-colors-pencil'
-Plugin 'inkarkat/vim-ingo-library'
-Plugin 'inkarkat/vim-mark'
-Plugin 'google/vim-searchindex'
-Plugin 'powerman/vim-plugin-AnsiEsc'
+" plugins for enhancing 'focus' (eliminating distractions) "{{{
+Plug 'junegunn/goyo.vim'
+Plug 'junegunn/limelight.vim'
+" "}}}
 
-Plugin 'nebbish/emmet-vim'
-Plugin 'alvan/vim-closetag'
-Plugin 'AndrewRadev/tagalong.vim'
+" plugins for text colors and syntax highlighting "{{{
+"" Found this when trying to fix ONE highlighting
+"Plug 'coldfix/hexHighlight'
+"Plug 'guns/xterm-color-table.vim'
+Plug 'powerman/vim-plugin-AnsiEsc'
+"" Found this when looking for better c++ highlighting
+Plug 'octol/vim-cpp-enhanced-highlight'
+"" Better Javascript syntax than the built in (handles flow JS)
+Plug 'yuezk/vim-js'
+"" Augments the syntax for JSX files to be More than just a symlink to JS syntax ;)
+Plug 'maxmellon/vim-jsx-pretty'
+" "}}}
 
-"Plugin 'iamcco/markdown-preview.nvim'
-"Plugin 'neoclide/coc.nvim', {'revision': 'release'}
+" Color plugins: "{{{
+"" Colors suggested by a good Vimcast: http://vimcasts.org/episodes/fugitive-vim-working-with-the-git-index/
+Plug 'lifepillar/vim-solarized8'
+"" More colorschemes, from:  https://vimcolorschemes.com/
+Plug 'morhetz/gruvbox'
+Plug 'arcticicestudio/nord-vim'
+Plug 'joshdick/onedark.vim'
+"Plug 'sainnhe/sonokai'
+"Plug 'kaicataldo/material.vim'
+"Plug 'sonph/onehalf'
+"Plug 'vigoux/oak'
+Plug 'cocopon/iceberg.vim'
+Plug 'rakr/vim-one'
+Plug 'NLKNguyen/papercolor-theme'
+Plug 'altercation/vim-colors-solarized'
+Plug 'sonph/onehalf', { 'rtp': 'vim' }
+Plug 'preservim/vim-colors-pencil'
+Plug 'junegunn/seoul256.vim'
+" "}}}
 
-"Plugin 'OmniSharp/omnisharp-vim'
+" Disabled plugins: "{{{
+"" # " "" YCM:  Completions and tool tips.
+"" # " ""  NOTE:  needs more work to be enabled - more installed, and more locally built dependencies :(
+"" # " "Plug 'ycm-core/YouCompleteMe'
+"" # " "" Current Matchit options:
+"" # " ""   Original (I think):  https://github.com/chrisbra/matchit
+"" # " ""   The one I used to include here: https://github.com/geoffharcourt/vim-matchit
+"" # " ""   Enhanced:  https://github.com/andymass/vim-matchup
+"" # " Plug 'chrisbra/matchit'
+"" # " "" Found this one at: https://github.com/tmhedberg/SimpylFold
+"" # " "" It is about proper folding of PY code
+"" # " Plug 'tmhedberg/SimpylFold'
+"" # " "" Found this one at: https://thoughtbot.com/blog/replacing-nerdtree-with-ctrl-p
+"" # " Plug 'ctrlpvim/ctrlp.vim'
+"" # " "" Found this one here:
+"" # " Plug 'majutsushi/tagbar'
+"" # " "" Found this from:  https://ricostacruz.com/til/navigate-code-with-ctags
+"" # " Plug 'craigemery/vim-autotag'
+"" # " "" Found this just by searching for something like it.   there are LOTS of forks that tweak it one way or another
+"" # " ""    my fork of 'masaakif/nerdtree-useful-plugins'
+"" # " Plug 'nebbish/nerdtree-useful-plugins', {'branch': 'neb-dev'}
+"" # " "" This is meant to work with `ag` which I just installed
+"" # " if !has('win32')
+"" # "     Plug 'rking/ag.vim'
+"" # " endif
+"" # " "Plug 'Chun-Yang/vim-action-ag'
+"" # " "" Found while looking for an easy way to jump b/w decl & defn   -- not that easy, even with CTags & CtrlP
+"" # " ""Plug 'LucHermitte/lh-tags'     I'm not sure if I want this one - but I did not want to forget knowing about it ;)
+"" # " "" A Git log browser that depends on fugitive - not that useful
+"" # " "Plug 'junegunn/gv.vim'
+"" # " "" This was something I found looking for "vim as a merge tool"
+"" # " Plug 'sjl/splice.vim'
+"" # " "" Here is another plugin for "generically" helping with conflict markers
+"" # " "" (does not have any SCM specifics, just open a file with markers, and start it)
+"" # " Plug 'samoshkin/vim-mergetool'
+"" # " "" Stumbled across this while searching for something else...    but
+"" # " "" considering my own VIM use case...   this is PERFECT for me :)  (if it works)
+"" # " "Plug 'unblevable/quick-scope'
+"" # " "" Found this while searching for a way to run the debugger from VIM.
+"" # " ""    For `gdb`, there is a built-in feature:  `termdebug`
+"" # " "" However, I now use a Mac - so I want to run LLDB also :)
+"" # " ""   NOTE:  currently not working -- this VIM binary seg-faults when importing 'lldb'.
+"" # " ""          See: https://www.mail-archive.com/lldb-dev@lists.llvm.org/msg07787.html
+"" # " ""          also: https://reviews.llvm.org/D70252 update to docs to explain this
+"" # " ""   If I use /usr/bin/vim - (came with Catalina) it works.   grrrrrrrrrrrr
+"" # " "Plug 'gilligan/vim-lldb'
+"" # " "" Found this looking for a way to transpose arond a comma, here:
+"" # " ""     https://stackoverflow.com/a/14741301/5844631
+"" # " Plug 'PeterRincker/vim-argumentative'
+"" # " "" I discovered this when looking up ".editconfig" which is a CROSS-IDE config file!!
+"" # " "" Apparently VS and IntelliJ, and Pycharm, and others all honor this tab-settings file
+"" # " "" For VIM, though -- this plugin adds mappings for <tab> and <cr> to handle something
+"" # " "" I'm calling "smart alignment", where tabs are used for the indent, but spaces are
+"" # " "" used to align wrapped lines
+"" # " "Plug 'Thyrum/vim-stabs'   NOTE:   Disbaled b/c of the 'o' and 'O' mappings
+"" # " "" Kotlin syntax
+"" # " Plug 'udalov/kotlin-vim'
+"" # " "" This is "like" Boost for Vim -- what will be in the next version
+"" # " "" (currently 2 years newer than what is on my MacOS, with changes I want)
+"" # " "Plug 'tpope/vim-markdown'
+"" # " Plug 'mzlogin/vim-markdown-toc'
+"" # " Plug 'google/vim-searchindex'
+"" # "
+"" # " "Plug 'OmniSharp/omnisharp-vim'
+" "}}}
 
 
-call vundle#end()			"" required
+call plug#end()
+" "}}}
 
-if s:bootstrap
-    silent PluginInstall
-    quit
-end
 
-filetype plugin indent on	"" required (the 'indent' clause is fine absent or present)
+"" # " """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"" # " "" This is for Vundle,  hosted on github here:  https://github.com/nebbish/Vundle.vim
+"" # " "" Vundle is a 'plugin manager' (but really a 'runtimepath' manager) I forked that
+"" # " "" helps with vim plugins:  installing/uninstalling/updating/...
+"" # " """""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+"" # " " Vundle section    >>>  PLUGINs are in here  <<<    "{{{
+"" # " ""
+"" # " "" It is based on pathogen, and supercedes it with ease of use - but requires 'git'
+"" # " "" and will perform 'git clone' actions for each configured repository
+"" # " ""
+"" # " "" Brief Vundle help
+"" # " "" :PluginList       - lists configured plugins
+"" # " "" :PluginInstall    - installs plugins; append `!` to update or just :PluginUpdate
+"" # " "" :PluginSearch foo - searches for foo; append `!` to refresh local cache
+"" # " "" :PluginClean      - confirms removal of unused plugins; append `!` to auto-approve removal
+"" # " ""
+"" # " "" see :h vundle for more details or wiki for FAQ
+"" # " ""
+"" # " filetype off			"" required for Vundle to load, will be re-enabled below
+"" # "
+"" # " ""
+"" # " "" NOTE:  Got this recipe for how to "bootstrap" a Vundle setup from a fresh
+"" # " ""        system with only 'git' available.
+"" # " ""  see:  https://gist.github.com/klaernie/db37962e955c82254fed
+"" # " ""
+"" # " "" I have modified it in the following ways:
+"" # " ""    * to work on multiple platforms
+"" # " ""    * to use :exe instead of :! so that no windows pop up
+"" # " ""    * to activate my work branch from my Vundle fork
+"" # " ""
+"" # " set runtimepath+=~/.vim/bundle/Vundle.vim
+"" # " let s:bootstrap = 0
+"" # " let s:vundlerepo = 'https://github.com/nebbish/Vundle.vim.git'
+"" # " let s:vundlehome = expand('~/.vim/bundle/Vundle.vim') " expand(...) also makes it OS specific
+"" # " let s:bundledir = fnamemodify(s:vundlehome, ':h')
+"" # " try
+"" # " 	"
+"" # " 	" NOTE:  I *want* to use shellescape() below for the path arguments, but since I need to run
+"" # " 	"        this on BOTH Windows & *nix/Mac -- I need to manually surround with double quotes.
+"" # " 	"
+"" # " 	"           * On Windows  shellescape() surrounds with double quotes
+"" # " 	"           * On *nix/mac shellescape() surrounds with single quotes
+"" # " 	"
+"" # " 	"        However, in both situations, this needs to work within:  exe "... system('... <here> ...') ..."
+"" # " 	"
+"" # "     exe "silent call system('cd \"" . s:vundlehome . "\" && git checkout neb-dev')"
+"" # "     call vundle#begin()		"" can pass in a path for alternate plugin location
+"" # " catch /\vE117:|E282:/
+"" # "     let s:bootstrap = 1
+"" # "     if has('win32')
+"" # "         exe "silent call system('mkdir \"" . s:bundledir . "\"')"
+"" # "         exe "silent call system('set GIT_DIR= && git clone " . s:vundlerepo . " \"" . s:vundlehome . "\"')"
+"" # "     else
+"" # "         exe "silent call system('mkdir -p \"" . s:bundledir . "\"')"
+"" # "         exe "silent call system('unset GIT_DIR && git clone " . s:vundlerepo . " \"" . s:vundlehome . "\"')"
+"" # "     endif
+"" # "     let s:ocwd = getcwd()
+"" # "     try
+"" # "         exe 'cd ' . s:vundlehome
+"" # "         exe "call system('git checkout neb-dev')"
+"" # "     finally
+"" # "         exe 'cd ' . s:ocwd
+"" # "     endtry
+"" # "     redraw!
+"" # "     call vundle#begin()
+"" # " endtry
+"" # " ""   my fork of 'VundleVim/Vundle.vim'
+"" # " Plugin 'nebbish/Vundle.vim', {'revision': 'neb-dev'} "" let Vundle manage Vundle, REQUIRED
+"" # " ""
+"" # " "" Other plugins here...
+"" # " ""
+"" # "
+"" # "
+"" # "
+"" # " call vundle#end()			"" required
+"" # "
+"" # " if s:bootstrap
+"" # "     silent PluginInstall
+"" # "     quit
+"" # " end
+"" # "
+"" # " filetype plugin indent on	"" required (the 'indent' clause is fine absent or present)
 "}}}
 
 
@@ -3016,8 +3105,10 @@ nmap <leader><leader>kN <Plug>MarkSearchAnyPrev
 
 " From docs:  when on a mark: "re-do" the last executed one of the above
 "             when not:       do vim default
-nmap * <Plug>MarkSearchNext
-nmap # <Plug>MarkSearchPrev
+if '/vim-mark/' =~ &runtimepath
+    nmap * <Plug>MarkSearchNext
+    nmap # <Plug>MarkSearchPrev
+endif
 
 "}}}
 
@@ -3029,7 +3120,7 @@ if filereadable('C:\ProgramData\nvm\v18.16.0\node.exe')
     let g:coc_node_path = 'C:\ProgramData\nvm\v18.16.0\node.exe'
 endif
 
-let s:coc_plug_exists = filter(copy(g:vundle#bundles), 'v:val["name"] == "coc.nvim"')->len()
+let s:coc_plug_exists = exists('g:plugs["coc.nvim"]')
 
 "" # "wget -P %userprofile%\AppData\Local\coc\manually-installed-extensions\kotlin\server\lib https://repo1.maven.org/maven2/org/slf4j/slf4j-nop/2.0.3/slf4j-nop-2.0.3.jar
 "" # "wget -P %userprofile%\AppData\Local\coc\manually-installed-extensions\kotlin\server\lib https://repo1.maven.org/maven2/org/slf4j/slf4j-nop/1.7.25/slf4j-nop-1.7.25.jar
@@ -4485,10 +4576,12 @@ let g:NERDTreeIgnore=['\~$', '\.tmh$', '\.1\.tlog$']
 
 " Adding my own key mapping to NERDTree to yank the path
 "   found:  https://stackoverflow.com/a/16378375/5844631
-autocmd VimEnter * call NERDTreeAddKeyMap({
-		\ 'key': 'yy',
-		\ 'callback': 'NERDTreeYankCurrentNode',
-		\ 'quickhelpText': 'put full path of current node into the default register' })
+if exists('NERDTreeAddKeyMap')
+    autocmd VimEnter * call NERDTreeAddKeyMap({
+            \ 'key': 'yy',
+            \ 'callback': 'NERDTreeYankCurrentNode',
+            \ 'quickhelpText': 'put full path of current node into the default register' })
+endif
 
 function! NERDTreeYankCurrentNode()
 	let n = g:NERDTreeFileNode.GetSelected()
