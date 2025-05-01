@@ -329,6 +329,7 @@ endif
 "  autocmd FileType text setlocal textwidth=78
 "augroup END
 
+nnoremap <leader>t   <nop>
 nnoremap <leader>tw? :set textwidth?<cr>
 nnoremap <leader>tw& :set textwidth&<cr>
 nnoremap <leader>tw<space> :set textwidth=
@@ -2323,6 +2324,125 @@ nnoremap <leader>vs  <nop>
 nnoremap <leader>vsl :LoadSession<cr>
 nnoremap <leader>vss :SaveSession<cr>
 
+" "}}}
+
+
+" settings related to 'term' option "{{{
+
+""
+"" NOTE: the key codes sent into VIM sometimes differ, and it depends on the
+""       terminal program used (i.e. iTerm2 or built-in Terminal)
+""
+"" For figuring out the key codes the Terminal sends in, use this:
+""          sed -n l
+"" or this:
+""          cat -v
+""
+
+function! HandleTerm() abort
+    " This function is designed to "FIX" the broken Screen TERMCAP settings
+    " that block modified PgUp, PgDn, and other special keys (i.e. Ctrl+PgUp)
+    " Here is a table of what the settings were for two different terminals:
+    " ( NOTE:  the output came from `:set termcap` )
+
+    "  +---------------------------+--------------------------+
+    "  | xterm-256color            |  screen-256color         |
+    "  +---------------------------+--------------------------+
+    "  | t_@7 <End>       ^[[@;*F  |  t_@7 <End>       ^[[4~  |
+    "  | t_F1 <F11>       ^[[23;*~ |  t_F1 <F11>       ^[[23~ | <-- BROKEN
+    "  | t_F2 <F12>       ^[[24;*~ |  t_F2 <F12>       ^[[24~ | <-- BROKEN
+    "  | t_k1 <F1>        ^[[11;*~ |  t_k1 <F1>        ^[OP   |
+    "  | t_k2 <F2>        ^[[12;*~ |  t_k2 <F2>        ^[OQ   |
+    "  | t_k3 <F3>        ^[[13;*~ |  t_k3 <F3>        ^[OR   |
+    "  | t_k4 <F4>        ^[[14;*~ |  t_k4 <F4>        ^[OS   |
+    "  | t_k5 <F5>        ^[[15;*~ |  t_k5 <F5>        ^[[15~ | <-- BROKEN
+    "  | t_k6 <F6>        ^[[17;*~ |  t_k6 <F6>        ^[[17~ | <-- BROKEN
+    "  | t_k7 <F7>        ^[[18;*~ |  t_k7 <F7>        ^[[18~ | <-- BROKEN
+    "  | t_k8 <F8>        ^[[19;*~ |  t_k8 <F8>        ^[[19~ | <-- BROKEN
+    "  | t_k9 <F9>        ^[[20;*~ |  t_k9 <F9>        ^[[20~ | <-- BROKEN
+    "  | t_k; <F10>       ^[[21;*~ |  t_k; <F10>       ^[[21~ | <-- BROKEN
+    "  | t_kB <S-Tab>     ^[[Z     |  t_kB <S-Tab>     ^[[Z   |
+    "  | t_kD <Del>       ^[[3;*~  |  t_kD <Del>       ^[[3~  | <-- BROKEN
+    "  | t_kI <Insert>    ^[[2;*~  |  t_kI <Insert>    ^[[2~  | <-- BROKEN
+    "  | t_kN <PageDown>  ^[[6;*~  |  t_kN <PageDown>  ^[[6~  | <-- BROKEN
+    "  | t_kP <PageUp>    ^[[5;*~  |  t_kP <PageUp>    ^[[5~  | <-- BROKEN
+    "  | t_kb <BS>        ^?       |  t_kb <BS>        ^?     |
+    "  | t_kd <Down>      ^[O*B    |  t_kd <Down>      ^[OB   | <-- BROKEN
+    "  | t_kh <Home>      ^[[@;*H  |  t_kh <Home>      ^[[1~  |
+    "  | t_kl <Left>      ^[O*D    |  t_kl <Left>      ^[OD   | <-- BROKEN
+    "  | t_kr <Right>     ^[O*C    |  t_kr <Right>     ^[OC   | <-- BROKEN
+    "  | t_ku <Up>        ^[O*A    |  t_ku <Up>        ^[OA   | <-- BROKEN
+    "  +---------------------------+--------------------------+
+    " The entries marked "BROKEN" above are missing the '*' that
+    " captures modifier keys like Shift and Ctrl.
+    " The other differences are left alone by me.  They are too different, and
+    " I don't have a full handle on why, or ramifications on those.
+
+    if &term !~ 'xterm'
+        "set t_F1=[23;*~
+        "set t_F2=[24;*~
+        "set t_k5=[15;*~
+        "set t_k6=[17;*~
+        "set t_k7=[18;*~
+        "set t_k8=[19;*~
+        "set t_k9=[20;*~
+        "set t_k;=[21;*~
+        "set t_kD=[3;*~
+        "set t_kI=[2;*~
+        set t_kN=[6;*~
+        set t_kP=[5;*~
+        set t_kd=O*B
+        set t_kl=O*D
+        set t_kr=O*C
+        set t_ku=O*A
+    endif
+endfunction
+" On first load: handle the initial 'term' value here
+if ! exists("s:term_has_been_handled")
+    let s:term_has_been_handled = 1
+    call HandleTerm()
+endif
+" For our mappings, it is reinvoked each time they change it
+
+" I'm also mapping some codes back to the default keys
+" BUT I'm not sure if this works, or is the best way, or is even necessary
+" AND I tried this before adding the above direct adjustment of 't_..' options
+" SO I am leaving it commented out for now, since it might still be useful,
+" and perhaps move into the above HandleTerm() function
+"if &term == 'screen-256color'
+"    map  <esc>[5;5~  <c-pageup>
+"    vmap <esc>[5;5~  <c-pageup>
+"    map! <esc>[5;5~  <c-pageup>
+"    map  <esc>[5;6~  <c-down>
+"    vmap <esc>[5;6~  <c-down>
+"    map! <esc>[5;6~  <c-down>
+"    map  <esc>[1;5H  <c-home>
+"    vmap <esc>[1;5H  <c-home>
+"    map! <esc>[1;5H  <c-home>
+"    map  <esc>[1;5F  <c-end>
+"    vmap <esc>[1;5F  <c-end>
+"    map! <esc>[1;5F  <c-end>
+"    map  <esc>[A     <c-up>
+"    vmap <esc>[A     <c-up>
+"    map! <esc>[A     <c-up>
+"    map  <esc>[B     <c-down>
+"    vmap <esc>[B     <c-down>
+"    map! <esc>[B     <c-down>
+"    map  <esc>[1;5D  <c-left>
+"    vmap <esc>[1;5D  <c-left>
+"    map! <esc>[1;5D  <c-left>
+"    map  <esc>[1;5C  <c-right>
+"    vmap <esc>[1;5C  <c-right>
+"    map! <esc>[1;5C  <c-right>
+"endif
+
+nnoremap        <leader>te  <nop>
+nnoremap        <leader>te?       :set term?<cr>
+nnoremap        <leader>te&       :set term&<cr>
+nnoremap <expr> <leader>te<space> ':set term='
+nnoremap        <leader>tex       :set term=xterm-256color<cr>:call HandleTerm()<cr>:set term?<cr>
+nnoremap        <leader>tet       :set term=tmux-256color<cr>:call HandleTerm()<cr>:set term?<cr>
+nnoremap        <leader>tes       :set term=screen-256color<cr>:call HandleTerm()<cr>:set term?<cr>
 " "}}}
 
 
