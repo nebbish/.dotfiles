@@ -2965,6 +2965,13 @@ Plug 'preservim/vim-markdown'
 Plug 'iamcco/markdown-preview.nvim'
 " "}}}
 
+" AI related plugins: "{{{
+"" NOTE:  this was formerly:  Exafunction/codeium !!
+"Plug 'Exafunction/windsurf.vim', { 'branch': 'main' }
+"Plug 'github/copilot.vim'
+"Plug 'augmentcode/augment.vim'
+" "}}}
+
 " HTML editing plugins: "{{{
 Plug 'nebbish/emmet-vim', {'branch': 'neb-dev'}
 Plug 'alvan/vim-closetag'
@@ -3383,6 +3390,219 @@ nnoremap <leader><leader>ti :call tagalong#Init()<cr>
 "}}}
 
 
+" Mappings for the various installed "copilot"-like AI engines "{{{
+""
+"" First, functions:
+""
+"" s:Tab()    : will be called by the <tab> mapping, invokes the active AI
+"" SetAI(eng) : set 'eng' to be the active AI
+""
+"" Then, upon first load, SetAI is invoked to set Windsurf Codeium as the initial AI
+"" Then, mappings to switch back and forth are created
+"" Finally each AI engine's own mappings are created
+""
+
+" We tell all the plugins to NOT map the <tab> key -- we handle it with s:Tab()
+let g:codeium_no_map_tab = v:true
+let g:copilot_no_tab_map = v:true
+let g:augment_disable_tab_mapping = v:true
+
+""
+"" Here is how 3 AI plugin providers create their TAB mappings:
+"" Please NOTE that Augment uses a <cmd> mapping.
+""
+""    codeium:  imap <script><silent><nowait><expr> <Tab> codeium#Accept()
+""    copilot:  imap <script><silent><nowait><expr> <Tab> empty(get(g:, 'copilot_no_tab_map')) ? copilot#Accept() : "\t"
+""    augment:  inoremap <tab> <cmd>call augment#Accept("\<tab>")<cr>
+""
+"" Therefore, my own function needs to do something special to handle the Augment case.
+""
+function s:Tab() abort
+    if s:ai_eng == 'w'
+        return codeium#Accept()
+    elseif s:ai_eng == 'g'
+        return copilot#Accept()
+    elseif s:ai_eng == 'u'
+        " For Augment, we need to execute the command and then return an empty string
+        call feedkeys("\<Cmd>call augment#Accept('\<Tab>')\<CR>", 'n')
+        return ''
+    else
+        return "\<tab>"
+    endif
+endfunction
+imap <script><silent><nowait><expr> <Tab> <SID>Tab()
+
+function! SetAI(eng) abort
+    " HERE we map <tab> manually to one or the other
+    let s:ai_eng = a:eng
+
+    if exists(':Codeium') == 2
+        execute 'Codeium ' . (a:eng == 'w' ? 'Enable' : 'Disable')
+    else
+        let g:codeium_enabled = (a:eng == 'w' ? v:true : v:false)
+    endif
+
+    if exists(':Copilot') == 2
+        execute 'Copilot ' . (a:eng == 'g' ? 'enable' : 'disable')
+    else
+        let g:copilot_enabled = (a:eng == 'g' ? v:true : v:false)
+    endif
+
+    let g:augment_disable_completions = (a:eng == 'u' ? v:false : v:true)
+endfunction
+function! DumpAIState(header) abort
+    echo a:header
+    if exists(':Codeium') == 2
+        echo printf('Codeium state: %s', codeium#Enabled() ? 'Codeium is enabled' : 'Codeium is disabled')
+    endif
+    echo printf('Copilot exists: %d, Codeium exists: %d, Augment exists: %d', exists(':Copilot'), exists(':Codeium'), exists(':Augment'))
+    echo printf('Copilot enabled: %d, Codeium enabled: %d, Augment enabled: %d', g:copilot_enabled, g:codeium_enabled, !g:augment_disable_completions)
+    echo printf(repeat('=', 50))
+    if exists(':Copilot') == 2
+        Copilot status
+    endif
+    if exists(':Augment')
+        " Without this seemingly meaningless echo, the Augment output STOMPS on and ERASES the Codeium output
+        " I have no idea why.  I tried re-arranging the order here (even augment before copilot) without success
+        " this stupid empty echo succeeds.
+        echo ''
+        Augment status
+    endif
+endfunction
+if ! exists("s:ai_default_has_been_set")
+    let s:ai_default_has_been_set = 1
+    "" start off with nothing enabled, then call SetAI() to enable one
+    let g:codeium_enabled = v:false
+    let g:copilot_enabled = v:false
+    let g:augment_disable_completions = v:true
+    "call DumpAIState('Before setting AI engines:')
+    call SetAI('w')
+    "call DumpAIState('After setting AI engines:')
+endif
+
+function! ShowSuggestion() abort
+    " TODO ...
+endfunction
+inoremap <c-a> <cmd>call ShowSuggestion()<cr>
+
+function! ClearSuggestion()
+    silent! call codeium#Clear()
+    silent! call copilot#Dismiss()
+    silent! call augment#suggestion#Clear()
+endfunction
+inoremap <c-z> <cmd>call ClearSuggestion()<cr>
+
+nnoremap <leader><leader>a   <nop>
+nnoremap <leader><leader>aa  <nop>
+nnoremap <leader><leader>aag <cmd>call SetAI('g')<cr>
+nnoremap <leader><leader>aaw <cmd>call SetAI('w')<cr>
+nnoremap <leader><leader>aau <cmd>call SetAI('u')<cr>
+nnoremap <leader><leader>aaz <cmd>call DumpAIState('On demand:')<cr>
+nnoremap <leader><leader>a?  <cmd>call DumpAIState('On demand:')<cr>
+
+" Settings related to Windsurf (Codeium) "{{{
+nnoremap        <leader><leader>aw        <nop>
+nnoremap <expr> <leader><leader>aw<space> ':Codeium '
+nnoremap        <leader><leader>awd       :Codeium Disable<cr>
+nmap            <leader><leader>awe       \\aau
+nnoremap        <leader><leader>awc       :Codeium Chat<cr>
+nnoremap        <leader><leader>aws       :echo (codeium#Enabled() ? 'Codeium is enabled' : 'Codeium is disabled')<cr>
+
+""
+"" Manually handle the bindings that the plugin normally handles automatically
+"" (so that i_CTRL-K is not stepped on, and the default remains)
+""
+let g:codeium_disable_bindings = v:true
+if empty(mapcheck('<C-]>', 'i'))
+  imap <silent><script><nowait><expr> <C-]> codeium#Clear() . "\<C-]>"
+endif
+if empty(mapcheck('<M-]>', 'i'))
+  imap <M-]> <Plug>(codeium-next-or-complete)
+endif
+if empty(mapcheck('<M-[>', 'i'))
+  imap <M-[> <Plug>(codeium-previous)
+endif
+if empty(mapcheck('<M-Bslash>', 'i'))
+  imap <M-Bslash> <Plug>(codeium-complete)
+endif
+""
+"" I am manually doing Codeium mappings JUST FOR THIS.
+""
+"" Here I preserve the "digraph" built-in mapping, <c-k>, instead stepping on a
+"" different built-in, <c-f>, which means "move cursor forward one character"
+"" which I will never use
+""
+"if empty(mapcheck('<C-k>', 'i'))
+if empty(mapcheck('<C-f>', 'i'))
+  "imap <script><silent><nowait><expr> <C-k> codeium#AcceptNextWord()
+  imap <script><silent><nowait><expr> <C-f> codeium#AcceptNextWord()
+endif
+if empty(mapcheck('<C-l>', 'i'))
+  imap <script><silent><nowait><expr> <C-l> codeium#AcceptNextLine()
+endif
+
+" The plugin attempt to map "Alt-[" and "Alt-]" but on MacOS that never works,
+" so I fix it with maps using the 'fancy' MacOS-only 'option' characters
+if has('macunix')
+    " Alt+]     cycle forwards
+    inoremap ‘ <Plug>(codeium-next-or-complete)
+    " Alt+[     cycle backwards
+    inoremap “ <Plug>(codeium-previous)
+    " Alt+Backslash  (aka Alt+<leader>)
+    inoremap « <Plug>(codeium-complete)
+endif
+
+inoremap <c-s><c-i> <nop>
+inoremap <c-s><c-i>c <Plug>(codeium-dismiss)
+inoremap <c-s><c-i>n <Plug>(codeium-next-or-complete)
+inoremap <c-s><c-i>p <Plug>(codeium-previous)
+inoremap <c-s><c-i>s <Plug>(codeium-complete)
+
+" "}}}
+
+" Settings related to Github Copilot "{{{
+nnoremap        <leader><leader>ao        <nop>
+nnoremap <expr> <leader><leader>ao<space> ':Copilot '
+nnoremap        <leader><leader>aod       :Copilot disable<cr>
+nmap            <leader><leader>aoe       \\aao
+nnoremap        <leader><leader>aos       :Copilot status<cr>
+" "}}}
+
+" Mappings for Augment specialized AI "{{{
+nnoremap        <leader><leader>au        <nop>
+nnoremap <expr> <leader><leader>au<space> ':Augment '
+nnoremap        <leader><leader>aus       :Augment status<cr>
+nnoremap        <leader><leader>aui       :Augment signin<cr>
+nnoremap        <leader><leader>auo       :Augment signout<cr>
+nnoremap        <leader><leader>aul       :Augment log<cr>
+nnoremap <expr> <leader><leader>auc       ':Augment chat '
+xnoremap <expr> <leader><leader>auc       ':Augment chat '
+nnoremap <expr> <leader><leader>aun       ':Augment chat-new '
+xnoremap <expr> <leader><leader>aun       ':Augment chat-new '
+nnoremap        <leader><leader>aut       :Augment chat-toggle<cr>
+
+let g:augment_debug = v:true
+
+" Use enter to accept a suggestion, falling back to a newline if no suggestion
+" is available
+"NOTE: disabling Augment's <Tab> is above, where we set our own <Tab> "mapping
+let g:augment_workspace_folders = []
+nnoremap <expr> <leader><leader>auw ':let g:augment_workspace_folders = ['
+
+" MAYBE!
+" inoremap <cr> <cmd>call augment#Accept("\n")<cr>
+
+""
+"" NOTE!!   ::   Augment offers an IGNORE mechanism:
+""
+""  You just create an .augmentignore file just like a .gitignore file
+""
+
+"}}}
+
+" "}}}
+
+
 " Settings related to vim-mark "{{{
 
 " let g:mwDefaultHighlightingPalette = 'original'   DEFAULT value
@@ -3631,12 +3851,12 @@ if s:coc_plug_exists
 	"    endif
 	"endfunction
 	"inoremap <silent><expr> <TAB> CocTabHook()
-	inoremap <silent><expr> <TAB>
-		  \ coc#pum#visible() ? coc#pum#next(1) :
-		  \ CheckBackspace() ? "\<Tab>" :
-		  \ coc#refresh()
-	inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
-	inoremap <c-x><c-c> <cmd>call coc#refresh()<cr>
+	"inoremap <silent><expr> <TAB>
+	"      \ coc#pum#visible() ? coc#pum#next(1) :
+	"      \ CheckBackspace() ? "\<Tab>" :
+	"      \ coc#refresh()
+	"inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
+	"inoremap <c-x><c-c> <cmd>call coc#refresh()<cr>
 endif
 
 "" # "" #
