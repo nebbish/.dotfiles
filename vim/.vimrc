@@ -2987,6 +2987,13 @@ Plug 'preservim/vim-markdown'
 Plug 'iamcco/markdown-preview.nvim'
 " "}}}
 
+" AI related plugins: "{{{
+"" NOTE:  this was formerly:  Exafunction/codeium !!
+"Plug 'Exafunction/windsurf.vim', { 'branch': 'main' }
+"Plug 'github/copilot.vim'
+"Plug 'augmentcode/augment.vim'
+" "}}}
+
 " HTML editing plugins: "{{{
 Plug 'nebbish/emmet-vim', {'branch': 'neb-dev'}
 Plug 'alvan/vim-closetag'
@@ -3416,6 +3423,344 @@ nnoremap <leader><leader>ti :call tagalong#Init()<cr>
 "}}}
 
 
+" Mappings for the various installed "copilot"-like AI engines "{{{
+""
+"" First, the dictionary of "copilot"-like AI engines:
+""
+
+let s:EngProto = {}
+function! s:EngProto.plug_exists() dict
+    return exists('g:plugs["' . self.name . '"]') > 0
+endfunction
+
+function! s:EngProto.loaded() dict
+    if !self.plug_exists()
+        return v:false
+    endif
+    return self.exists()
+endfunction
+
+function! s:EngProto.enabled() dict
+    if self.loaded()
+        return self.loaded_enabled()
+    endif
+    return self.flag_enabled()
+endfunction
+
+function! s:EngProto.enable(value) dict
+    if self.loaded()
+        return self.loaded_enable(a:value)
+    endif
+    return self.flag_enable(a:value)
+endfunction
+
+function! s:EngProto.status() dict
+    if self.loaded()
+        let msg = join(s:RedirExec(self.status_cmd()), "\n")
+    else
+        let msg = printf("%s is not loaded", self.name)
+    endif
+    echo l:msg
+endfunction
+
+let g:engine_inits = {
+  \   'w' : {
+  \     'name': 'windsurf.vim',
+  \     'exists': {-> exists(':Codeium')},
+  \     'loaded_enabled': {-> codeium#Enabled()},
+  \     'loaded_enable': {v -> execute('Codeium ' . (v ? 'Enable' : 'Disable'))},
+  \     'flag_enabled': {-> get(g:, 'codeium_enabled', v:false)},
+  \     'flag_enable': {v -> extend(g:, {'codeium_enabled': v})},
+  \     'status_cmd': {-> printf("echo 'Codeium is %s'", codeium#Enabled() ?  'Enabled' : 'Disabled')},
+  \     'do_tab': {-> codeium#Accept()},
+  \     'disable_maps': {-> extend(g:, {'codeium_no_map_tab':v:true,'codeium_disable_bindings':v:true})},
+  \     'cancel': {-> codeium#Clear()},
+  \     'show': {-> codeium#Complete()},
+  \     'next': {-> codeium#CycleCompletions(1)},
+  \     'prev': {-> codeium#CycleCompletions(-1)},
+  \     'acceptword': {-> codeium#AcceptNextWord()},
+  \     'acceptline': {-> codeium#AcceptNextLine()},
+  \   },
+  \   'g': {
+  \     'name': 'copilot.vim',
+  \     'exists': {-> exists(':Copilot')},
+  \     'loaded_enabled': {-> copilot#Enabled()},
+  \     'loaded_enable': {v -> execute('Copilot ' . (v ? 'enable' : 'disable'))},
+  \     'flag_enabled': {-> get(g:, 'copilot_enabled', v:false)},
+  \     'flag_enable': {v -> extend(g:, {'copilot_enabled': v})},
+  \     'status_cmd': {-> 'Copilot status'},
+  \     'do_tab': {-> copilot#Accept()},
+  \     'disable_maps': {-> extend(g:, {'copilot_no_tab_map': v:true})},
+  \     'cancel': {-> copilot#Dismiss()},
+  \     'show': {-> copilot#Suggest()},
+  \     'next': {-> copilot#Next()},
+  \     'prev': {-> copilot#Previous()},
+  \     'acceptword': {-> copilot#AcceptWord()},
+  \     'acceptline': {-> copilot#AcceptLine()},
+  \   },
+  \   'u': {
+  \     'name': 'augment.vim',
+  \     'exists': {-> exists(':Augment')},
+  \     'loaded_enabled': {-> !get(g:, 'augment_disable_completions', v:true)},
+  \     'loaded_enable': {v -> extend(g:, {'augment_disable_completions': !v})},
+  \     'flag_enabled': {-> !get(g:, 'augment_disable_completions', v:true)},
+  \     'flag_enable': {v -> extend(g:, {'augment_disable_completions': !v})},
+  \     'status_cmd': {-> 'Augment status'},
+  \     'do_tab': {-> (call('feedkeys', ["\<Cmd>call augment#Accept('\<Tab>')\<CR>", 'n']) ?? '')},
+  \     'disable_maps': {-> extend(g:, {'augment_disable_tab_mapping': v:true})},
+  \     'cancel': {-> augment#suggestion#Clear()},
+  \     'show': {-> augment#suggestion#Show()},
+  \     'next': {-> 0},
+  \     'prev': {-> 0},
+  \     'acceptword': {-> augment#Accept()},
+  \     'acceptline': {-> augment#Accept()},
+  \   },
+  \ }
+
+  "\   'c': {
+  "\     'name': 'coc.nvim',
+  "\     'exists': {-> exists(':CocEnable')},
+  "\     'loaded_enabled': {-> get(g:, 'coc_enabled', 0)},
+  "\     'loaded_enable': {v -> execute('Coc'.(v?'En':'Dis').'able')},
+  "\     'flag_enabled': {-> get(g:, 'coc_enabled', v:false)},
+  "\     'flag_enable': {v -> extend(g:, {'coc_enabled': v})},
+  "\     'cmd': {'exists':'CocEnable'},
+  "\     'status_cmd': {-> 'echo ' . g:coc_status},
+  "\     'do_tab': {-> "\<tab>"},
+  "\     'disable_maps': {-> 0},
+  "\     'cancel': {-> coc#pum#cancel()},
+  "\   },
+
+""
+"" Then a "constructor" that builds the AI engines using the above data
+"" and the "prototype" defined above the data.
+""
+""     NOTE:  should run just once, see below
+""
+function! s:InitAI()
+    let g:engines = {}
+    for [key, eng_init] in items(g:engine_inits)
+        let new_eng = copy(s:EngProto)
+        call extend(l:new_eng, eng_init)
+        let g:engines[key] = l:new_eng
+
+        call l:new_eng.disable_maps()
+        " NOTE: the user's VIMRC executes BEFORE the plugins themselves.
+        "       so our way of "enabling/disabling" is done via g:... flags
+        "       the :... commands do not exist yet.
+        " This logic lives within the `.enable(...)` method
+        call l:new_eng.enable(v:false)
+    endfor
+
+    " NOTE: below there is an ActivateAI method to be used by mappings
+    "       (it has error checking and display output)
+    " Here, after *knowing* we just created & disabled ALL of them, do not
+    " need all that...   just enable the "default" one:  Windsurf
+    call g:engines['w'].enable(v:true)
+endfunction
+
+""
+"" Invoke the AI engine constructor
+""
+if ! exists("s:ai_default_has_been_set")
+    let s:ai_default_has_been_set = 1
+    call s:InitAI()
+endif
+
+function! s:DumpAIState(header, count) abort
+    echo a:header
+    echo items(g:engines)->map({_,v -> printf('%s plug_exists: %d', v[1].name, v[1].plug_exists())})->join(', ')
+    echo items(g:engines)->map({_,v -> printf('%s exists: %d', v[1].name, v[1].exists())})->join(', ')
+    echo items(g:engines)->map({_,v -> printf('%s loaded: %d', v[1].name, v[1].loaded())})->join(', ')
+    echo items(g:engines)->map({_,v -> printf('%s enabled: %d', v[1].name, v[1].enabled())})->join(', ')
+    echo printf(repeat('=', 50))
+    " NOTE: the Augment plugin output STOMPS on and ERASES whatever output
+    "       comes before it. and somehow its output is always last, even
+    "       if not called last.
+    " SO: we force 'u' to be last
+    " AND: our engine prototype method for `.status()` includes a JOIN
+    "      believe it or not this matters.
+    "      if s:RedirExec is adjusted to NOT split before returning, and the
+    "      JOIN in `.status()` is removed...  the STOMPING commences.
+    " BUT: if we leave s:RedirExec alone, and leave the JOIN in place, it works
+    for [key, engine] in items(g:engines)
+        if key != 'u'
+            call engine.status()
+        endif
+    endfor
+    call g:engines['u'].status()
+endfunction
+
+function! s:GetCurAI() abort
+    let engs = keys(g:engines)->filter({_,k->g:engines[k].enabled()})
+    if len(l:engs) > 1
+       throw 'Found more than one enabled AI engine! : ' . scriptease#dump(l:engs)
+    endif
+    return get(l:engs, 0, '')
+endfunction
+
+function! s:ActivateAI(eng) abort
+    let cur = s:GetCurAI()
+    for [key, engine] in items(g:engines)
+        if key != a:eng
+            call engine.enable(v:false)
+        endif
+    endfor
+    call g:engines[a:eng].enable(v:true)
+    let s:ai_eng = a:eng
+    echo printf((l:cur==a:eng?'Re-a':'A').'ctivated %s', g:engines[a:eng].name)
+endfunction
+
+
+""
+"" Then helpers to simplify access to AI engines for the mappings below
+""
+function! s:AiDo(task, default) abort
+    let cur = s:GetCurAI()
+    let rv = 0
+    if l:cur != ''
+        if type(a:task) == v:t_func
+            let rv = a:task(g:engines[l:cur])
+        endif
+        let rv = g:engines[l:cur][a:task]()
+    endif
+    return l:rv ?? a:default
+endfunction
+
+""
+"" Then the <Tab> handler
+""
+""
+"" NOTE: Here is how 3 AI plugin providers create their TAB mappings:
+""       Please NOTE that Augment uses a <cmd> mapping!!
+""
+""    codeium:  imap <script><silent><nowait><expr> <Tab> codeium#Accept()
+""    copilot:  imap <script><silent><nowait><expr> <Tab> empty(get(g:, 'copilot_no_tab_map')) ? copilot#Accept() : "\t"
+""    augment:  inoremap <tab> <cmd>call augment#Accept("\<tab>")<cr>
+""
+"" Therefore, my own mappings must be <expr> and possibly return something.
+"" And for augment it needs to do two things, the 2nd being returning blank
+"" (i.e. returning nothing)
+""
+imap <script><silent><nowait><expr> <Tab> <sid>AiDo('do_tab', "\<Tab>")
+
+
+""
+"" NOTE: do not interfere with the CoC plugin bindings:
+""
+""   i  <PageUp>    * coc#pum#visible() ? coc#pum#scroll(0) : "\<PageUp>"
+""   i  <PageDown>  * coc#pum#visible() ? coc#pum#scroll(1) : "\<PageDown>"
+""   i  <C-Y>       * coc#pum#visible() ? coc#pum#confirm() : "\<C-Y>"
+""   i  <C-E>       * coc#pum#visible() ? coc#pum#cancel() : "\<C-E>"
+""   i  <Up>        * coc#pum#visible() ? coc#pum#prev(0) : "\<Up>"
+""   i  <Down>      * coc#pum#visible() ? coc#pum#next(0) : "\<Down>"
+""   i  <C-P>       * coc#pum#visible() ? coc#pum#prev(1) : "\<C-P>"
+""   i  <C-N>       * coc#pum#visible() ? coc#pum#next(1) : "\<C-N>"
+""   i  <C-@>       * coc#refresh()
+""
+
+
+function! s:ClearAll(...) abort
+    " The passed in arg is returned
+    for [key, engine] in items(g:engines)
+        if engine.loaded()
+            call engine.cancel()
+        endif
+    endfor
+    return a:0 >= 1 ? a:1 : ''
+endfunction
+inoremap <script><silent><nowait><expr> <c-z> <sid>ClearAll("\<c-z>")
+inoremap <script><silent><nowait><expr> <c-a> <sid>AiDo('show', "\<c-a>")
+
+inoremap <script><silent><nowait><expr> <c-e> <sid>AiDo('cancel', "\<c-e>")
+inoremap <script><silent><nowait><expr> <C-]> <sid>AiDo('cancel', "\<C-]>")
+inoremap <script><silent><nowait><expr> <C-f> <sid>AiDo('acceptword', "\<C-f>")
+inoremap <script><silent><nowait><expr> <C-l> <sid>AiDo('acceptline', "\<C-l>")
+
+" The plugin attempt to map "Alt-[" and "Alt-]" but on MacOS that never works,
+" so I fix it with maps using the 'fancy' MacOS-only 'option' characters
+if ! has('macunix')
+    inoremap <script><silent><nowait><expr> <M-]>      <sid>AiDo('next', "\<M-]>")
+    inoremap <script><silent><nowait><expr> <M-[>      <sid>AiDo('prev', "\<M-[>")
+    inoremap <script><silent><nowait><expr> <M-Bslash> <sid>AiDo('show', "\<M-Bslash>")
+else
+    inoremap <script><silent><nowait><expr> ‘          <sid>AiDo('next', "‘")
+    inoremap <script><silent><nowait><expr> “          <sid>AiDo('prev', "“")
+    inoremap <script><silent><nowait><expr> «          <sid>AiDo('show', "«")
+endif
+
+inoremap <c-s><c-i> <nop>
+inoremap <c-s><c-i>c <Plug>(codeium-dismiss)
+inoremap <c-s><c-i>n <Plug>(codeium-next-or-complete)
+inoremap <c-s><c-i>p <Plug>(codeium-previous)
+inoremap <c-s><c-i>s <Plug>(codeium-complete)
+
+nnoremap <leader><leader>a   <nop>
+nnoremap <leader><leader>aa  <nop>
+nnoremap <leader><leader>aai <cmd>call <sid>InitAI()<cr>
+nnoremap <leader><leader>aac <cmd>call <sid>ActivateAI('c')<cr>
+nnoremap <leader><leader>aag <cmd>call <sid>ActivateAI('g')<cr>
+nnoremap <leader><leader>aaw <cmd>call <sid>ActivateAI('w')<cr>
+nnoremap <leader><leader>aau <cmd>call <sid>ActivateAI('u')<cr>
+nnoremap <leader><leader>aaz <cmd>call <sid>DumpAIState('On demand:', v:count)<cr>
+nnoremap <leader><leader>a?  <cmd>call <sid>DumpAIState('On demand:', v:count)<cr>
+
+" Settings related to Windsurf (Codeium) "{{{
+nnoremap        <leader><leader>aw        <nop>
+nnoremap <expr> <leader><leader>aw<space> ':Codeium '
+nnoremap        <leader><leader>awd       :Codeium Disable<cr>
+nmap            <leader><leader>awe       \\aaw
+nnoremap        <leader><leader>awc       :Codeium Chat<cr>
+nnoremap        <leader><leader>aws       :echo (codeium#Enabled() ? 'Codeium is enabled' : 'Codeium is disabled')<cr>
+" "}}}
+
+" Settings related to Github Copilot "{{{
+nnoremap        <leader><leader>ag        <nop>
+nnoremap <expr> <leader><leader>ag<space> ':Copilot '
+nnoremap        <leader><leader>agd       :Copilot disable<cr>
+nmap            <leader><leader>age       \\aag
+nnoremap        <leader><leader>ags       :Copilot status<cr>
+" "}}}
+
+" Mappings for Augment specialized AI "{{{
+nnoremap        <leader><leader>au          <nop>
+nnoremap <expr> <leader><leader>au<space>   ':Augment '
+nnoremap        <leader><leader>aud         :Augment disable<cr>
+nnoremap        <leader><leader>aue         \\aau
+nnoremap        <leader><leader>aus         :Augment status<cr>
+nnoremap        <leader><leader>aui         :Augment signin<cr>
+nnoremap        <leader><leader>auo         :Augment signout<cr>
+nnoremap        <leader><leader>aul         :Augment log<cr>
+nnoremap        <leader><leader>auc         <nop>
+nnoremap <expr> <leader><leader>auc<space>  ':Augment chat '
+xnoremap <expr> <leader><leader>aucv        ':Augment chat ' . VisualSelection()
+nnoremap <expr> <leader><leader>aucn        <nop>
+nnoremap <expr> <leader><leader>aucn<space> ':Augment chat-new '
+xnoremap <expr> <leader><leader>aucnv       ':Augment chat-new ' . VisualSelection()
+nnoremap        <leader><leader>auct        :Augment chat-toggle<cr>
+
+let g:augment_debug = v:true
+
+" Use enter to accept a suggestion, falling back to a newline if no suggestion
+" is available
+"NOTE: disabling Augment's <Tab> is above, where we set our own <Tab> "mapping
+let g:augment_workspace_folders = []
+nnoremap <expr> <leader><leader>auw ':let g:augment_workspace_folders = ['
+
+" MAYBE!
+" inoremap <cr> <cmd>call augment#Accept("\n")<cr>
+
+""
+"" NOTE!!   ::   Augment offers an IGNORE mechanism:
+""
+""  You just create an .augmentignore file just like a .gitignore file
+""
+
+"}}}
+
+" "}}}
+
+
 " Settings related to vim-mark "{{{
 
 " let g:mwDefaultHighlightingPalette = 'original'   DEFAULT value
@@ -3709,12 +4054,12 @@ if s:coc_plug_exists
 	"    endif
 	"endfunction
 	"inoremap <silent><expr> <TAB> CocTabHook()
-	inoremap <silent><expr> <TAB>
-		  \ coc#pum#visible() ? coc#pum#next(1) :
-		  \ CheckBackspace() ? "\<Tab>" :
-		  \ coc#refresh()
-	inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
-	inoremap <c-x><c-c> <cmd>call coc#refresh()<cr>
+	"inoremap <silent><expr> <TAB>
+	"      \ coc#pum#visible() ? coc#pum#next(1) :
+	"      \ CheckBackspace() ? "\<Tab>" :
+	"      \ coc#refresh()
+	"inoremap <expr><S-TAB> coc#pum#visible() ? coc#pum#prev(1) : "\<C-h>"
+	"inoremap <c-x><c-c> <cmd>call coc#refresh()<cr>
 endif
 
 "" # "" #
