@@ -2794,10 +2794,14 @@ Plug 'tpope/vim-dispatch'
 "" Adds indent level (i) to vim motions (inner-indent, outer indent, ...)
 "" Really good for languages like Python (which rely on indent level) !
 Plug 'michaeljsmith/vim-indent-object'
-"" Here are some 'object types' that work with the noun/verb command structure :D
-"" Found here:  https://blog.carbonfive.com/vim-text-objects-the-definitive-guide/
-""      argument (a)       good for all languages
-Plug 'vim-scripts/argtextobj.vim'
+"" Adds wildcard versions of :edit :split :tabedit....
+Plug 'arp242/globedit.vim'
+" "" Here are some 'object types' that work with the noun/verb command structure :D
+" "" Found here:  https://blog.carbonfive.com/vim-text-objects-the-definitive-guide/
+" ""      argument (a)       good for all languages
+" Plug 'nebbish/argtextobj.vim', {'branch': 'neb-dev'}
+"" When researching how text objects should work, I stumbled upon this COMPREHENSIVE plugin
+Plug 'wellle/targets.vim'
 "" I was looking for a way to pad lines to align a character in a column
 "" This S.O. answer listed some options: https://superuser.com/a/771152/659417
 "" I'm going with the vim-easy-align, because I like the inerface:
@@ -2821,11 +2825,15 @@ Plug 'drmikehenry/vim-fontsize'
 "" I wish I could make the built-in functionality meed the needs, but this
 "" seems like a solid plugin -- if it all works
 Plug 'wesQ3/vim-windowswap'
+" Emoji assistance for Vim
+Plug 'junegunn/vim-emoji'
 " "}}}
 
 " IDE feature plugins: "{{{
 " CoC is an LSP for a ton of languages
 "Plug 'neoclide/coc.nvim', {'branch': 'release'}
+" This one provides a UnitTest framework
+Plug 'junegunn/vader.vim'
 " Markdown editing functionality
 " NOTE:  if the 'godlygeek/tabular' plugin is also used it MUST be included
 "        first. (i do use it, and it is included above)
@@ -2854,6 +2862,11 @@ Plug 'jlanzarotta/bufexplorer'
 Plug 'mbbill/undotree'
 "" Here's something for comparing folders (I forked 'will133/vim-dirdiff')
 Plug 'nebbish/vim-dirdiff', {'branch': 'neb-dev'}
+" The Asciitable plugin creates the following mappings:
+"    <leader>a8  - ascii table in octal
+"    <leader>a10 - ascii table in decimal
+"    <leader>a16 - ascii table in hex
+Plug 'nebbish/Asciitable.vim'
 " "}}}
 
 "" Found these, trying to help use VIM for pure writing
@@ -3789,6 +3802,10 @@ function! s:Demangle(str) abort
     return trim(system('c++filt', a:str))
 endfunction
 
+function! s:Emojify(str) abort
+    return substitute(a:str, ':\([-+_0-9a-z]\+\):', '\=emoji#for(submatch(1), submatch(0))', 'g')
+endfunction
+
 "" Ugly hack, so the script works PRE-8.0
 ""  (would prefer the new function arg default values)
 function! TransformMotionSetupD(algorithm) abort
@@ -3915,6 +3932,10 @@ nnoremap <expr> <leader>tcc "@_" . TransformMotionSetup('s:TransposeCSV') . '_'
 nnoremap <expr> <leader>tg "@_" . TransformMotionSetup('s:Demangle')
 xnoremap <expr> <leader>tg "@_" . TransformMotionSetup('s:Demangle')
 nnoremap <expr> <leader>tgg "@_" . TransformMotionSetup('s:Demangle') . '_'
+
+nnoremap <expr> <leader>to "@_" . TransformMotionSetup('s:Emojify')
+xnoremap <expr> <leader>to "@_" . TransformMotionSetup('s:Emojify')
+nnoremap <expr> <leader>too "@_" . TransformMotionSetup('s:Emojify') . '_'
 
 
 " Adding a new function exploring interactions b/w Vim & Python.   Not used yet.
