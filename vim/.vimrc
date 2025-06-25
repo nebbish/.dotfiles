@@ -2976,6 +2976,9 @@ Plug 'junegunn/vim-emoji'
 "Plug 'neoclide/coc.nvim', {'branch': 'release'}
 " This one provides a UnitTest framework
 Plug 'junegunn/vader.vim'
+" This one is really just a UT "launch helper", understanding many UT frameworks,
+" providing commands to launch: nearest UT, first UT, whole suite, whole file...
+Plug 'vim-test/vim-test'
 " Markdown editing functionality
 " NOTE:  if the 'godlygeek/tabular' plugin is also used it MUST be included
 "        first. (i do use it, and it is included above)
@@ -3374,6 +3377,17 @@ nnoremap <expr> <leader>kp<space> ':set keywordprg='
 nnoremap        <leader>kpb       :set keywordprg=:LookupBibleReference<cr>
 nnoremap        <leader>kpd       :set keywordprg=:LookupDefinition<cr>
 nnoremap        <leader>kpp       :set keywordprg=:LookupPydoc<cr>
+"}}}
+
+
+" Settings related to vim-test "{{{
+nnoremap <leader><leader>u   <nop>
+nnoremap <leader><leader>ut  <nop>
+nnoremap <leader><leader>uts :TestSuite<cr>
+nnoremap <leader><leader>utf :TestFile<cr>
+nnoremap <leader><leader>utn :TestNearest<cr>
+nnoremap <leader><leader>utl :TestLast<cr>
+nnoremap <leader><leader>utv :TestVisit<cr>
 "}}}
 
 
