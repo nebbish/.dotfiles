@@ -3851,6 +3851,10 @@ if has('python3')
         if type(original_value) is str:
             original_value = original_value.encode('utf-8')
         return binascii.b2a_base64(original_value)
+    def pyformat(original_value):
+        import ast
+        from pprint import pformat
+        return pformat(ast.literal_eval(original_value))
     endpython3
 
     function! s:PyUuDecode(val) abort
@@ -3881,6 +3885,23 @@ if has('python3')
         "        but all of my testing it was, and stripping it here is easier than
         "        dealing with it during the VIM paste operation
         return py3eval("qs_encode('" .. a:str .. "')[:-1]")
+    endfunction
+
+    function! s:VimToPyString(str) abort
+        let l:str = a:str
+
+        " These 3 changes convert the text into something that works in a .py file
+        " HOWEVER: that does not work when passing into 'eval'
+        let l:str = escape(l:str, "\\")
+        let l:str = substitute(l:str, 'v:true', 'True', 'g')
+        let l:str = substitute(l:str, 'v:false', 'False', 'g')
+
+        " For eval we need one more escape of slashes - then wrap in single quotes
+        let l:str = escape(l:str, "'\\")
+        return "'" .. l:str .. "'"
+    endfunction
+    function! s:TidyPython(str) abort
+        return py3eval("pyformat(" .. s:VimToPyString(a:str) .. ")")
     endfunction
 endif
 
@@ -4088,6 +4109,12 @@ nnoremap <expr> <leader>thh "@_" . TransformMotionSetup('s:TidyHtml') . '_'
 nnoremap <expr> <leader>tj "@_" . TransformMotionSetup('s:TidyJson')
 xnoremap <expr> <leader>tj "@_" . TransformMotionSetup('s:TidyJson')
 nnoremap <expr> <leader>tjj "@_" . TransformMotionSetup('s:TidyJson') . '_'
+
+if exists('*s:TidyPython')
+    nnoremap <expr> <leader>tp "@_" . TransformMotionSetup('s:TidyPython')
+    xnoremap <expr> <leader>tp "@_" . TransformMotionSetup('s:TidyPython')
+    nnoremap <expr> <leader>tpp "@_" . TransformMotionSetup('s:TidyPython') . '_'
+endif
 
 nnoremap <expr> <leader>tv "@_" . TransformMotionSetup('s:TidyJavascript')
 xnoremap <expr> <leader>tv "@_" . TransformMotionSetup('s:TidyJavascript')
