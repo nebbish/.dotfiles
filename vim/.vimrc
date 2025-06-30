@@ -5882,6 +5882,12 @@ nnoremap <silent> <leader>zgm :set guioptions-=m<cr>
 nnoremap <silent> <leader>zgs :set guioptions-=rL<cr>
 nnoremap <silent> <leader>zga :set guioptions-=e<cr>
 
+nnoremap <silent> <leader>zw  <nop>
+nnoremap <silent> <leader>zwh :wincmd h<cr>:q<cr>
+nnoremap <silent> <leader>zwj :wincmd j<cr>:q<cr>
+nnoremap <silent> <leader>zwk :wincmd k<cr>:q<cr>
+nnoremap <silent> <leader>zwl :wincmd l<cr>:q<cr>
+
 "}}}
 
 " Settings for vim-swap -- so the mappings do not clash with my own "{{{
