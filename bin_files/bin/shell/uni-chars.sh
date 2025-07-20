@@ -33,14 +33,16 @@ if [ -z "$file" ]; then
 	file=~/bin/shell/UnicodeData.txt
 fi
 
+# Because we use =~, `shopt` is the ONLY way to be case INsensetive
+shopt -s nocasematch
 while IFS=';' read number name category rest; do
 	if [ ! -z "$filt" ]; then
-		if ! [[ "$category" =~ $filt ]]; then
+		if ! [[ "$name" =~ $filt ]]; then
 			continue;
 		fi
 	fi
 	#if [[ "$category" =~ Ps|Pe|Pi|Pf ]]; then
-		printf "%s (U+%s, %s): \u"$number"\n" "$name" "$number" "$category"
+        printf "%-2s - (%2s, U+%8s) - %s\n" "$(perl -Mutf8 -e 'binmode(STDOUT, ":utf8"); print chr(hex("'"$number"'"))')" "$category" "$number" "$name"
 	#fi
 done < "$file"
-
+shopt -u nocasematch  # turn off the option after use
