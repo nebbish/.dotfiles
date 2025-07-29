@@ -1121,12 +1121,13 @@ command! -nargs=+ CommandAbbrev call CommandAbbrev(<f-args>)
 CommandAbbrev ccab CommandAbbrev
 
 function! ArgTest(...)
-    echo 'Count: ' . a:0
     let idx = 1
+    let msg = [ 'Count: ' . a:0, 'Args:', ]
     for i in a:000
-        echo '  arg ' l:idx . ': ' . i
+        call add(l:msg, '  arg ' . l:idx . ': ' . i)
         let idx = l:idx + 1
     endfor
+    echo join(l:msg, "\n")
 endfunction
 command! -nargs=* -complete=command -range ArgTestQ call ArgTest(<range>, <line1>, <line2>, <q-args>)
 CommandAbbrev argtestq ArgTestQ
