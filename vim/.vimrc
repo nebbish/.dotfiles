@@ -3064,6 +3064,177 @@ call plug#end()
 "}}}
 
 
+" Settings related to 'keywordprog' "{{{
+
+"" This is a filter for popup_create()
+function! LookupFilter(winid, key) abort
+    " NOTE:  return TRUE to indicate we handled the key
+    "        when we do not, it goes to next popup, or VIM
+
+    ""
+    "" Reasons to close...
+    ""
+    " Close on ESC
+    if a:key == "\<Esc>"
+        call popup_close(a:winid)
+        return 1
+    endif
+    " Close on any motion keys
+    if match(a:key, '\v^(<Up>|<Down>|<Left>|<Right>|<PageUp>|<PageDown>|<Home>|<End>|[ hjklwbeftn\$\^0G])$') >= 0
+        call popup_close(a:winid)
+        return 1
+    endif
+    " Close on mouse click anywhere (including outside)
+    if a:key =~ '\v^<(LeftMouse|RightMouse|MiddleMouse)'
+        call popup_close(a:winid)
+        return 1
+    endif
+
+    "" For any other key, close the popup (makes it very aggressive)
+    "call popup_close(a:winid)
+    "return 1
+endfunction
+
+"" This is a callback for popup_create()
+function! LookupCallback(winid, result) abort
+    " This gets called when popup closes, you can add cleanup here if needed
+endfunction
+
+""
+"" NOTE: this has to be a custom command (below) that calls a function
+""
+""       do NOT set 'kp' to :call something
+""       instead create a command that calls something
+""       and set 'kp' to that command
+""
+function! LookupBibleReference(ref) abort
+    let url = "https://bible-api.com/" . a:ref . "?translation=kjv"
+    let cmd = "http GET '" . l:url . "' | jsontool"
+    let res = json_decode(trim(system(l:cmd)))
+
+    try
+        let title = printf("  %s - %s %d  ", l:res['translation_name'],
+                                           \ l:res['verses'][0]['book_name'],
+                                           \ l:res['verses'][0]['chapter'])
+        let lines = map(copy(l:res['verses']), 'trim(v:val["verse"] . ". " . tr(v:val["text"],"\n"," "))')
+    catch
+        let title = printf("  %s  ", a:ref)
+        let lines = [l:res['error']]
+    endtry
+
+    " Also set the text into the quick un-named register
+    let @" = join([trim(l:title), ''] + l:lines, "\n")
+
+    "" The join & re-split is to account for verses with embedded line breaks
+    "" and by doing this, we join it all up as we "would" want it,
+    "" but then give it to the function the way it expects.
+    call popup_create(split(join(l:lines, "\n"), "\n"), #{
+                \ title: l:title,
+                \ line: 'cursor+1',
+                \ col: 'cursor+1',
+                \ padding: [1,1,1,1],
+                \ border: [],
+                \ filter: 'LookupFilter',
+                \ callback: 'LookupCallback',
+            \ })
+endfunction
+command! -nargs=* -complete=command LookupBibleReference call LookupBibleReference(<f-args>)
+
+function! ReadToken(path)
+    "" Opens `a:path` and reads each line, ignoring comment lines, until
+    "" the first non-comment line, which is returned in whole (trimmed)
+    if !filereadable(a:path)
+        echoerr "Token file not found: " . a:path
+        return ''
+    endif
+
+    for line in readfile(a:path)
+        let line = trim(line)
+        if line != '' && line[0] != '#'
+            return line
+        endif
+    endfor
+
+    echoerr "No token found in " . a:path
+    return ''
+endfunction
+
+let s:rapidapi_token = ''
+function! LookupDefinition(ref) abort
+    if s:rapidapi_token == ''
+        let s:rapidapi_token = ReadToken(expand('~/.rapidapi'))
+    endif
+
+    let defurl = "https://wordsapiv1.p.rapidapi.com/words/" . a:ref . "/definitions"
+    let headers = [
+                \ 'x-rapidapi-host:wordsapiv1.p.rapidapi.com',
+                \ 'x-rapidapi-key:' . s:rapidapi_token,
+                \ ]
+
+    let cmd = "http GET " . l:defurl . " " . join(l:headers, " ")
+    let defres = json_decode(trim(system(l:cmd)))
+
+    let msg = get(l:defres, 'message', '')
+    if l:msg != ''
+        let title = printf("  %s : Error  ", a:ref)
+        let lines = [l:msg]
+    else
+        let title = printf("  %s  ", l:defres['word'])
+        let lines = map(copy(l:defres['definitions']), '(v:key+1).". (".v:val["partOfSpeech"].") ".v:val["definition"]')
+
+        let synurl = "https://wordsapiv1.p.rapidapi.com/words/" . a:ref . "/synonyms"
+        let cmd = "http GET " . l:synurl . " " . join(l:headers, " ")
+        let synres = json_decode(trim(system(l:cmd)))
+        call extend(l:lines, ['', 'synonyms:', '  ' . join(l:synres['synonyms'], ', ')])
+    endif
+
+    " Also set the text into the quick un-named register
+    let @" = join([trim(l:title), ''] + l:lines, "\n")
+
+    "" The join & re-split is to account for verses with embedded line breaks
+    "" and by doing this, we join it all up as we "would" want it,
+    "" but then give it to the function the way it expects.
+    call popup_create(split(join(l:lines, "\n"), "\n"), #{
+                \ title: l:title,
+                \ line: 'cursor+1',
+                \ col: 'cursor+1',
+                \ padding: [1,1,1,1],
+                \ border: [],
+                \ filter: 'LookupFilter',
+                \ callback: 'LookupCallback',
+            \ })
+endfunction
+command! -nargs=* -complete=command LookupDefinition call LookupDefinition(<f-args>)
+
+function! LookupPydoc(ref) abort
+    let cmd = "pydoc " . a:ref
+    let msg = trim(system(l:cmd))
+
+    " Also set the text into the quick un-named register
+    let @" = l:msg
+
+    call popup_create(split(l:msg, "\n"), #{
+                \ title: 'pydoc',
+                \ line: 'cursor+1',
+                \ col: 'cursor+1',
+                \ padding: [1,1,1,1],
+                \ border: [],
+                \ filter: 'LookupFilter',
+                \ callback: 'LookupCallback',
+            \ })
+endfunction
+command! -nargs=* -complete=command LookupPydoc call LookupPydoc(<f-args>)
+
+nnoremap        <leader>kp        <nop>
+nnoremap        <leader>kp?       :set keywordprg?<cr>
+nnoremap        <leader>kp&       :set keywordprg&<cr>
+nnoremap <expr> <leader>kp<space> ':set keywordprg='
+nnoremap        <leader>kpb       :set keywordprg=:LookupBibleReference<cr>
+nnoremap        <leader>kpd       :set keywordprg=:LookupDefinition<cr>
+nnoremap        <leader>kpp       :set keywordprg=:LookupPydoc<cr>
+"}}}
+
+
 " Settings related to emmet-vim "{{{
 let g:user_emmet_install_global = 0
 let g:user_emmet_leader_key = ','
