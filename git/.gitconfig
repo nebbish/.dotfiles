@@ -23,6 +23,19 @@
 [push]
 	default = current
 [alias]
+    #
+    # NOTE:  the " && :" suffix is a WORKAROUND that "everybody knows":
+    #        borrowing Bash's "no-op" command that always succeeds to swallow
+    #        repeated args
+    #
+    # So the following  : cmd = !git somecmd $1 --option && :
+    # Ran like          : cmd arg1
+    # Becomes           : git somecmd arg1 --option && : arg1
+    #                           ^^^^                   ^^^^
+    #
+    pushfrom = !git push origin $1:master && :
+    forcefrom = !git push origin --force $1:master && :
+
 	ilog = log --graph --pretty=iso --date=iso --decorate
 	ilag = log --graph --pretty=iso --all --date=iso --decorate
 	hlog = log --graph --pretty=human --date=human --decorate
