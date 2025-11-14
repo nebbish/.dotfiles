@@ -34,12 +34,10 @@ set modelines=0
 "
 set viminfo='999,<500,s100,h,rA:,rB:,f0
 
+" Most of \v... is for managing the VIMRC or VIMINFOFILE
 nnoremap <leader>v    <nop>
-nnoremap <expr> <leader>vb   ':vert sb '
 nnoremap <leader>ve   :tabedit $MYVIMRC<cr>
-nnoremap <leader>vn   :vnew<cr>
 nnoremap <leader>vr   :so $MYVIMRC<cr>
-nnoremap <leader>vt   :vert term<cr>
 nnoremap <leader>vi   <nop>
 nnoremap <leader>vif  <nop>
 nnoremap <leader>vifn :set viminfofile=NONE<cr>
@@ -50,6 +48,13 @@ nnoremap <leader>vifr :rviminfo<cr>
 nnoremap <leader>vifw :wviminfo<cr>
 nnoremap <leader>vc   <nop>
 nnoremap <leader>vcl  :call SetupViminfoClean()<cr>
+
+" BUT some is for vertical stuff
+nnoremap <expr> <leader>vb   ':vert sb '
+nnoremap        <leader>vn   :vnew<cr>
+nnoremap        <leader>vt   <nop>
+nnoremap        <leader>vtt  :vert term<cr>
+nnoremap <expr> <leader>vtr  ':vert term ++close '
 
 function! SetupViminfoClean() abort
     let vicur = &viminfofile
