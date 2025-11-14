@@ -4496,8 +4496,21 @@ nnoremap <leader>ibl :G blame<cr>
 nnoremap <leader>ibr :G branch --list -a<cr>
 
 nnoremap <expr> <leader>if ':<c-u>G fetch ' . (v:count == '0' ? '' : (v:count == '1' ? '--all --prune' : '')) . '<cr>'
-nnoremap <expr> <leader>iu ':<c-u>G push '  . (v:count == '0' ? '' : (v:count == '1' ? '--force' : (v:count == '2' ? '-u origin' : ''))) . '<cr>'
-nnoremap <expr> <leader>ip ':<c-u>G pull '  . (v:count == '0' ? '--ff-only' : (v:count == '1' ? '--rebase' : '')) . '<cr>'
+nnoremap        <leader>iu  <nop>
+nnoremap <expr> <leader>iuu ':<c-u>G push '          . (v:count == '2' ? '-u origin' : '') . '<cr>'
+nnoremap <expr> <leader>iuf ':<c-u>G push --force '  . (v:count == '2' ? '-u origin' : '')
+nnoremap <expr> <leader>iuw ':<c-u>G ' . (v:count == '1' ? 'forcefrom ' : 'pushfrom ') . expand("<cword>") . '<cr>'
+xnoremap <expr> <leader>iuu ':<c-u>G pushfrom '      . VisualSelection() . '<cr>'
+xnoremap <expr> <leader>iuf ':<c-u>G forcefrom '     . VisualSelection()
+nnoremap        <leader>ip  <nop>
+nnoremap <expr> <leader>ipp ':<c-u>G pull --ff-only<cr>'
+nnoremap <expr> <leader>ipr ':<c-u>G pull --rebase<cr>'
+
+nnoremap <expr> <leader>ir         <nop>
+nnoremap <expr> <leader>ir<space>  ':G rebase -i '
+nnoremap <expr> <leader>irw        ':G rebase -i ' . expand("<cword>")
+nnoremap <expr> <leader>irr        ':G rebase -i ' . expand("<cword>") . '~<cr>'
+xnoremap <expr> <leader>irr        ':G rebase -i ' . VisualSelection() . '~<cr>'
 
 nnoremap        <leader>ic         <nop>
 nnoremap        <leader>ica        :G commit --amend<cr>
