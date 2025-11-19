@@ -1323,6 +1323,13 @@ nnoremap <leader>wu <cmd>call MakeUnscratch()<cr>
 ""
 "" This helper is a modified copy of: https://gist.github.com/romainl/eae0a260ab9c135390c30cd370c20cd7
 ""
+function! s:RedirExec(cmd) abort
+    redir => cmd_output
+    silent! execute a:cmd
+    redir END
+    return split(l:cmd_output, "\n")
+endfunction
+
 function! Redir(cmd, count, start, end)
     "for win in range(1, winnr('$'))
     "	if getwinvar(win, 'redir_scratch_window')
@@ -1346,10 +1353,7 @@ function! Redir(cmd, count, start, end)
         "	let output = split(cleaned_lines, "\n")
         "endif
     else
-        redir => cmd_output
-        execute a:cmd
-        redir END
-        let output = split(l:cmd_output, "\n")
+        let output = s:RedirExec(a:cmd)
     endif
     if a:count == a:start && a:count == a:end && a:count == 1
         vnew
@@ -1500,10 +1504,7 @@ function! DumpMarks(forRemaking) abort
     ""
     ""   I dont like that.   For now it works :/
     ""
-    redir => cmd_output
-    silent execute "marks"
-    redir END
-    let cmdout = split(l:cmd_output, "\n")
+    let cmdout = s:RedirExec('marks')
     let marks = []
     for line in l:cmdout
         let fields = l:line->split()
@@ -1560,10 +1561,7 @@ endfunction
 function! SaveMarks(fname) abort
     echo 'Saving marks...'
     let markspath = GetMarksFile(a:fname)
-    redir => cmd_output
-    silent execute "marks"
-    redir END
-    let cmdout = split(l:cmd_output, "\n")
+    let cmdout = s:RedirExec('marks')
     let marks = []
     for line in l:cmdout
         let fields = l:line->split()
