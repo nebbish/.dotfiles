@@ -2485,6 +2485,14 @@ set diffopt+=vertical
 "nnoremap <leader>dt :diffthis<cr>
 nnoremap <leader>xbdf :bufdo diffoff<cr>
 nnoremap <leader>du :diffupdate<cr>
+
+" Here we create handy mappings to "diff against ..." left/right/up/down
+nnoremap <leader>da  <nop>
+nnoremap <leader>dah <cmd>norm <c-w>hyod<c-w>p<cr>
+nnoremap <leader>dal <cmd>norm <c-w>lyod<c-w>p<cr>
+nnoremap <leader>daj <cmd>norm <c-w>jyod<c-w>p<cr>
+nnoremap <leader>dak <cmd>norm <c-w>kyod<c-w>p<cr>
+
 " This is a functional version of an expression that cleanly lists all the windows
 " currently in 'diff' mode.  from:  https://vi.stackexchange.com/a/16949/9912
 function! ListDiffs()
