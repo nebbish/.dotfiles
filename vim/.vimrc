@@ -46,6 +46,8 @@ nnoremap <leader>vifn :set viminfofile=NONE<cr>
 nnoremap <leader>vifd :set viminfofile&<cr>
 nnoremap <leader>vif? :set viminfofile?<cr>
 nnoremap <leader>vif= :set viminfofile=
+nnoremap <leader>vifr :rviminfo<cr>
+nnoremap <leader>vifw :wviminfo<cr>
 nnoremap <leader>vc   <nop>
 nnoremap <leader>vcl  :call SetupViminfoClean()<cr>
 
@@ -414,18 +416,23 @@ set smartcase		" however, if a capital letter was entered, go back to case SENSi
 set showmatch		" briefly highlight the matching 'bracket' (i.e. '[]','()','{}',...)
 nnoremap <leader><space> :nohl<cr>
 nnoremap <leader>rr :redraw!<cr>
-nnoremap <leader>xl :AnsiEsc<cr>
 
 " Borrow <Enter> in normal mode to just highlight the current word
 function! HighlightText(text)
-    let rex = '\<' . VimRxEscape(a:text) . '\>'
+    if v:count == 0
+        let rex = '\v' . VimRxEscape(a:text)
+    else
+        let rex = '\v%(^|<)' . VimRxEscape(a:text) . '%(>|$)'
+    endif
     let @/ = l:rex
     echo '/'.@/
     call histadd("search", l:rex)
     set hls
 endfunction
-nnoremap <silent> <leader>hh :call HighlightText(expand("<cword>"))<cr>
-xnoremap <silent> <leader>hh :call HighlightText(VisualSelection())<cr>
+nnoremap <silent> <leader>h  <nop>
+nnoremap <silent> <leader>hh :call HighlightText(expand("<cword>"))<cr>
+nnoremap <silent> <leader>hH :call HighlightText(expand("<cWORD>"))<cr>
+xnoremap <silent> <leader>hh :call HighlightText(VisualSelection())<cr>
 
 ""
 "" For formatting:  gq
@@ -730,22 +737,24 @@ nnoremap <leader><leader>? :set guifont?<cr>
 " This bit was inspired by the answer here:  https://stackoverflow.com/a/3316521/5844631
 nnoremap <leader>rf :echom 'No font mappings available'<cr>
 
+let s:default_guifont=''
+if has('gui_win32')
+    let s:default_guifont='Lucida_Console:h8:cANSI:qDRAFT'
+elseif has('gui_macvim')
+    let s:default_guifont='Menlo-Regular:h11'
+elseif has('gui_gtk2') && !has('unix')
+    let s:default_guifont='Consolas:h11:cANSI'
+    "let s:default_guifont='Monospace:10'
+endif
+
 if has('gui_running')
     let s:first_run = 0
     if ! exists("s:font_set")
         let s:font_set = 1
         let s:first_run = 1
-
-        let s:guifont=''
-        if has('gui_win32')
-            let s:guifont='Lucida_Console:h8:cANSI:qDRAFT'
-        elseif has('gui_macvim')
-            let s:guifont='Menlo-Regular:h11'
-        elseif has('gui_gtk2') && !has('unix')
-            let s:guifont='Consolas:h11:cANSI'
-            "let s:guifont='Monospace:10'
-        endif
     endif
+
+    let s:guifont=s:default_guifont
 
     ""
     "" NOTE:  this is an attemped workaround for something that is VERY
@@ -759,21 +768,52 @@ if has('gui_running')
     ""        Additionally -- even `:set`ting the value here, does not help
     ""        I still must use the mapping after VIM finishes loading :(
     ""
-    function! MakeGuiFont() range
-        if v:count == 0
+    function! MakeGuiFont(count) range
+        if a:count == 0
             return s:guifont
         endif
-        return substitute(s:guifont, '\v:h\d+', ':h' . v:count, '')
+        return substitute(s:guifont, '\v:h\d+', ':h' . a:count, '')
     endfunction
 
     if s:guifont != ""
-        nnoremap <expr> <leader>rf ':<c-u>set guifont=' . MakeGuiFont() . '<cr>'
+        nnoremap <expr> <leader>rf ':<c-u>set guifont=' . MakeGuiFont(v:count) . '<cr>'
         if s:first_run == 1
             let &guifont=s:guifont
             normal \<Plug>FontsizeDefault
         endif
     endif
+else
+    " NOTE: this depends on the guifont default for p
+    "let &printfont='Courier_New:h8'
+    let &printfont='Arial:h8'
+    "let &printfont='Consolas:h8'
 endif
+
+
+nnoremap <leader>pf  <nop>
+nnoremap <leader>pfn <nop>
+nnoremap <leader>pfn? :set printfont?<cr>
+nnoremap <leader>pfn& :set printfont&<cr>
+nnoremap <expr> <leader>pfn<space> ':set printfont=' . &pfn
+
+"
+" NOTE: each 'point' (pt) is 1/72 of an inch -- so 36pt is 1/2 in
+"
+set popt=left:36pt,right:36pt,top:36pt,bottom:36pt,paper:letter,header:0
+
+nnoremap <leader>pt <cmd>call PrintBuffer()<cr>
+function! PrintBuffer() abort
+    " NOTE: MacOS authored!
+    let ps = expand('%:r') . '.ps'
+    let pdf = expand('%:r') . '.pdf'
+    let font = split(&pfn, ':')[0]
+    execute 'hardcopy > ' . l:ps
+    call system('perl -i -pe "s/Courier/' . l:font . '/g" ' . l:ps)
+    call system('ps2pdf ' . l:ps)
+    "call system('rm ' . l:ps)
+    call system('open ' . l:pdf)
+endfunction
+
 "}}}
 
 
@@ -1134,11 +1174,11 @@ CommandAbbrev argtestq ArgTestQ
 command! -nargs=* -complete=command -range ArgTestF call ArgTest(<range>, <line1>, <line2>, <f-args>)
 CommandAbbrev argtestf ArgTestF
 
-function! DbgTest(type) abort
-    if v:count == 0
+function! DumpHistory(type, count) abort
+    if a:count == 0
         let cnt = 10
     else
-        let cnt = v:count
+        let cnt = a:count
     endif
     let idx = l:cnt
     while l:idx > 0
@@ -1153,11 +1193,11 @@ function! DbgTest(type) abort
         let idx = l:idx - 1
     endwhile
 endfunction
-nnoremap <leader>q: :<c-u>call DbgTest(':')<cr>
-nnoremap <leader>q/ :<c-u>call DbgTest('/')<cr>
-nnoremap <leader>q= :<c-u>call DbgTest('=')<cr>
-nnoremap <leader>q@ :<c-u>call DbgTest('@')<cr>
-nnoremap <leader>q> :<c-u>call DbgTest('>')<cr>
+nnoremap <leader>q: :<c-u>call DumpHistory(':', v:count)<cr>
+nnoremap <leader>q/ :<c-u>call DumpHistory('/', v:count)<cr>
+nnoremap <leader>q= :<c-u>call DumpHistory('=', v:count)<cr>
+nnoremap <leader>q@ :<c-u>call DumpHistory('@', v:count)<cr>
+nnoremap <leader>q> :<c-u>call DumpHistory('>', v:count)<cr>
 
 nnoremap <leader>qp  <nop>
 nnoremap <leader>qp: :<c-u>norm ]op<c-r>=histget(':', "-" . v:count1)<cr><cr>
@@ -1211,36 +1251,36 @@ nnoremap <leader>qp> :<c-u>norm ]op<c-r>=histget('>', "-" . v:count1)<cr><cr>
 "" NOTE:  this one to gather all the autocmd entries in a buffer DOES NOT WORK :(
 nnoremap <leader>g <nop>
 nnoremap <leader>ge <nop>
-nnoremap <leader>gem :<c-u>call GetSpecifiedInfo("map", 0)<cr>
-nnoremap <leader>gek :<c-u>call GetSpecifiedInfo("marks", 0)<cr>
-nnoremap <leader>gec :<c-u>call GetSpecifiedInfo("command", 0)<cr>
-nnoremap <leader>gea :<c-u>call GetSpecifiedInfo("autocmd", 0)<cr>
-nnoremap <leader>geh :<c-u>call GetSpecifiedInfo("highlight", 0)<cr>
-nnoremap <leader>gel :<c-u>call GetSpecifiedInfo("let", 0)<cr>
-nnoremap <leader>ger :<c-u>call GetSpecifiedInfo("registers", 0)<cr>
-nnoremap <leader>ges :<c-u>call GetSpecifiedInfo("scriptnames", 0)<cr>
-nnoremap <leader>geg :<c-u>call GetSpecifiedInfo("messages", 0)<cr>
-nnoremap <leader>geq :<c-u>call GetSpecifiedInfo("clist", 0)<cr>
+nnoremap <leader>gem :<c-u>call GetSpecifiedInfo("map", 0, v:count)<cr>
+nnoremap <leader>gek :<c-u>call GetSpecifiedInfo("marks", 0, v:count)<cr>
+nnoremap <leader>gec :<c-u>call GetSpecifiedInfo("command", 0, v:count)<cr>
+nnoremap <leader>gea :<c-u>call GetSpecifiedInfo("autocmd", 0, v:count)<cr>
+nnoremap <leader>geh :<c-u>call GetSpecifiedInfo("highlight", 0, v:count)<cr>
+nnoremap <leader>gel :<c-u>call GetSpecifiedInfo("let", 0, v:count)<cr>
+nnoremap <leader>ger :<c-u>call GetSpecifiedInfo("registers", 0, v:count)<cr>
+nnoremap <leader>ges :<c-u>call GetSpecifiedInfo("scriptnames", 0, v:count)<cr>
+nnoremap <leader>geg :<c-u>call GetSpecifiedInfo("messages", 0, v:count)<cr>
+nnoremap <leader>geq :<c-u>call GetSpecifiedInfo("clist", 0, v:count)<cr>
 nnoremap <leader>geb <nop>
-nnoremap <leader>gebq :<c-u>call GetSpecifiedInfo("clist!", 0)<cr>
+nnoremap <leader>gebq :<c-u>call GetSpecifiedInfo("clist!", 0, v:count)<cr>
 
 nnoremap <leader>gev <nop>
-nnoremap <leader>gevm :<c-u>call GetSpecifiedInfo("map", 1)<cr>
-nnoremap <leader>gevk :<c-u>call GetSpecifiedInfo("marks", 1)<cr>
-nnoremap <leader>gevc :<c-u>call GetSpecifiedInfo("command", 1)<cr>
-nnoremap <leader>geva :<c-u>call GetSpecifiedInfo("autocmd", 1)<cr>
-nnoremap <leader>gevh :<c-u>call GetSpecifiedInfo("highlight", 1)<cr>
-nnoremap <leader>gevl :<c-u>call GetSpecifiedInfo("let", 1)<cr>
-nnoremap <leader>gevr :<c-u>call GetSpecifiedInfo("registers", 1)<cr>
-nnoremap <leader>gevs :<c-u>call GetSpecifiedInfo("scriptnames", 1)<cr>
-nnoremap <leader>gevg :<c-u>call GetSpecifiedInfo("messages", 1)<cr>
-nnoremap <leader>gevq :<c-u>call GetSpecifiedInfo("clist", 1)<cr>
+nnoremap <leader>gevm :<c-u>call GetSpecifiedInfo("map", 1, v:count)<cr>
+nnoremap <leader>gevk :<c-u>call GetSpecifiedInfo("marks", 1, v:count)<cr>
+nnoremap <leader>gevc :<c-u>call GetSpecifiedInfo("command", 1, v:count)<cr>
+nnoremap <leader>geva :<c-u>call GetSpecifiedInfo("autocmd", 1, v:count)<cr>
+nnoremap <leader>gevh :<c-u>call GetSpecifiedInfo("highlight", 1, v:count)<cr>
+nnoremap <leader>gevl :<c-u>call GetSpecifiedInfo("let", 1, v:count)<cr>
+nnoremap <leader>gevr :<c-u>call GetSpecifiedInfo("registers", 1, v:count)<cr>
+nnoremap <leader>gevs :<c-u>call GetSpecifiedInfo("scriptnames", 1, v:count)<cr>
+nnoremap <leader>gevg :<c-u>call GetSpecifiedInfo("messages", 1, v:count)<cr>
+nnoremap <leader>gevq :<c-u>call GetSpecifiedInfo("clist", 1, v:count)<cr>
 nnoremap <leader>gevb <nop>
-nnoremap <leader>gevbq :<c-u>call GetSpecifiedInfo("clist!", 1)<cr>
+nnoremap <leader>gevbq :<c-u>call GetSpecifiedInfo("clist!", 1, v:count)<cr>
 
-nnoremap <leader>geyd :<c-u>call GetSpecifiedInfo("YcmDebugInfo", 0)<cr>
+nnoremap <leader>geyd :<c-u>call GetSpecifiedInfo("YcmDebugInfo", 0, v:count)<cr>
 
-function! GetSpecifiedInfo(cmd, verbose)
+function! GetSpecifiedInfo(cmd, verbose, count)
 	redir @"
 	if a:verbose
 		execute "verbose silent " . a:cmd
@@ -1256,7 +1296,7 @@ function! GetSpecifiedInfo(cmd, verbose)
 		endif
 	endif
 	redir END
-	if v:count == 1
+	if a:count == 1
 		put \"
 	else
 		new
@@ -1557,12 +1597,12 @@ if has('win32')
     set shellcmdflag=/v:on\ /c
 endif
 let g:WatchHighlightDiffs = 1
-function! LineAsWatchCmd() abort
+function! LineAsWatchCmd(count) abort
     let darg = g:WatchHighlightDiffs == 1 ? " -d " : " "
-    if v:count == 0
+    if a:count == 0
         let cmd = "term ++kill=term ++close watch" . l:darg
     else
-        let cmd = "term ++kill=term ++close watch -n " . v:count . l:darg
+        let cmd = "term ++kill=term ++close watch -n " . a:count . l:darg
     endif
     if has ('win32')
         let cmd0 = split(getline('.'))[0]
@@ -1850,7 +1890,7 @@ nnoremap <leader>eld  :<c-u>:Dispatch <c-r>=LineAsShellCmd(v:count, 1)<cr><cr>
 nnoremap <leader>elu  <nop>
 nnoremap <leader>elur :<c-u>put =LineAsShellCmd(v:count, 1)<cr>
 nnoremap <leader>elul :<c-u>put =LineAsShellCmd(v:count, 0)<cr>
-nnoremap <leader>eluw :<c-u>put =LineAsWatchCmd()<cr>
+nnoremap <leader>eluw :<c-u>put =LineAsWatchCmd(v:count)<cr>
 nnoremap <leader>elus :<c-u>put =LineAsSplitCmd(v:count)<cr>
 
 " Not sure if I want to keep the delayed resize or not...    as of now, not.
@@ -1882,11 +1922,11 @@ function! InitMarkExecuteMaps() abort
     nnoremap <leader>emd   <nop>
     nnoremap <leader>ema   <nop>
 
-    function! ExecuteMark(mark, cmd, rst) abort
-        if v:count == 0
+    function! ExecuteMark(count, mark, cmd, rst) abort
+        if a:count == 0
             execute 'norm ' . printf("'%s%s\<c-o>", a:mark, a:cmd)
         else
-            execute 'tab sb ' . v:count
+            execute 'tab sb ' . a:count
             let t:markrun = 1
             " The user paragraph can create tabs, and finish with whatever tab
             " active - so we save the tab we just opened so we jump back to it
@@ -1904,12 +1944,12 @@ function! InitMarkExecuteMaps() abort
     endfunction
 
     for ltr in "abcdefghijklmnopqrstuvwxyz"
-        execute 'nnoremap <leader>emc' . l:ltr . ' <cmd>call ExecuteMark("'.l:ltr.'","\\epc","\\a,\\ac")<cr>'
-        execute 'nnoremap <leader>eml' . l:ltr . ' <cmd>call ExecuteMark("'.l:ltr.'","\\epl","\\a,\\ac")<cr>'
-        execute 'nnoremap <leader>emr' . l:ltr . ' <cmd>call ExecuteMark("'.l:ltr.'","\\epr","\\a,\\ac")<cr>'
+        execute 'nnoremap <leader>emc' . l:ltr . ' <cmd>call ExecuteMark(v:count, "'.l:ltr.'","\\epc","\\a,\\ac")<cr>'
+        execute 'nnoremap <leader>eml' . l:ltr . ' <cmd>call ExecuteMark(v:count, "'.l:ltr.'","\\epl","\\a,\\ac")<cr>'
+        execute 'nnoremap <leader>emr' . l:ltr . ' <cmd>call ExecuteMark(v:count, "'.l:ltr.'","\\epr","\\a,\\ac")<cr>'
         " NOTE:  \eld is LINE based, while the rest of these are PARAGRAPH based
-        execute 'nnoremap <leader>emd' . l:ltr . ' <cmd>call ExecuteMark("'.l:ltr.'","\\eld","\\a,\\ac")<cr>'
-        execute 'nnoremap <leader>ema' . l:ltr . ' <cmd>call ExecuteMark("'.l:ltr.'","\\eps","\\a,\\zz")<cr>'
+        execute 'nnoremap <leader>emd' . l:ltr . ' <cmd>call ExecuteMark(v:count, "'.l:ltr.'","\\eld","\\a,\\ac")<cr>'
+        execute 'nnoremap <leader>ema' . l:ltr . ' <cmd>call ExecuteMark(v:count, "'.l:ltr.'","\\eps","\\a,\\zz")<cr>'
     endfor
 endfunction
 call InitMarkExecuteMaps()
@@ -1919,8 +1959,8 @@ nnoremap <leader>wad? :echo "Watch difference hightlighting is: " . (g:WatchHigh
 nnoremap <leader>wadd :let g:WatchHighlightDiffs = 0<cr>:norm \wad?<cr>
 nnoremap <leader>wade :let g:WatchHighlightDiffs = 1<cr>:norm \wad?<cr>
 
-nnoremap <leader>wal  :<c-u><c-r>=LineAsWatchCmd()<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+getbufinfo("%")[0]["linecount"]<cr><cr><c-w>:set wfh<cr><c-w>p
-nnoremap <leader>wvl  :<c-u>vert <c-r>=LineAsWatchCmd()<cr><cr><c-w>:set wfw<cr><c-w>p
+nnoremap <leader>wal  :<c-u><c-r>=LineAsWatchCmd(v:count)<cr><cr><c-w>:sleep 750ms<cr><c-w>:resize <c-r>=2+getbufinfo("%")[0]["linecount"]<cr><cr><c-w>:set wfh<cr><c-w>p
+nnoremap <leader>wvl  :<c-u>vert <c-r>=LineAsWatchCmd(v:count)<cr><cr><c-w>:set wfw<cr><c-w>p
 
 nnoremap <leader>waq  <c-w>j<c-w><c-c>
 nnoremap <leader>wvq  <c-w>l<c-w><c-c>
@@ -1991,37 +2031,37 @@ nnoremap <leader>ai :setl ai! ai?<cr>
 ""                      (@ other places, 'tabstop' or 'softtabstop' is used)
 ""                      when off, tab/bs uses 'tabstop' or 'softtabstop' everywhere
 ""
-function! ShowTabSettings()
+function! ShowTabSettings(count)
 	execute 'set expandtab?'
 	execute 'set tabstop?'
 	execute 'set shiftwidth?'
 	execute 'set softtabstop?'
 endfunc
-function! SetSpaceSize()
+function! SetSpaceSize(count)
 	execute 'set expandtab'
 	"" NOTE:  because I use the 'vim-stabs' plugin, it over-rides the '=' key
 	""        when 'equalprg' is set, 'vim-stabs' honors it as an over-ride
 	""        therefore, I default to allowing 'vim-stabs' to handle things
 	""        but if it goes wonky, this mapping can setup my own tool
-	""        (the mapping is redefined every time, to honor 'v:count')
-	execute 'nnoremap <leader>se :<c-u>set equalprg=tabtool\ -tw\ ' . v:count . '\ -cls<cr>'
-	execute 'set tabstop=' . v:count
-	execute 'set shiftwidth=' . v:count
-	execute 'set softtabstop=' . v:count
-	echo "Set spaces to be:  " . v:count
+	""        (the mapping is redefined every time, to honor 'a:count')
+	execute 'nnoremap <leader>se :<c-u>set equalprg=tabtool\ -tw\ ' . a:count . '\ -cls<cr>'
+	execute 'set tabstop=' . a:count
+	execute 'set shiftwidth=' . a:count
+	execute 'set softtabstop=' . a:count
+	echo "Set spaces to be:  " . a:count
 endfunc
-function! SetTabSize()
+function! SetTabSize(count)
 	execute 'set noexpandtab'
-	execute 'nnoremap <leader>se :<c-u>set equalprg=tabtool\ -tw\ ' . v:count . '\ -clt<cr>'
-	execute 'set tabstop=' . v:count
-	execute 'set shiftwidth=' . v:count
-	execute 'set softtabstop=' . v:count
-	echo "Set tabs to be:  " . v:count
+	execute 'nnoremap <leader>se :<c-u>set equalprg=tabtool\ -tw\ ' . a:count . '\ -clt<cr>'
+	execute 'set tabstop=' . a:count
+	execute 'set shiftwidth=' . a:count
+	execute 'set softtabstop=' . a:count
+	echo "Set tabs to be:  " . a:count
 endfunc
 
 " NOTE:  if you provide a count of ZERO -- it displays the curret settings
-nnoremap <expr> <leader>ss ":<c-u>call " . (v:count ? "SetSpaceSize" : "ShowTabSettings") . "()<cr>"
-nnoremap <expr> <leader>st ":<c-u>call " . (v:count ? "SetTabSize" : "ShowTabSettings") . "()<cr>"
+nnoremap <expr> <leader>ss ":<c-u>call " . (v:count ? "SetSpaceSize" : "ShowTabSettings") . "(v:count)<cr>"
+nnoremap <expr> <leader>st ":<c-u>call " . (v:count ? "SetTabSize" : "ShowTabSettings") . "(v:count)<cr>"
 " 'smarttab' does not have to be in the functions and re-adjusted every time
 execute 'set smarttab'
 execute "silent normal 4\\ss\\se"
@@ -2197,15 +2237,6 @@ endfunct
 command! -nargs=1 Gall call GallFunction(<q-args>)
 command! -nargs=1 GrepAll call GallFunction(<q-args>)
 "}}}
-
-
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-"" These options are new for me
-"""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
-" NOTE: this only helps when '.vimrc' is re-sourced after loading a file that has
-"       autoformating options.  (b/c of the filetype option below)
-set formatoptions-=tc	" without this, wrapping is automatic for certain file types
-nnoremap <leader>nw :set formatoptions-=tc<cr>
 
 
 " settings related to saving folds in 'viewdir' (:h 'viewdir') "{{{
@@ -2476,11 +2507,11 @@ nnoremap <leader>dl :echo join(ListDiffs(), "\n")<cr>
 "            nmap <leader>do <Plug>VimdiffGet
 "            nmap <leader>do :execute "normal \<Plug>VimdiffGet"<cr>
 "
-function! DiffOp(op) range
-    exe 'normal' (v:count == 0 ? a:op : v:count . a:op)
+function! DiffOp(op, count) range
+    exe 'normal' (a:count == 0 ? a:op : a:count . a:op)
 endfunction
-nnoremap <silent> <Plug>VimdiffGet :<c-u>call DiffOp('do')<cr>]czz:silent! call repeat#set("\<Plug>VimdiffGet", v:count)<cr>
-nnoremap <silent> <Plug>VimdiffPut :<c-u>call DiffOp('dp')<cr>]czz:silent! call repeat#set("\<Plug>VimdiffPut", v:count)<cr>
+nnoremap <silent> <Plug>VimdiffGet :<c-u>call DiffOp('do', v:count)<cr>]czz:silent! call repeat#set("\<Plug>VimdiffGet", v:count)<cr>
+nnoremap <silent> <Plug>VimdiffPut :<c-u>call DiffOp('dp', v:count)<cr>]czz:silent! call repeat#set("\<Plug>VimdiffPut", v:count)<cr>
 ""
 "" below i just call the new '<Plug>'-defined mapping - but unfortunately I cannot provide a {count}.
 "" while trying, I learned this does the same thing:
@@ -2517,20 +2548,117 @@ nnoremap <leader>dww :set diffopt-=iwhite<cr>
 nnoremap <leader>dc  <nop>
 nnoremap <leader>dci :set diffopt+=icase<cr>
 nnoremap <leader>dcc :set diffopt-=icase<cr>
-function! SetDiffContext() range
+function! SetDiffContext(count) range
     let opts = filter(split(&diffopt, ','), 'v:val !~ "^context"')
-    if v:count != 0
-        call add(l:opts, 'context:' . v:count)
+    if a:count != 0
+        call add(l:opts, 'context:' . a:count)
     endif
     let &diffopt=join(l:opts, ',')
 endfunction
-nnoremap <leader>dx :<c-u>call SetDiffContext()<cr>
+nnoremap <leader>dx :<c-u>call SetDiffContext(v:count)<cr>
 " This also switch tabs when diff mode is not ON
 function! PageKeysForDiffs()
     return bufname('%') =~# 'fugitive:\\' || &diff
 endfunction
 nnoremap <expr> <c-pageup>   PageKeysForDiffs() ? ':normal [czz<cr>' : ':tabprev<cr>'
 nnoremap <expr> <c-pagedown> PageKeysForDiffs() ? ':normal ]czz<cr>' : ':tabnext<cr>'
+
+function! FindFirstDiff(line1, line2) abort
+    " Inner helper function to advance to next character that "*Matters*"
+    " (when ignoring white, this is anything but a whitespace)
+    function! s:FFAdv(i, l, ignore) abort
+        let rv = a:i + 1
+        if a:ignore
+            while a:l[l:rv] =~ '\s'
+                let rv = l:rv + 1
+            endwhile
+        endif
+        return l:rv
+    endfunction
+
+    let ignore_ws = &diffopt =~ 'iwhite\|iwhiteall'
+    let min_len = min([len(a:line1), len(a:line2)])
+    let diff_pos = -1
+
+    " Compare character by character
+    let i1 = 0
+    let i2 = 0
+    while l:i1 < l:min_len && l:i2 < l:min_len
+        if a:line1[l:i1] != a:line2[l:i2]
+            let l:diff_pos = l:i1
+            break
+        endif
+
+        let i1 = s:FFAdv(l:i1, a:line1, l:ignore_ws)
+        let i2 = s:FFAdv(l:i2, a:line2, l:ignore_ws)
+    endwhile
+
+    " If no difference found in common length, check if lengths differ
+    if l:diff_pos == -1 && len(a:line1) != len(a:line2)
+        let l:diff_pos = l:min_len
+    endif
+
+    return l:diff_pos
+endfunction
+
+function! JumpToFirstCharDiff()
+    " Check if we're in diff mode
+    if !&diff
+        echo "Not in diff mode"
+        return
+    endif
+
+    " Get current line number and content
+    let l:current_line_num = line('.')
+    let l:current_line = getline(l:current_line_num)
+
+    " Find the other diff buffer
+    let l:current_bufnr = bufnr('%')
+    let l:current_winnr = winnr()
+    let l:other_bufnr = -1
+    let l:other_winnr = -1
+
+    " Look through all windows to find another diff buffer
+    for l:winnr in range(1, winnr('$'))
+        let l:bufnr = winbufnr(l:winnr)
+        if l:bufnr != l:current_bufnr && getwinvar(l:winnr, '&diff')
+            let l:other_winnr = l:winnr
+            let l:other_bufnr = l:bufnr
+            break
+        endif
+    endfor
+
+    if l:other_bufnr == -1
+        echo "No other diff buffer found"
+        return
+    endif
+
+    " Find the corresponding line in the other buffer using diff mapping
+    " We need to switch to the other window temporarily to get the correct line
+    execute l:other_winnr . 'wincmd w'
+    "execute 'syncbind'
+    let l:other_line_num = line('.')
+    let l:other_line_content = getline(l:other_line_num)
+
+    " Switch back to original window
+    execute l:current_winnr . 'wincmd w'
+
+    " Find first different character
+    let l:diff_pos = FindFirstDiff(l:current_line, l:other_line_content)
+
+    " Move cursor to the differing position
+    if l:diff_pos >= 0
+        " Move to column (add 1 because Vim columns are 1-indexed)
+        call cursor(l:current_line_num, l:diff_pos + 1)
+        echo "Jumped to first difference at column " . (l:diff_pos + 1)
+    else
+        echo "No difference found on this line"
+    endif
+endfunction
+
+" Create a command to call the function
+command! FirstCharDiff call JumpToFirstCharDiff()
+nnoremap <leader>d0 <cmd>FirstCharDiff<cr>
 
 ""
 "" These mappings are for "normalizing" text so LOGS may compare easier
@@ -3297,6 +3425,111 @@ endif
 
 "}}}
 
+" Settings related to AnsiEsc plugin "{{{
+nnoremap <leader>xl :AnsiEsc<cr>
+
+nnoremap <leader><leader>o  <nop>
+nnoremap <leader><leader>oo :AnsiEsc<cr>
+nnoremap <leader><leader>o? :echo '"' . <SID>CurColorCode() . '"'<cr>
+nnoremap <leader><leader>oz :call <SID>DumpAnsiCode()<cr>
+nnoremap <leader><leader>oy :call <SID>SetAnsiStyle()<cr>
+nnoremap <leader><leader>of :call <SID>SetAnsiFore()<cr>
+nnoremap <leader><leader>ob :call <SID>SetAnsiBack()<cr>
+nnoremap <leader><leader>ol :call <SID>ClearAnsiCode()<cr>
+
+" NOTE:  `map!` is for mode-C and mode-I
+"noremap! <expr> <c-s><c-l>c  '¯\_(ツ)_/¯'
+
+noremap!        <c-s><c-l>  <nop>
+" Adjust current code
+noremap!        <c-s><c-l>? <c-o>:call <SID>DumpAnsiCode()<bar>echo ''<cr>
+noremap!        <c-s><c-l>y <c-o>:call <SID>SetAnsiStyle()<cr>
+noremap!        <c-s><c-l>f <c-o>:call <SID>SetAnsiFore()<cr>
+noremap!        <c-s><c-l>b <c-o>:call <SID>SetAnsiBack()<cr>
+noremap!        <c-s><c-l>l <c-o>:call <SID>ClearAnsiCode()<bar>echo ''<cr>
+" Insert start & end codes
+noremap! <expr> <c-s><c-l>s <SID>CurColorCode()
+noremap! <expr> <c-s><c-l>e "\<c-v>\<esc>[m"
+
+nnoremap        <leader><leader>oa  <nop>
+nnoremap <expr> <leader><leader>oap "\"='" . <SID>CurColorCode() . "'<cr>p"
+nnoremap <expr> <leader><leader>oaP "\"='" . <SID>CurColorCode() . "'<cr>P"
+nnoremap        <leader><leader>oe  <nop>
+nnoremap <expr> <leader><leader>oep "\"='" . "\<c-v>\<esc>[m" . "'<cr>p"
+nnoremap <expr> <leader><leader>oeP "\"='" . "\<c-v>\<esc>[m" . "'<cr>P"
+
+let s:current_style = ''
+let s:current_foreground = ''
+let s:current_background = ''
+function! s:DumpAnsiCode()
+    echo 'style: "' . s:current_style . '", fore: "' . s:current_foreground . '", back: "' . s:current_background . '", code: "' . <SID>CurColorCode() . '"'
+endfunction
+function! s:CurColorCode()
+    let parts = []
+    if s:current_style != ''
+        call add(parts, s:current_style)
+    endif
+    if s:current_foreground != ''
+        call add(parts, s:current_foreground)
+    endif
+    if s:current_background != ''
+        call add(parts, s:current_background)
+    endif
+    let code = join(l:parts, ';')
+    return "\<c-v>\<esc>[" . (len(l:code) ? l:code : '0') . "m"
+endfunction
+function! s:ClearAnsiCode()
+    let s:current_style = ''
+    let s:current_foreground = ''
+    let s:current_background = ''
+    call <SID>DumpAnsiCode()
+endfunction
+
+function! s:GetUserStyle()
+    echohl Question
+    echo "ANSI Style: (z)ero (b)old in(v)erse (u)nderline"
+    echohl None
+    let styles = { 'z':'0', 'b':'1', 'v':'2', 'u':'4' }
+    return get(l:styles, nr2char(getchar()), '')
+endfunction
+function! s:GetUserColor(isback)
+    echohl Question
+    echo "ANSI Color: blac(k) (r)ed (g)reen (y)ellow (b)lue (m)agenta (c)yan (w)hite. (cap for intense:  BLAC(K) (R)ED ..."
+    echohl None
+    " This works because the intense foregrounds are 60 above the regular foregrounds
+    " and the same with the backgrounds, the intense ones are 60 above the regular ones
+    let colors = { 'k':0, 'r':1, 'g':2, 'y':3, 'b':4, 'm':5, 'c':6, 'w':7,
+                 \ 'K':60, 'R':61, 'G':62, 'Y':63, 'B':64, 'M':65, 'C':66, 'W':67 }
+    let color = get(l:colors,nr2char(getchar()), -1)
+    if l:color == -1
+        return ''
+    endif
+    return printf('%d', (a:isback ? 40 : 30) + l:color)
+endfunction
+function! s:SetAnsiStyle()
+    let s:current_style = <SID>GetUserStyle()
+    call <SID>DumpAnsiCode()
+endfunction
+function! s:SetAnsiFore()
+    let s:current_foreground = <SID>GetUserColor(v:false)
+    call <SID>DumpAnsiCode()
+endfunction
+function! s:SetAnsiBack()
+    let s:current_background = <SID>GetUserColor(v:true)
+    call <SID>DumpAnsiCode()
+endfunction
+
+"noremap! <expr> <c-s><c-o><c-o> '[m'
+"noremap! <expr> <c-s><c-o>b     '[30m'
+"noremap! <expr> <c-s><c-o>r     '[31m'
+"noremap! <expr> <c-s><c-o>g     '[32m'
+"noremap! <expr> <c-s><c-o>y     '[33m'
+"noremap! <expr> <c-s><c-o>b     '[34m'
+"noremap! <expr> <c-s><c-o>m     '[35m'
+"noremap! <expr> <c-s><c-o>c     '[36m'
+"noremap! <expr> <c-s><c-o>w     '[37m'
+
+"}}}
 
 " Settings related to Coc "{{{
 
@@ -4305,10 +4538,10 @@ nnoremap <expr> <leader>icm<space> ':G merge '
 "" # nnoremap <leader>ila :call GitDo('G hlag')<cr>
 "" #
 
-function! Gpfx() abort
-    if v:count == '0'
+function! Gpfx(count) abort
+    if a:count == '0'
         return 'G '
-    elseif v:count == '1'
+    elseif a:count == '1'
         return 'vert G '
     endif
     return '0G '
@@ -4316,10 +4549,10 @@ endfunction
 
 nnoremap <leader>il <nop>
 nnoremap <expr> <leader>ilf        <nop>
-nnoremap <expr> <leader>ilf<space> ':<c-u>' . Gpfx() . 'log --date=human --decorate -p --follow -- '
-nnoremap <expr> <leader>ilff       ':<c-u>' . Gpfx() . 'log --date=human --decorate -p --follow -- ' . Expand('g') . '<cr>'
-nnoremap <expr> <leader>ilo ':<c-u>' . Gpfx() . 'hlog<cr>'
-nnoremap <expr> <leader>ila ':<c-u>' . Gpfx() . 'hlag<cr>'
+nnoremap <expr> <leader>ilf<space> ':<c-u>' . Gpfx(v:count) . 'log --date=human --decorate -p --follow -- '
+nnoremap <expr> <leader>ilff       ':<c-u>' . Gpfx(v:count) . 'log --date=human --decorate -p --follow -- ' . Expand('g') . '<cr>'
+nnoremap <expr> <leader>ilo ':<c-u>' . Gpfx(v:count) . 'hlog<cr>'
+nnoremap <expr> <leader>ila ':<c-u>' . Gpfx(v:count) . 'hlag<cr>'
 " These next two mappings will populate the "local" and "quickfix" lists respectively
 " NOTE: this involves an 'efm' within the Fugitive plugin that does NOT work with '--graph' or my '--pretty' formats
 "       (i.e.  if I add --graph, then the quickfix window does not find the commits to jump to)
@@ -4473,7 +4706,7 @@ nnoremap        <leader>fdrl      :FocusDispatch <c-r>b <c-r><c-l><cr>
 ""
 "" Next are mappings (& helper function) specifically for MSBuild
 ""
-function! SetMSBuildDispatch(cmd)
+function! SetMSBuildDispatch(count, cmd)
     ""
     "" NOTE:  this adjusts the JAVA_HOME environment variable within VIM
     ""        generally when launching MSBuild, this is what I want.
@@ -4503,9 +4736,9 @@ function! SetMSBuildDispatch(cmd)
                 \ '/flp4:logfile=' . getcwd() . '_build-logs\msbuild-diagnostic.log;verbosity=diag',
                 \ ]
 
-    if v:count == 0
+    if a:count == 0
         let allargs = [a:cmd, l:mainargs, join(l:logargs)]
-    elseif v:count == 1
+    elseif a:count == 1
         let allargs = [a:cmd, l:mainargs]
     else
         let allargs = [a:cmd]
@@ -4514,22 +4747,22 @@ function! SetMSBuildDispatch(cmd)
 endfunc
 
 nnoremap <leader>fdm    <nop>
-nnoremap <leader>fdms   :<c-u>call SetMSBuildDispatch('msbuild')<cr>
+nnoremap <leader>fdms   :<c-u>call SetMSBuildDispatch(v:count, 'msbuild')<cr>
 nnoremap <leader>fd1    <nop>
 nnoremap <leader>fd17   <nop>
-nnoremap <leader>fd17b  :<c-u>call SetMSBuildDispatch('ms2017bt')<cr>
-nnoremap <leader>fd17p  :<c-u>call SetMSBuildDispatch('ms2017pro')<cr>
+nnoremap <leader>fd17b  :<c-u>call SetMSBuildDispatch(v:count, 'ms2017bt')<cr>
+nnoremap <leader>fd17p  :<c-u>call SetMSBuildDispatch(v:count, 'ms2017pro')<cr>
 nnoremap <leader>fd19   <nop>
-nnoremap <leader>fd19b  :<c-u>call SetMSBuildDispatch('ms2019bt')<cr>
-nnoremap <leader>fd19p  :<c-u>call SetMSBuildDispatch('ms2019pro')<cr>
+nnoremap <leader>fd19b  :<c-u>call SetMSBuildDispatch(v:count, 'ms2019bt')<cr>
+nnoremap <leader>fd19p  :<c-u>call SetMSBuildDispatch(v:count, 'ms2019pro')<cr>
 nnoremap <leader>fd2    <nop>
 nnoremap <leader>fd22   <nop>
-nnoremap <leader>fd22b  :<c-u>call SetMSBuildDispatch('ms2022bt')<cr>
-nnoremap <leader>fd22p  :<c-u>call SetMSBuildDispatch('ms2022pro')<cr>
+nnoremap <leader>fd22b  :<c-u>call SetMSBuildDispatch(v:count, 'ms2022bt')<cr>
+nnoremap <leader>fd22p  :<c-u>call SetMSBuildDispatch(v:count, 'ms2022pro')<cr>
 nnoremap <leader>fdd    <nop>
-nnoremap <leader>fddn   :<c-u>call SetMSBuildDispatch('dotnet publish')<cr>
+nnoremap <leader>fddn   :<c-u>call SetMSBuildDispatch(v:count, 'dotnet publish')<cr>
 nnoremap <leader>fd19d  <nop>
-nnoremap <leader>fd19dn :<c-u>call SetMSBuildDispatch('dn2019bt publish')<cr>
+nnoremap <leader>fd19dn :<c-u>call SetMSBuildDispatch(v:count, 'dn2019bt publish')<cr>
 
 nnoremap <leader>fdq     <nop>
 nnoremap <leader>fdqm    <nop>
@@ -4549,14 +4782,14 @@ nnoremap <leader>fdq19dn :FocusDispatch dn2019bt publish <c-r><c-l><cr>
 ""
 "" Next are mappings (& helper function) specifically for Gradle
 ""
-function! SetGradleDispatch(...) abort range
+function! SetGradleDispatch(count, ...) abort range
     ""
     "" NOTE:  this adjusts the JAVA_HOME environment variable within VIM
     ""        generally when launching gradle, this is what I want.
     ""        this will only become trouble if I find myself interleaving my Gradle launching
     ""        with some other Java work for which I want a different JAVA_HOME
     ""
-    if v:count == 0
+    if a:count == 0
         call SetJavaHomeToToolsArea()
     endif
 
@@ -4589,8 +4822,8 @@ function! SetGradleDispatch(...) abort range
 endfunc
 
 nnoremap <leader>fdg    <nop>
-nnoremap <leader>fdgr   :<c-u>call SetGradleDispatch('--no-daemon')<cr>
-nnoremap <leader>fdgd   :<c-u>call SetGradleDispatch()<cr>
+nnoremap <leader>fdgr   :<c-u>call SetGradleDispatch(v:count, '--no-daemon')<cr>
+nnoremap <leader>fdgd   :<c-u>call SetGradleDispatch(v:count)<cr>
 
 " Mapping to copy the current :FocusDispatch value to the clipboard register
 nnoremap <leader>fdc    <nop>
@@ -4967,22 +5200,24 @@ let g:cpp_experimental_simple_template_highlight = 1
 
 "" More color schemes, from a forum discussion, half way down:
 ""    https://developers.slashdot.org/story/08/07/03/1249246/best-color-scheme-for-coding-easiest-on-the-eyes
-"" The color scheme is NOT a plugin, and needs to be manually retrieved, using:
+"" The color scheme is NOT a plugin, and needs to be manually retrieved.
+"" NOTE:  zenburn is ONLY dark
 ""
-""     macro: 0wy$:"
+""     "" A quick macro to more easily run the following commands
+""     "" (since they're all in the middle of a comment)
+""     let @r = "0wv$h\\evr"
 ""
 ""     "" For Linux
-""     !mkdir ~/.vim/colors
-""     cd ~/.vim/colors
+""     mkdir ~/.vim/colors
+""     cd ~/.vim/colors && wget https://raw.githubusercontent.com/jnurmine/Zenburn/master/colors/zenburn.vim
+""     cd ~/.vim/colors && wget https://raw.githubusercontent.com/vim-scripts/moria/master/colors/moria.vim
 ""
 ""     "" For Windows
-""     !mklink /d %VIMRUNTIME%\..\vimfiles %USERPROFILE%\.vim\vimfiles
-""     !mkdir %USERPROFILE%\.vim\vimfiles\colors
-""     cd %USERPROFILE%\.vim\vimfiles\colors
-
-""     "" NOTE:  zenburn is ONLY dark
-""     !wget https://raw.githubusercontent.com/jnurmine/Zenburn/master/colors/zenburn.vim
-""     !wget https://raw.githubusercontent.com/vim-scripts/moria/master/colors/moria.vim
+""     mklink /d %VIMRUNTIME%\..\vimfiles %USERPROFILE%\.vim\vimfiles
+""     mkdir %USERPROFILE%\.vim\vimfiles\colors
+""     cd %USERPROFILE%\.vim\vimfiles\colors && wget https://raw.githubusercontent.com/jnurmine/Zenburn/master/colors/zenburn.vim
+""     cd %USERPROFILE%\.vim\vimfiles\colors && wget https://raw.githubusercontent.com/vim-scripts/moria/master/colors/moria.vim
+""
 
 " I found the following web pages helpful for setting these values
 "
@@ -5814,9 +6049,9 @@ nnoremap <leader>al :call MoveWinToNextTab()<cr>
 
 " Opening & Closing mappings (utility windows and gui elements) "{{{
 nnoremap <silent> <leader>o    <nop>
-nnoremap <silent> <leader>oc   :<c-u>call OpenCompanionCode()<cr>
+nnoremap <silent> <leader>oc   :<c-u>call OpenCompanionCode(v:count)<cr>
 
-function! OpenCompanionCode() range abort
+function! OpenCompanionCode(count) range abort
     " See if current file is "test" or "src"
     let cur = bufname("%")
     if l:cur !~? '\.java$'
@@ -5848,9 +6083,9 @@ function! OpenCompanionCode() range abort
         let new = substitute(l:new, '\.java', 'Test.java', '')
     endif
 
-    if v:count == 0
+    if a:count == 0
         exe 'e ' . l:new
-    elseif v:count == 1
+    elseif a:count == 1
         exe 'vs ' . l:new
     else
         exe 'sp ' . l:new
@@ -5867,12 +6102,12 @@ if has('win32')
     nnoremap <silent> <leader>odup :!start <c-r>=substitute(system('echo %USERPROFILE%'), '\v[\s\n\r]+$', '', '')<cr><cr>
 endif
 
-function! Vopen(path) abort
-    if v:count == 0
+function! Vopen(count, path) abort
+    if a:count == 0
         exe 'tabedit ' . a:path
-    elseif v:count == 1
+    elseif a:count == 1
         exe 'vs ' . a:path
-    elseif v:count == 2
+    elseif a:count == 2
         exe 'edit ' . a:path
     else
         exe 'sp ' . a:path
@@ -5880,8 +6115,8 @@ function! Vopen(path) abort
     return ''
 endfunction
 
-nnoremap <silent> <leader>o. :<c-u>call Vopen(getline('.')->trim())<cr>
-xnoremap <silent> <leader>o. :<c-u>call Vopen(VisualSelection())<cr>
+nnoremap <silent> <leader>o. :<c-u>call Vopen(v:count, getline('.')->trim())<cr>
+xnoremap <silent> <leader>o. :<c-u>call Vopen(v:count, VisualSelection())<cr>
 
 nnoremap <silent> <leader>o <nop>
 nnoremap <silent> <leader>oq :copen<cr>
