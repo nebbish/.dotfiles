@@ -2971,7 +2971,7 @@ Plug 'junegunn/vim-emoji'
 
 " IDE feature plugins: "{{{
 " CoC is an LSP for a ton of languages
-"Plug 'neoclide/coc.nvim', {'branch': 'release'}
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
 " This one provides a UnitTest framework
 Plug 'junegunn/vader.vim'
 " This one is really just a UT "launch helper", understanding many UT frameworks,
