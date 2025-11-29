@@ -6757,6 +6757,13 @@ else
 	nnoremap <silent> <esc>[1;5C :call Resize('>', '1')<cr>
 	nnoremap <silent> <esc>[1;5D :call Resize('<', '1')<cr>
 endif
+" NOTE:  becuase I sometimes remote control through TeamViewer -- the
+"        control codes do not always get through, so I also create leader
+"        based mappings for small resizes:
+nnoremap <silent> <leader>w<up>    :call Resize('+', '1')<cr>
+nnoremap <silent> <leader>w<down>  :call Resize('-', '1')<cr>
+nnoremap <silent> <leader>w<right> :call Resize('>', '1')<cr>
+nnoremap <silent> <leader>w<left>  :call Resize('<', '1')<cr>
 
 "" NOTE:  after getting over the learning curve of vim script - just enough to understand
 ""        what this function is doing:  trying to normalize so that '+' always makes the line go up
