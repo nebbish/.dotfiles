@@ -3423,6 +3423,23 @@ nnoremap <leader><leader>ti :call tagalong#Init()<cr>
 "}}}
 
 
+" Mappings for the Claude Code when launched within VIM (i.e. in VIM 'term') "{{{
+nnoremap <expr> <leader><leader>ac    <nop>
+nnoremap        <leader><leader>acm   <nop>
+nnoremap        <leader><leader>acm?  :echo printf("Claude Model:  %s", $ANTHROPIC_MODEL)<cr>
+nnoremap        <leader><leader>acmh  <nop>
+nnoremap        <leader><leader>acmh4 :let $ANTHROPIC_MODEL = 'claude-haiku-4-5-latest'<cr>
+nnoremap        <leader><leader>acmh3 :let $ANTHROPIC_MODEL = 'claude-3-5-haiku-latest'<cr>
+nnoremap        <leader><leader>acms  <nop>
+nnoremap        <leader><leader>acms4 :let $ANTHROPIC_MODEL = 'claude-sonnet-4-latest'<cr>
+nnoremap        <leader><leader>acms5 :let $ANTHROPIC_MODEL = 'claude-sonnet-4-5-latest'<cr>
+nnoremap        <leader><leader>acmo  <nop>
+nnoremap        <leader><leader>acmo4 :let $ANTHROPIC_MODEL = 'claude-opus-4-latest'<cr>
+nnoremap        <leader><leader>acmo1 :let $ANTHROPIC_MODEL = 'claude-opus-4-1-latest'<cr>
+nnoremap        <leader><leader>acmo5 :let $ANTHROPIC_MODEL = 'claude-opus-4-5-latest'<cr>
+"}}}
+
+
 " Mappings for the various installed "copilot"-like AI engines "{{{
 ""
 "" First, the dictionary of "copilot"-like AI engines:
