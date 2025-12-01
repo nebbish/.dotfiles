@@ -2989,7 +2989,7 @@ Plug 'iamcco/markdown-preview.nvim'
 
 " AI related plugins: "{{{
 "" NOTE:  this was formerly:  Exafunction/codeium !!
-"Plug 'Exafunction/windsurf.vim', { 'branch': 'main' }
+Plug 'Exafunction/windsurf.vim', { 'branch': 'main' }
 "Plug 'github/copilot.vim'
 "Plug 'augmentcode/augment.vim'
 " "}}}
