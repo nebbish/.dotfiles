@@ -10,6 +10,8 @@ fi
 
 # Personal ideas and favorites, built up over time...
 alias dd="cd .."
+alias ddirs="dirs | tr ' ' '\n'"
+alias dpath="echo $PATH | tr ':' '\n'"
 
 # New section for experimenting with:  tmux
 alias tml="tmux list-sessions"
@@ -88,7 +90,8 @@ fi
 alias afmt="clang-format -style=file"
 alias tt="tabtool.py"
 alias gobin="pushd ~/bin"
-alias py3="python3"
+alias py3="py -3"
+alias godev="pushd ~/Documents/devplay"
 
 ##
 ## Kasmweb/chrome is an image providing a working Chrome that is fully sandboxed and temporary.
